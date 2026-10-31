@@ -35,7 +35,7 @@ func main() {
 	for {
 		input, err := prompt.Readline()
 		if err != nil {
-			if err == io.EOF {
+			if err == io.EOF { //nolint:errorlint
 				break
 			}
 			fatal(err)
