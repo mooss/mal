@@ -1,10 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/chzyer/readline"
 )
 
 func read(input string) string {
@@ -25,10 +26,14 @@ func red(input string) string {
 }
 
 func main() {
-	user := bufio.NewReader(os.Stdin)
+	prompt, err := readline.New("user> ")
+	if err != nil {
+		fatal(err)
+	}
+	defer prompt.Close()
+
 	for {
-		fmt.Print("user> ")
-		input, err := user.ReadString('\n')
+		input, err := prompt.Readline()
 		if err != nil {
 			if err == io.EOF {
 				break
