@@ -2,6 +2,7 @@ package lexer
 
 type TokenType int
 
+//revive:disable:var-naming
 const (
 	TOKEN_ERROR  TokenType = iota
 	TOKEN_LPAREN           // Opening parenthesis (

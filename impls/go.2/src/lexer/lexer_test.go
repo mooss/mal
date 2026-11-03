@@ -1,3 +1,4 @@
+//revive:disable:cognitive-complexity,line-length-limit
 package lexer
 
 import "testing"
@@ -36,7 +37,7 @@ func TestTokenizeStrings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tokens, errFn := Tokenize(tt.input)
+			tokens, errFn := TokenIterator(tt.input)
 			var gotTokens []string
 			for tok := range tokens {
 				gotTokens = append(gotTokens, tok.Value)
