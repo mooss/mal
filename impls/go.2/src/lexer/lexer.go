@@ -18,7 +18,7 @@ func TokenIterator(input string) (iter.Seq[Token], func() error) {
 		for {
 			token, scanErr := lexMal(lex)
 			if scanErr != nil {
-				if errors.Is(scanErr, EndOfInput) {
+				if scanErr == EndOfInput { //nolint:errorlint
 					return
 				}
 				err = scanErr
@@ -38,8 +38,9 @@ var EndOfInput = errors.New("end of input") //nolint:revive,staticcheck
 type LexicalFailure string
 
 const (
-	UnterminatedDQS LexicalFailure = "unterminated double quoted string"
-	InvalidStart    LexicalFailure = "invalid token start"
+	UnterminatedDQS      LexicalFailure = "unterminated double quoted string"
+	InvalidStart         LexicalFailure = "invalid token start"
+	InvalidTokenBoundary LexicalFailure = "invalid token boundary"
 )
 
 const EOF = -1
@@ -48,7 +49,6 @@ type Lexer struct {
 	Input string // The string being lexed.
 	start int    // Start position of the current token.
 	pos   int    // Current position in the input.
-	width int    // Width of the last rune read.
 }
 
 ///////////////////////
@@ -74,9 +74,8 @@ func (lex *Lexer) Next() rune {
 		return EOF
 	}
 
-	var glyph rune
-	glyph, lex.width = utf8.DecodeRuneInString(lex.Input[lex.pos:])
-	lex.pos += lex.width
+	glyph, width := utf8.DecodeRuneInString(lex.Input[lex.pos:])
+	lex.pos += width
 	return glyph
 }
 
@@ -85,6 +84,13 @@ func (lex *Lexer) produce(typ TokenType) Token {
 	token := lex.Input[lex.start:lex.pos]
 	lex.start = lex.pos
 	return Token{Type: typ, Value: token}
+}
+
+// Failuref formats a lexical error wrapping the current token.
+func (lex *Lexer) Failuref(reason LexicalFailure, msg string, args ...any) error {
+	token := lex.produce(TOKEN_ERROR)
+	args = append([]any{reason}, append(args, token.Value)...)
+	return fmt.Errorf("%s: "+msg+": %#q", args...)
 }
 
 // Failure returns a lexical error wrapping the current token.
@@ -98,24 +104,80 @@ func (lex *Lexer) Success(typ TokenType) (Token, error) {
 	return lex.produce(typ), nil
 }
 
+// SkipWhitespace advances the current position and the start position to the next non-whitespace
+// character.
+func (lex *Lexer) SkipWhitespace() {
+	for {
+		switch lex.Peek() {
+		case ' ', '\t', '\n', '\r':
+			lex.Next()
+			lex.start = lex.pos
+		default:
+			return
+		}
+	}
+}
+
+func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
+	peek := lex.Peek()
+	switch peek {
+	case '(', ')', EOF, ' ', '\t', '\n', '\r':
+	default:
+		return Token{}, lex.Failuref(InvalidTokenBoundary, "%q is not a boundary character", peek)
+	}
+	return lex.Success(typ)
+}
+
 ////////////
 // Lexers //
 
 // lexMal extracts the next Mal token.
 // It returns the token on success, EndOfInput on end-of-input, or another error on lexical failure.
 func lexMal(lex *Lexer) (Token, error) {
-	switch lex.Peek() {
+	lex.SkipWhitespace()
+	peek := lex.Peek()
+	switch peek {
 	case EOF:
 		return Token{}, EndOfInput
+	case '(':
+		lex.Next()
+		return lex.Success(TOKEN_LPAREN)
+	case ')':
+		lex.Next()
+		return lex.Success(TOKEN_RPAREN)
 	case '"':
 		return lexDqs(lex)
 	default:
-		lex.Next() // Advance the input to show the rune in the error message.
-		return Token{}, lex.Failure(InvalidStart)
 	}
+
+	if isAlphaASCII(peek) {
+		return lexSymbol(lex)
+	} else if isNumASCII(peek) {
+		return lexInt(lex)
+	}
+
+	lex.Next() // Advance the input to show the rune in the error message.
+	return Token{}, lex.Failure(InvalidStart)
 }
 
-// lexDqs seeks the end of a double quoted string.
+// lexSymbol lexes a symbol token.
+// Assumes that the first symbol has already been tested as an alphabetical character.
+func lexSymbol(lex *Lexer) (Token, error) {
+	for isAlphaNumASCII(lex.Peek()) {
+		lex.Next()
+	}
+	return lex.SuccessOnBoundary(TOKEN_SYMBOL)
+}
+
+// lexInt lexes an integer token.
+func lexInt(lex *Lexer) (Token, error) {
+	for isNumASCII(lex.Peek()) {
+		lex.Next()
+	}
+	return lex.SuccessOnBoundary(TOKEN_INT)
+}
+
+// lexDqs lexes a double quoted string.
 // The lexer is supposed to be placed at the opening double quote.
 func lexDqs(lex *Lexer) (Token, error) {
 	lex.Next() // Consume the opening double quote.
@@ -133,4 +195,22 @@ func lexDqs(lex *Lexer) (Token, error) {
 		default:
 		}
 	}
+}
+
+///////////////////////
+// Utility functions //
+
+// isAlphaNumASCII returns true if r is an alphanumerical ASCII character.
+func isAlphaNumASCII(r rune) bool {
+	return (r >= '0' && r <= '9') || (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')
+}
+
+// isAlphaASCII returns true if r is an alphabetical ASCII character.
+func isAlphaASCII(r rune) bool {
+	return (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')
+}
+
+// isNumASCII returns true if r is a numerical ASCII character.
+func isNumASCII(r rune) bool {
+	return (r >= '0' && r <= '9')
 }

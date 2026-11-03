@@ -61,3 +61,197 @@ func TestTokenizeStrings(t *testing.T) {
 		})
 	}
 }
+
+func TestTokenizeParens(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    []Token
+		wantErr bool
+	}{
+		{name: "single open", input: "(", want: []Token{{Type: TOKEN_LPAREN, Value: "("}}, wantErr: false},
+		{name: "single close", input: ")", want: []Token{{Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "empty list", input: "()", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "spaced list", input: "( )", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "whitespace padded", input: "  (\n\t )  ", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "nested", input: "(())", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "deeply nested", input: "((()))", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "two lists", input: "()()", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "two lists spaced", input: "() ()", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "newlines", input: "(\n(\n)\n)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			seq, errFn := TokenIterator(tt.input)
+			var got []Token
+			for tok := range seq {
+				got = append(got, tok)
+			}
+			gotErr := errFn() != nil
+			if len(got) != len(tt.want) {
+				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
+				}
+			}
+			if gotErr != tt.wantErr {
+				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestTokenizeInts(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    []Token
+		wantErr bool
+	}{
+		{name: "zero", input: "0", want: []Token{{Type: TOKEN_INT, Value: "0"}}, wantErr: false},
+		{name: "single digit", input: "1", want: []Token{{Type: TOKEN_INT, Value: "1"}}, wantErr: false},
+		{name: "multi digit", input: "123", want: []Token{{Type: TOKEN_INT, Value: "123"}}, wantErr: false},
+		{name: "leading zeros", input: "007", want: []Token{{Type: TOKEN_INT, Value: "007"}}, wantErr: false},
+		// {name: "negative zero", input: "-0", want: []Token{{Type: TOKEN_INT, Value: "-0"}}, wantErr: false},
+		// {name: "negative single", input: "-1", want: []Token{{Type: TOKEN_INT, Value: "-1"}}, wantErr: false},
+		// {name: "negative multi", input: "-42", want: []Token{{Type: TOKEN_INT, Value: "-42"}}, wantErr: false},
+		// {name: "negative long", input: "-9876543210", want: []Token{{Type: TOKEN_INT, Value: "-9876543210"}}, wantErr: false},
+		{name: "large", input: "999999999999999999999999", want: []Token{{Type: TOKEN_INT, Value: "999999999999999999999999"}}, wantErr: false},
+		{name: "multiple", input: "1 2 3", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_INT, Value: "3"}}, wantErr: false},
+		// {name: "whitespace padded", input: "  42\t\n-7  ", want: []Token{{Type: TOKEN_INT, Value: "42"}, {Type: TOKEN_INT, Value: "-7"}}, wantErr: false},
+		// {name: "zeros", input: "0 -0 00 -00", want: []Token{{Type: TOKEN_INT, Value: "0"}, {Type: TOKEN_INT, Value: "-0"}, {Type: TOKEN_INT, Value: "00"}, {Type: TOKEN_INT, Value: "-00"}}, wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			seq, errFn := TokenIterator(tt.input)
+			var got []Token
+			for tok := range seq {
+				got = append(got, tok)
+			}
+			gotErr := errFn() != nil
+			if len(got) != len(tt.want) {
+				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
+				}
+			}
+			if gotErr != tt.wantErr {
+				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestTokenizeSymbols(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    []Token
+		wantErr bool
+	}{
+		{name: "single letter", input: "a", want: []Token{{Type: TOKEN_SYMBOL, Value: "a"}}, wantErr: false},
+		{name: "simple", input: "foo", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
+		{name: "uppercase", input: "ABC", want: []Token{{Type: TOKEN_SYMBOL, Value: "ABC"}}, wantErr: false},
+		{name: "mixed case digits", input: "AbC123", want: []Token{{Type: TOKEN_SYMBOL, Value: "AbC123"}}, wantErr: false},
+		// {name: "plus", input: "+", want: []Token{{Type: TOKEN_SYMBOL, Value: "+"}}, wantErr: false},
+		// {name: "star", input: "*", want: []Token{{Type: TOKEN_SYMBOL, Value: "*"}}, wantErr: false},
+		// {name: "single minus", input: "-", want: []Token{{Type: TOKEN_SYMBOL, Value: "-"}}, wantErr: false},
+		// {name: "double minus", input: "--", want: []Token{{Type: TOKEN_SYMBOL, Value: "--"}}, wantErr: false},
+		// {name: "double minus digit", input: "--1", want: []Token{{Type: TOKEN_SYMBOL, Value: "--1"}}, wantErr: false},
+		// {name: "minus letter", input: "-a", want: []Token{{Type: TOKEN_SYMBOL, Value: "-a"}}, wantErr: false},
+		// {name: "letter minus", input: "a-", want: []Token{{Type: TOKEN_SYMBOL, Value: "a-"}}, wantErr: false},
+		// {name: "digit letter", input: "1a", want: []Token{{Type: TOKEN_SYMBOL, Value: "1a"}}, wantErr: false},
+		// {name: "digit minus", input: "1-", want: []Token{{Type: TOKEN_SYMBOL, Value: "1-"}}, wantErr: false},
+		// {name: "plus digits", input: "+123", want: []Token{{Type: TOKEN_SYMBOL, Value: "+123"}}, wantErr: false},
+		// {name: "digits plus digits", input: "12+34", want: []Token{{Type: TOKEN_SYMBOL, Value: "12+34"}}, wantErr: false},
+		// {name: "dash", input: "foo-bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo-bar"}}, wantErr: false},
+		// {name: "slash", input: "foo/bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo/bar"}}, wantErr: false},
+		// {name: "dot", input: "foo.bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo.bar"}}, wantErr: false},
+		// {name: "comma", input: "foo,bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo,bar"}}, wantErr: false},
+		// {name: "dots", input: "...", want: []Token{{Type: TOKEN_SYMBOL, Value: "..."}}, wantErr: false},
+		// {name: "stars", input: "***", want: []Token{{Type: TOKEN_SYMBOL, Value: "***"}}, wantErr: false},
+		// {name: "punct run", input: "*+,-./", want: []Token{{Type: TOKEN_SYMBOL, Value: "*+,-./"}}, wantErr: false},
+		{name: "multiple", input: "foo bar baz", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_SYMBOL, Value: "baz"}}, wantErr: false},
+		// {name: "all plain punct", input: "a/b.c*d+e-f,g", want: []Token{{Type: TOKEN_SYMBOL, Value: "a/b.c*d+e-f,g"}}, wantErr: false},
+		{name: "keywords", input: "nil true false defn", want: []Token{{Type: TOKEN_SYMBOL, Value: "nil"}, {Type: TOKEN_SYMBOL, Value: "true"}, {Type: TOKEN_SYMBOL, Value: "false"}, {Type: TOKEN_SYMBOL, Value: "defn"}}, wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			seq, errFn := TokenIterator(tt.input)
+			var got []Token
+			for tok := range seq {
+				got = append(got, tok)
+			}
+			gotErr := errFn() != nil
+			if len(got) != len(tt.want) {
+				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
+				}
+			}
+			if gotErr != tt.wantErr {
+				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestTokenizeCombinations(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    []Token
+		wantErr bool
+	}{
+		{name: "empty input", input: "", want: nil, wantErr: false},
+		{name: "whitespace only", input: " \t\n\r ", want: nil, wantErr: false},
+		{name: "empty list", input: "()", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "symbol and int", input: "(foo 123)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		// {name: "plus ints", input: "(+ 1 2)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "+"}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "def", input: "(def foo 42)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "def"}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "42"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "int then symbol", input: "123 abc", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_SYMBOL, Value: "abc"}}, wantErr: false},
+		// {name: "int vs symbol dash", input: "-123 -abc 123abc +123", want: []Token{{Type: TOKEN_INT, Value: "-123"}, {Type: TOKEN_SYMBOL, Value: "-abc"}, {Type: TOKEN_SYMBOL, Value: "123abc"}, {Type: TOKEN_SYMBOL, Value: "+123"}}, wantErr: false},
+		{name: "no spaces", input: "(foo)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "int in parens", input: "(1)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "nested ints", input: "((1 2) (3 4))", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "3"}, {Type: TOKEN_INT, Value: "4"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "string and symbol", input: `"hello" foo`, want: []Token{{Type: TOKEN_DQS, Value: `"hello"`}, {Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
+		// {name: "string in list", input: `(foo "bar baz" -42)`, want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_DQS, Value: `"bar baz"`}, {Type: TOKEN_INT, Value: "-42"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "int adjacent parens", input: "1(2)", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "all kinds", input: `123 abc ( ) "hello"`, want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_SYMBOL, Value: "abc"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_DQS, Value: `"hello"`}}, wantErr: false},
+		{name: "multiline", input: "  ( \n foo\t 123 \r\n )  ", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "invalid start", input: ":", want: nil, wantErr: true},
+		{name: "unterminated string", input: `"foo`, want: nil, wantErr: true},
+		{name: "valid then invalid", input: "foo : bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			seq, errFn := TokenIterator(tt.input)
+			var got []Token
+			for tok := range seq {
+				got = append(got, tok)
+			}
+			gotErr := errFn() != nil
+			if len(got) != len(tt.want) {
+				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
+				}
+			}
+			if gotErr != tt.wantErr {
+				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
+			}
+		})
+	}
+}
