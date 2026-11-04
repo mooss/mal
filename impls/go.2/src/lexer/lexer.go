@@ -175,6 +175,8 @@ func lexMal(lex *Lexer) (Token, error) {
 
 	if isNumASCII(peek) {
 		return lexInt(lex)
+	} else if peek == '-' && lex.pos+1 < len(lex.Input) && isNumASCII(rune(lex.Input[lex.pos+1])) {
+		return lexInt(lex)
 	} else if isPlainTokenStart(peek) {
 		return lexSymbol(lex)
 	}
@@ -193,7 +195,11 @@ func lexSymbol(lex *Lexer) (Token, error) {
 }
 
 // lexInt lexes an integer token.
+// A leading minus is allowed for negative integers; the caller ensures a digit follows it.
 func lexInt(lex *Lexer) (Token, error) {
+	if lex.Peek() == '-' {
+		lex.Next()
+	}
 	for isNumASCII(lex.Peek()) {
 		lex.Next()
 	}
