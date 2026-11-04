@@ -40,6 +40,9 @@ func TestTokenizeStrings(t *testing.T) {
 			tokens, errFn := TokenIterator(tt.input)
 			var gotTokens []string
 			for tok := range tokens {
+				if tok.Type != TOKEN_DQS {
+					t.Errorf("input %q: got token type %v (%q), want %v", tt.input, tok.Type, tok.Value, TOKEN_DQS)
+				}
 				gotTokens = append(gotTokens, tok.Value)
 			}
 			gotErr := errFn() != nil
@@ -409,5 +412,23 @@ func TestTokenizeWhitespace(t *testing.T) {
 				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestTokenIteratorEarlyBreak(t *testing.T) {
+	seq, errFn := TokenIterator("(1 2 3)")
+	var got []Token
+	for tok := range seq {
+		got = append(got, tok)
+		break
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected 1 token after early break, got %d tokens %v", len(got), got)
+	}
+	if want := (Token{Type: TOKEN_LPAREN, Value: "("}); got[0] != want {
+		t.Errorf("first token: got %+v, want %+v", got[0], want)
+	}
+	if err := errFn(); err != nil {
+		t.Errorf("expected nil error after early break, got %v", err)
 	}
 }
