@@ -148,6 +148,7 @@ func TestTokenizeInts(t *testing.T) {
 		{name: "multiple", input: "1 2 3", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_INT, Value: "3"}}, wantErr: false},
 		{name: "whitespace padded", input: "  42\t\n-7  ", want: []Token{{Type: TOKEN_INT, Value: "42"}, {Type: TOKEN_INT, Value: "-7"}}, wantErr: false},
 		{name: "zeros", input: "0 -0 00 -00", want: []Token{{Type: TOKEN_INT, Value: "0"}, {Type: TOKEN_INT, Value: "-0"}, {Type: TOKEN_INT, Value: "00"}, {Type: TOKEN_INT, Value: "-00"}}, wantErr: false},
+		{name: "plus digits", input: "+123", want: []Token{{Type: TOKEN_INT, Value: "+123"}}, wantErr: false},
 	}
 
 	for _, tt := range tests {
@@ -191,7 +192,6 @@ func TestTokenizeSymbols(t *testing.T) {
 		{name: "double minus digit", input: "--1", want: []Token{{Type: TOKEN_SYMBOL, Value: "--1"}}, wantErr: false},
 		{name: "minus letter", input: "-a", want: []Token{{Type: TOKEN_SYMBOL, Value: "-a"}}, wantErr: false},
 		{name: "letter minus", input: "a-", want: []Token{{Type: TOKEN_SYMBOL, Value: "a-"}}, wantErr: false},
-		{name: "plus digits", input: "+123", want: []Token{{Type: TOKEN_SYMBOL, Value: "+123"}}, wantErr: false},
 		{name: "dash", input: "foo-bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo-bar"}}, wantErr: false},
 		{name: "slash", input: "foo/bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo/bar"}}, wantErr: false},
 		{name: "dot", input: "foo.bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo.bar"}}, wantErr: false},
@@ -242,7 +242,7 @@ func TestTokenizeCombinations(t *testing.T) {
 		{name: "plus ints", input: "(+ 1 2)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "+"}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
 		{name: "def", input: "(def foo 42)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "def"}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "42"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
 		{name: "int then symbol", input: "123 abc", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_SYMBOL, Value: "abc"}}, wantErr: false},
-		{name: "int vs symbol dash", input: "-123 -abc +123", want: []Token{{Type: TOKEN_INT, Value: "-123"}, {Type: TOKEN_SYMBOL, Value: "-abc"}, {Type: TOKEN_SYMBOL, Value: "+123"}}, wantErr: false},
+		{name: "int vs symbol dash", input: "-123 -abc +123", want: []Token{{Type: TOKEN_INT, Value: "-123"}, {Type: TOKEN_SYMBOL, Value: "-abc"}, {Type: TOKEN_INT, Value: "+123"}}, wantErr: false},
 		{name: "no spaces", input: "(foo)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
 		{name: "int in parens", input: "(1)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
 		{name: "nested ints", input: "((1 2) (3 4))", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "3"}, {Type: TOKEN_INT, Value: "4"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},

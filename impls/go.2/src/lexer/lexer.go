@@ -60,11 +60,12 @@ func (lex *Lexer) Over() bool {
 }
 
 // Peek returns the next rune without advancing the input.
-func (lex *Lexer) Peek() rune {
-	if lex.pos >= len(lex.Input) {
+func (lex *Lexer) Peek(index int) rune {
+	index += lex.pos
+	if index >= len(lex.Input) {
 		return EOF
 	}
-	return lex.Input[lex.pos]
+	return lex.Input[index]
 }
 
 // Next advances to the next rune, returning the current one.
@@ -107,7 +108,7 @@ func (lex *Lexer) Success(typ TokenType) (Token, error) {
 // boundary.
 // Otherwise returns a special error identifying the invalid boundary.
 func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
-	peek := lex.Peek()
+	peek := lex.Peek(0)
 	switch peek {
 	case '(', ')', '[', ']', '{', '}', '\'', EOF, ' ', '\t', '\n', '\r', ',':
 	default:
@@ -121,7 +122,7 @@ func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
 // character.
 func (lex *Lexer) SkipWhitespace() {
 	for {
-		switch lex.Peek() {
+		switch lex.Peek(0) {
 		// mal treats comma as whitespace.
 		case ' ', '\t', '\n', '\r', ',':
 			lex.Next()
@@ -141,10 +142,12 @@ func (lex *Lexer) SkipWhitespace() {
 //revive:disable:cyclomatic
 func lexMal(lex *Lexer) (Token, error) {
 	lex.SkipWhitespace()
-	peek := lex.Peek()
+	peek := lex.Peek(0)
 	switch peek {
 	case EOF:
 		return Token{}, EndOfInput
+
+	// Balanced expressions.
 	case '(':
 		lex.Next()
 		return lex.Success(TOKEN_LPAREN)
@@ -163,17 +166,20 @@ func lexMal(lex *Lexer) (Token, error) {
 	case '}':
 		lex.Next()
 		return lex.Success(TOKEN_RBRACE)
+	case '"':
+		return lexDqs(lex)
+
+	case '-', '+':
+		if isNumASCII(lex.Peek(1)) {
+			return lexInt(lex)
+		}
 	case '\'':
 		lex.Next()
 		return lex.Success(TOKEN_SQUOTE)
-	case '"':
-		return lexDqs(lex)
 	default:
 	}
 
 	if isNumASCII(peek) {
-		return lexInt(lex)
-	} else if peek == '-' && lex.pos+1 < len(lex.Input) && isNumASCII(lex.Input[lex.pos+1]) {
 		return lexInt(lex)
 	} else if isPlainTokenStart(peek) {
 		return lexSymbol(lex)
@@ -186,19 +192,19 @@ func lexMal(lex *Lexer) (Token, error) {
 // lexSymbol lexes a symbol token.
 // Assumes that the first symbol has already been tested as a valid symbol start.
 func lexSymbol(lex *Lexer) (Token, error) {
-	for isPlainTokenRest(lex.Peek()) {
+	for isPlainTokenRest(lex.Peek(0)) {
 		lex.Next()
 	}
 	return lex.SuccessOnBoundary(TOKEN_SYMBOL)
 }
 
 // lexInt lexes an integer token.
-// A leading minus is allowed for negative integers; the caller ensures a digit follows it.
 func lexInt(lex *Lexer) (Token, error) {
-	if lex.Peek() == '-' {
+	first := lex.Peek(0)
+	if first == '-' || first == '+' {
 		lex.Next()
 	}
-	for isNumASCII(lex.Peek()) {
+	for isNumASCII(lex.Peek(0)) {
 		lex.Next()
 	}
 	return lex.SuccessOnBoundary(TOKEN_INT)
