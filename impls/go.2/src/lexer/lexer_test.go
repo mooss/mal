@@ -170,12 +170,11 @@ func TestTokenizeSymbols(t *testing.T) {
 		{name: "dash", input: "foo-bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo-bar"}}, wantErr: false},
 		{name: "slash", input: "foo/bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo/bar"}}, wantErr: false},
 		{name: "dot", input: "foo.bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo.bar"}}, wantErr: false},
-		{name: "comma", input: "foo,bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo,bar"}}, wantErr: false},
 		{name: "dots", input: "...", want: []Token{{Type: TOKEN_SYMBOL, Value: "..."}}, wantErr: false},
 		{name: "stars", input: "***", want: []Token{{Type: TOKEN_SYMBOL, Value: "***"}}, wantErr: false},
-		{name: "punct run", input: "*+,-./", want: []Token{{Type: TOKEN_SYMBOL, Value: "*+,-./"}}, wantErr: false},
+		{name: "punct run", input: "*+-./", want: []Token{{Type: TOKEN_SYMBOL, Value: "*+-./"}}, wantErr: false},
 		{name: "multiple", input: "foo bar baz", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_SYMBOL, Value: "baz"}}, wantErr: false},
-		{name: "all plain punct", input: "a/b.c*d+e-f,g", want: []Token{{Type: TOKEN_SYMBOL, Value: "a/b.c*d+e-f,g"}}, wantErr: false},
+		{name: "all plain punct", input: "a/b.c*d+e-f", want: []Token{{Type: TOKEN_SYMBOL, Value: "a/b.c*d+e-f"}}, wantErr: false},
 		{name: "keywords", input: "nil true false defn", want: []Token{{Type: TOKEN_SYMBOL, Value: "nil"}, {Type: TOKEN_SYMBOL, Value: "true"}, {Type: TOKEN_SYMBOL, Value: "false"}, {Type: TOKEN_SYMBOL, Value: "defn"}}, wantErr: false},
 		{name: "digit minus", input: "1-", want: []Token{}, wantErr: true},
 		{name: "digits plus digits", input: "12+34", want: []Token{}, wantErr: true},
@@ -227,9 +226,155 @@ func TestTokenizeCombinations(t *testing.T) {
 		{name: "int adjacent parens", input: "1(2)", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
 		{name: "all kinds", input: `123 abc ( ) "hello"`, want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_SYMBOL, Value: "abc"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_DQS, Value: `"hello"`}}, wantErr: false},
 		{name: "multiline", input: "  ( \n foo\t 123 \r\n )  ", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "invalid start", input: ":", want: nil, wantErr: true},
 		{name: "unterminated string", input: `"foo`, want: nil, wantErr: true},
-		{name: "valid then invalid", input: "foo : bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: true},
+		{name: "valid then invalid", input: "foo : bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: ":"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			seq, errFn := TokenIterator(tt.input)
+			var got []Token
+			for tok := range seq {
+				got = append(got, tok)
+			}
+			gotErr := errFn() != nil
+			if len(got) != len(tt.want) {
+				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
+				}
+			}
+			if gotErr != tt.wantErr {
+				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestTokenizeInvalid(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    []Token
+		wantErr bool
+	}{
+		{name: "open bracket", input: "[", want: nil, wantErr: true},
+		{name: "close bracket", input: "]", want: nil, wantErr: true},
+		{name: "open brace", input: "{", want: nil, wantErr: true},
+		{name: "close brace", input: "}", want: nil, wantErr: true},
+		{name: "single quote", input: "'", want: nil, wantErr: true},
+		{name: "backtick", input: "`", want: nil, wantErr: true},
+		{name: "tilde", input: "~", want: nil, wantErr: true},
+		{name: "bang", input: "!", want: nil, wantErr: true},
+		{name: "hash", input: "#", want: nil, wantErr: true},
+		{name: "dollar", input: "$", want: nil, wantErr: true},
+		{name: "percent", input: "%", want: nil, wantErr: true},
+		{name: "ampersand", input: "&", want: nil, wantErr: true},
+		{name: "pipe", input: "|", want: nil, wantErr: true},
+		{name: "backslash", input: `\`, want: nil, wantErr: true},
+		{name: "caret", input: "^", want: nil, wantErr: true},
+		{name: "underscore", input: "_", want: nil, wantErr: true},
+		{name: "int then letters", input: "123abc", want: nil, wantErr: true},
+		{name: "int then slash", input: "123/foo", want: nil, wantErr: true},
+		{name: "symbol then bang", input: "foo!bar", want: nil, wantErr: true},
+		{name: "symbol then quote", input: `foo"bar"`, want: nil, wantErr: true},
+		{name: "int then quote", input: `123"foo"`, want: nil, wantErr: true},
+		{name: "valid then invalid start", input: "foo [", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: true},
+		{name: "two valid then invalid", input: "foo bar [", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: true},
+		{name: "list then invalid", input: "() [", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: true},
+		{name: "int then invalid", input: "123 [", want: []Token{{Type: TOKEN_INT, Value: "123"}}, wantErr: true},
+		{name: "string then invalid", input: `"foo" [`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}}, wantErr: true},
+		{name: "symbol boundary lparen", input: "foo(bar)", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "symbol boundary rparen", input: "foo)bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "int boundary lparen", input: "123(foo)", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "string adjacent symbol", input: `"foo"bar`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "string adjacent int", input: `"foo"123`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
+		{name: "string adjacent lparen", input: `"foo"(bar)`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "escaped newline", input: "\"foo\\\nbar\"", want: nil, wantErr: true},
+		{name: "trailing backslash", input: "\"foo\\", want: nil, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			seq, errFn := TokenIterator(tt.input)
+			var got []Token
+			for tok := range seq {
+				got = append(got, tok)
+			}
+			gotErr := errFn() != nil
+			if len(got) != len(tt.want) {
+				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
+				}
+			}
+			if gotErr != tt.wantErr {
+				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestTokenizeWhitespace(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    []Token
+		wantErr bool
+	}{
+		{name: "space only", input: " ", want: nil, wantErr: false},
+		{name: "tab only", input: "\t", want: nil, wantErr: false},
+		{name: "newline only", input: "\n", want: nil, wantErr: false},
+		{name: "carriage return only", input: "\r", want: nil, wantErr: false},
+		{name: "single comma", input: ",", want: nil, wantErr: false},
+		{name: "multiple commas", input: ",,,", want: nil, wantErr: false},
+		{name: "mixed whitespace only", input: " \t\n\r", want: nil, wantErr: false},
+		{name: "mixed whitespace and commas only", input: " , ,\t\n\r, ", want: nil, wantErr: false},
+		{name: "commas with newlines only", input: ",\n,\r\n,\t,", want: nil, wantErr: false},
+		{name: "symbol padded spaces", input: "  foo  ", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
+		{name: "symbol padded tabs", input: "\tfoo\t", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
+		{name: "symbol padded newlines", input: "\nfoo\n", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
+		{name: "symbol padded carriage returns", input: "\rfoo\r", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
+		{name: "symbol padded commas", input: ",foo,", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
+		{name: "symbol padded mixed", input: " \t\n\r,foo, \r\n\t ", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
+		{name: "int padded mixed", input: " ,\t\n\r42\r\n\t, ", want: []Token{{Type: TOKEN_INT, Value: "42"}}, wantErr: false},
+		{name: "symbols space separated", input: "foo bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "symbols tab separated", input: "foo\tbar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "symbols newline separated", input: "foo\nbar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "symbols cr separated", input: "foo\rbar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "symbols comma separated", input: "foo,bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "symbols multi comma separated", input: "foo,,,bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "symbols comma space mixed", input: "foo , bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "symbols mixed whitespace separated", input: "foo \t\n\r, bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "ints space separated", input: "1 2", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}}, wantErr: false},
+		{name: "ints tab separated", input: "1\t2", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}}, wantErr: false},
+		{name: "ints newline separated", input: "1\n2", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}}, wantErr: false},
+		{name: "ints cr separated", input: "1\r2", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}}, wantErr: false},
+		{name: "ints comma separated", input: "1,2,3", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_INT, Value: "3"}}, wantErr: false},
+		{name: "ints mixed whitespace separated", input: "1 \t\n\r, 2,\t3", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_INT, Value: "3"}}, wantErr: false},
+		{name: "int comma symbol", input: "123,foo", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
+		{name: "symbol comma int", input: "foo,123", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
+		{name: "list comma separated", input: "(foo,123)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "list commas and spaces", input: "(,foo,,123,,)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "parens only commas", input: "(,)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "empty parens with whitespace", input: "( \t\n\r, )", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "leading commas before list", input: ",,(foo)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "trailing commas after list", input: "(foo),,", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "comma between parens", input: "(1),(2)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "crlf separated list", input: "(foo\r\nbar)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "symbol comma lparen", input: "foo,(bar)", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "string padded whitespace", input: "  \"hello\"  ", want: []Token{{Type: TOKEN_DQS, Value: `"hello"`}}, wantErr: false},
+		{name: "string padded commas", input: ",\"hello\",", want: []Token{{Type: TOKEN_DQS, Value: `"hello"`}}, wantErr: false},
+		{name: "string padded mixed", input: " \t\n\r,\"hello\", \r\n\t ", want: []Token{{Type: TOKEN_DQS, Value: `"hello"`}}, wantErr: false},
+		{name: "string with comma inside", input: "\"a,b\"", want: []Token{{Type: TOKEN_DQS, Value: `"a,b"`}}, wantErr: false},
+		{name: "string comma symbol", input: "\"foo\",bar", want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "string space int", input: "\"foo\" 123", want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
+		{name: "multiline mixed", input: "  ( \n foo\t,123 \r\n )  ", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "whitespace before invalid", input: "foo , [", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: true},
 	}
 
 	for _, tt := range tests {

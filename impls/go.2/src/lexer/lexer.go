@@ -208,11 +208,15 @@ func lexDqs(lex *Lexer) (Token, error) {
 // Might not be optimal, if needed could be turned into lookup tables.
 
 // isPlainTokenRest returns whether r can go in a plain token (outside of the first character).
+//
+//revive:disable:line-length-limit
 func isPlainTokenRest(r rune) bool {
 	return strings.ContainsRune("*+-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", r)
 }
 
 // isPlainTokenStart returns whether r can be the first character of a plain token.
+//
+//revive:disable:line-length-limit
 func isPlainTokenStart(r rune) bool {
 	return strings.ContainsRune("*+-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", r)
 }
