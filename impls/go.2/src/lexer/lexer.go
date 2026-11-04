@@ -168,7 +168,7 @@ func lexMal(lex *Lexer) (Token, error) {
 	// Atoms.
 	case '-', '+':
 		if isNumASCII(lex.Peek(0)) {
-			return lexInt(lex, next)
+			return lexInt(lex)
 		}
 	case '\'':
 		return lex.Success(TOKEN_SQUOTE)
@@ -176,7 +176,7 @@ func lexMal(lex *Lexer) (Token, error) {
 	}
 
 	if isNumASCII(next) {
-		return lexInt(lex, next)
+		return lexInt(lex)
 	} else if isPlainTokenStart(next) {
 		return lexSymbol(lex)
 	}
@@ -194,10 +194,7 @@ func lexSymbol(lex *Lexer) (Token, error) {
 }
 
 // lexInt lexes an integer token.
-func lexInt(lex *Lexer, first rune) (Token, error) {
-	if first == '-' || first == '+' {
-		lex.Next()
-	}
+func lexInt(lex *Lexer) (Token, error) {
 	for isNumASCII(lex.Peek(0)) {
 		lex.Next()
 	}
