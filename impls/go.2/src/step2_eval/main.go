@@ -8,7 +8,6 @@ import (
 	"github.com/chzyer/readline"
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/env"
-	"github.com/mooss/mal/src/printer"
 	"github.com/mooss/mal/src/reader"
 )
 
@@ -32,7 +31,7 @@ func eval(expr core.Type, envi env.Env) core.Type {
 
 // print is a primitive so this one is called display instead.
 func display(input core.Type) string {
-	return printer.PrintStr(input)
+	return input.String()
 }
 
 func red(input string) (string, error) {

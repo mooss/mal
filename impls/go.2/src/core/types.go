@@ -1,6 +1,10 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 type TypeName string
 
@@ -15,6 +19,7 @@ const (
 
 type Type interface {
 	Type() TypeName
+	String() string
 }
 
 type Symbol string
@@ -31,9 +36,18 @@ func (Integer) Type() TypeName  { return INTEGER }
 func (Error) Type() TypeName    { return ERROR }
 func (Dummy) Type() TypeName    { return DUMMY }
 
-func (lst List) Map[To any](fun func(Type) To) []To {
-	res := make([]To, len(lst))
-	for i, el := range lst {
+func (s Symbol) String() string  { return string(s) }
+func (i Integer) String() string { return strconv.FormatInt(int64(i), 10) }
+func (l List) String() string {
+	return "(" + strings.Join(l.Map(func(t Type) string { return t.String() }), " ") + ")"
+}
+func (e Error) String() string  { return fmt.Sprintf("(error %q)", e.Error()) }
+func (Function) String() string { return "<function>" }
+func (Dummy) String() string    { return "dummy" }
+
+func (l List) Map[To any](fun func(Type) To) []To {
+	res := make([]To, len(l))
+	for i, el := range l {
 		res[i] = fun(el)
 	}
 	return res
