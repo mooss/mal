@@ -12,13 +12,13 @@ import (
 )
 
 func read(input string) (core.Type, error) {
-	read := reader.ReadStr(input)
-	parsed, err := read.ReadForm()
+	rdr := reader.ReadStr(input)
+	parsed, err := rdr.ReadForm()
 	if err != nil {
 		return nil, err
 	}
 
-	if rest := read.Rest(); rest != nil {
+	if rest := rdr.Rest(); rest != nil {
 		return nil, fmt.Errorf("leftover tokens remain: %v", rest)
 	}
 

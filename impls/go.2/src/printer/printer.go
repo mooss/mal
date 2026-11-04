@@ -16,6 +16,8 @@ func PrintStr(typ core.Type) string {
 		return string(value)
 	case core.List:
 		return "(" + strings.Join(value.Map(PrintStr), " ") + ")"
+	case core.Error:
+		return fmt.Sprintf("(error %q)", value.Error())
 	}
-	return fmt.Sprintf("!! PrintStr: no support for %#q (%T)", typ, typ)
+	return fmt.Sprintf("!! PrintStr: no support for %T: %#v", typ, typ)
 }
