@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"iter"
 	"strings"
-	"unicode/utf8"
 )
 
 // TokenIterator turns input into an iterable sequence over its tokens and an error getter.
@@ -13,7 +12,7 @@ import (
 //
 //revive:disable:cognitive-complexity
 func TokenIterator(input string) (iter.Seq[Token], func() error) {
-	lex := &Lexer{Input: input}
+	lex := &Lexer{Input: []rune(input)}
 	var err error
 	return func(yield func(Token) bool) {
 		for {
@@ -47,7 +46,7 @@ const (
 const EOF = -1
 
 type Lexer struct {
-	Input string // The string being lexed.
+	Input []rune // The runes being lexed.
 	start int    // Start position of the current token.
 	pos   int    // Current position in the input.
 }
@@ -65,8 +64,7 @@ func (lex *Lexer) Peek() rune {
 	if lex.pos >= len(lex.Input) {
 		return EOF
 	}
-	glyph, _ := utf8.DecodeRuneInString(lex.Input[lex.pos:])
-	return glyph
+	return lex.Input[lex.pos]
 }
 
 // Next advances to the next rune, returning the current one.
@@ -75,14 +73,14 @@ func (lex *Lexer) Next() rune {
 		return EOF
 	}
 
-	glyph, width := utf8.DecodeRuneInString(lex.Input[lex.pos:])
-	lex.pos += width
+	glyph := lex.Input[lex.pos]
+	lex.pos++
 	return glyph
 }
 
 // produce returns the current token and advances the input.
 func (lex *Lexer) produce(typ TokenType) Token {
-	token := lex.Input[lex.start:lex.pos]
+	token := string(lex.Input[lex.start:lex.pos])
 	lex.start = lex.pos
 	return Token{Type: typ, Value: token}
 }
@@ -175,7 +173,7 @@ func lexMal(lex *Lexer) (Token, error) {
 
 	if isNumASCII(peek) {
 		return lexInt(lex)
-	} else if peek == '-' && lex.pos+1 < len(lex.Input) && isNumASCII(rune(lex.Input[lex.pos+1])) {
+	} else if peek == '-' && lex.pos+1 < len(lex.Input) && isNumASCII(lex.Input[lex.pos+1]) {
 		return lexInt(lex)
 	} else if isPlainTokenStart(peek) {
 		return lexSymbol(lex)

@@ -28,7 +28,7 @@ func TestTokenizeStrings(t *testing.T) {
 		{name: "raw newline no closing", input: "\"foo\n", wantTokens: []string{}, wantErr: true},
 		{name: "raw newline with closing", input: "\"a\nb\"", wantTokens: []string{}, wantErr: true},
 		{name: "CR with closing", input: "\"a\rb\"", wantTokens: []string{"\"a\rb\""}, wantErr: false},
-		{name: "invalid utf8 with closing", input: "\"a\xffb\"", wantTokens: []string{"\"a\xffb\""}, wantErr: false},
+		{name: "invalid utf8 with closing", input: "\"a\xffb\"", wantTokens: []string{"\"a�b\""}, wantErr: false},
 		{name: "NUL no closing", input: "\"foo\x00", wantTokens: []string{}, wantErr: true},
 		{name: "invalid no closing", input: "\"foo\xff", wantTokens: []string{}, wantErr: true},
 		{name: "two adjacent", input: `"a""b"`, wantTokens: []string{`"a"`, `"b"`}, wantErr: false},
