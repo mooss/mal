@@ -154,10 +154,10 @@ func lexMal(lex *Lexer) (Token, error) {
 	default:
 	}
 
-	if isAlphaASCII(peek) {
-		return lexSymbol(lex)
-	} else if isNumASCII(peek) {
+	if isNumASCII(peek) {
 		return lexInt(lex)
+	} else if isPlainTokenStart(peek) {
+		return lexSymbol(lex)
 	}
 
 	lex.Next() // Advance the input to show the rune in the error message.
@@ -165,9 +165,9 @@ func lexMal(lex *Lexer) (Token, error) {
 }
 
 // lexSymbol lexes a symbol token.
-// Assumes that the first symbol has already been tested as an alphabetical character.
+// Assumes that the first symbol has already been tested as a valid symbol start.
 func lexSymbol(lex *Lexer) (Token, error) {
-	for isAlphaNumASCII(lex.Peek()) {
+	for isPlainTokenRest(lex.Peek()) {
 		lex.Next()
 	}
 	return lex.SuccessOnBoundary(TOKEN_SYMBOL)
@@ -204,17 +204,32 @@ func lexDqs(lex *Lexer) (Token, error) {
 ///////////////////////
 // Utility functions //
 
-// isAlphaNumASCII returns true if r is an alphanumerical ASCII character.
-func isAlphaNumASCII(r rune) bool {
-	return (r >= '0' && r <= '9') || (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')
+// isPlainTokenRest returns whether r can go in a plain token (outside of the first character).
+// In other words if it is one of the following characters:
+// *+,-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+// Yet another way to describe it is ASCII letters, ASCII numbers or one of the starslash group.
+func isPlainTokenRest(r rune) bool {
+	return isStarSlash(r) || isNumASCII(r) || isAlphaASCII(r)
+}
+
+// isPlainTokenStart returns whether r can be the first character of a plain token.
+// In other words, if it is an ASCII letter or one of the starslash group.
+func isPlainTokenStart(r rune) bool {
+	return isStarSlash(r) || isAlphaASCII(r)
+}
+
+// isStarSlash returns true if rune is a member of the starslash group (the characters between * and
+// / in the ASCII table, i.e. `*+,-./`).
+func isStarSlash(r rune) bool {
+	return ('*' <= r && r <= '/')
 }
 
 // isAlphaASCII returns true if r is an alphabetical ASCII character.
 func isAlphaASCII(r rune) bool {
-	return (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')
+	return ('A' <= r && r <= 'Z') || ('a' <= r && r <= 'z')
 }
 
 // isNumASCII returns true if r is a numerical ASCII character.
 func isNumASCII(r rune) bool {
-	return (r >= '0' && r <= '9')
+	return ('0' <= r && r <= '9')
 }
