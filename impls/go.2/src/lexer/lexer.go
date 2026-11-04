@@ -68,7 +68,7 @@ func (lex *Lexer) Peek() rune {
 	return glyph
 }
 
-// Next advances to the Next rune, returning the current one.
+// Next advances to the next rune, returning the current one.
 func (lex *Lexer) Next() rune {
 	if lex.pos >= len(lex.Input) {
 		return EOF
@@ -89,19 +89,33 @@ func (lex *Lexer) produce(typ TokenType) Token {
 // Failuref formats a lexical error wrapping the current token.
 func (lex *Lexer) Failuref(reason LexicalFailure, msg string, args ...any) error {
 	token := lex.produce(TOKEN_ERROR)
-	args = append([]any{reason}, append(args, token.Value)...)
-	return fmt.Errorf("%s: "+msg+": %#q", args...)
+	args = append([]any{reason, token.Value}, args...)
+	return fmt.Errorf("%s at %#q: "+msg, args...)
 }
 
 // Failure returns a lexical error wrapping the current token.
 func (lex *Lexer) Failure(reason LexicalFailure) error {
 	token := lex.produce(TOKEN_ERROR)
-	return fmt.Errorf("%s: %#q", reason, token.Value)
+	return fmt.Errorf("%s at %#q", reason, token.Value)
 }
 
 // Success returns the current token without error and advances the input.
 func (lex *Lexer) Success(typ TokenType) (Token, error) {
 	return lex.produce(typ), nil
+}
+
+// SuccessOnBoundary returns the current token without error if the next rune is a valid token
+// boundary.
+// Otherwise returns a special error identifying the invalid boundary.
+func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
+	peek := lex.Peek()
+	switch peek {
+	case '(', ')', EOF, ' ', '\t', '\n', '\r':
+	default:
+		lex.Next() // Make the faulty rune a part of the token included in the error message.
+		return Token{}, lex.Failuref(InvalidTokenBoundary, "%q is not a boundary character", peek)
+	}
+	return lex.Success(typ)
 }
 
 // SkipWhitespace advances the current position and the start position to the next non-whitespace
@@ -116,16 +130,6 @@ func (lex *Lexer) SkipWhitespace() {
 			return
 		}
 	}
-}
-
-func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
-	peek := lex.Peek()
-	switch peek {
-	case '(', ')', EOF, ' ', '\t', '\n', '\r':
-	default:
-		return Token{}, lex.Failuref(InvalidTokenBoundary, "%q is not a boundary character", peek)
-	}
-	return lex.Success(typ)
 }
 
 ////////////
