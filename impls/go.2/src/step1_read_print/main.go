@@ -6,29 +6,32 @@ import (
 	"os"
 
 	"github.com/chzyer/readline"
+	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/printer"
+	"github.com/mooss/mal/src/reader"
 )
 
-func read(input string) (MalType, error) {
-	reader := ReadStr(input)
-	parsed, err := reader.ReadForm()
+func read(input string) (core.Type, error) {
+	read := reader.ReadStr(input)
+	parsed, err := read.ReadForm()
 	if err != nil {
 		return nil, err
 	}
 
-	if rest := reader.Rest(); rest != nil {
+	if rest := read.Rest(); rest != nil {
 		return nil, fmt.Errorf("leftover tokens remain: %v", rest)
 	}
 
 	return parsed, nil
 }
 
-func eval(expr MalType) MalType {
+func eval(expr core.Type) core.Type {
 	return expr
 }
 
 // print is a primitive so this one is called display instead.
-func display(input MalType) string {
-	return PrintStr(input)
+func display(input core.Type) string {
+	return printer.PrintStr(input)
 }
 
 func red(input string) (string, error) {

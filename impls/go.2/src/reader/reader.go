@@ -1,4 +1,4 @@
-package main
+package reader
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/lexer"
 )
 
@@ -72,7 +73,7 @@ func (*Reader) err(msg string) error {
 
 // ReadForm constructs the next type from the input tokens, after ensuring that there was no
 // tokenization error and that there are tokens left to read.
-func (r *Reader) ReadForm() (MalType, error) {
+func (r *Reader) ReadForm() (core.Type, error) {
 	if err := r.tokerr(); err != nil {
 		return nil, r.wrap(err)
 	}
@@ -83,7 +84,7 @@ func (r *Reader) ReadForm() (MalType, error) {
 }
 
 // readForm constructs the next type from the input tokens.
-func (r *Reader) readForm() (MalType, error) {
+func (r *Reader) readForm() (core.Type, error) {
 	token := r.Next()
 	switch token.Type {
 	// Balanced expressions.
@@ -112,8 +113,8 @@ func (r *Reader) readForm() (MalType, error) {
 
 // readList constructs a list from the remaining input tokens (assumes that the opening paren has
 // already been consumed).
-func (r *Reader) readList() (List, error) {
-	res := List{}
+func (r *Reader) readList() (core.List, error) {
+	res := core.List{}
 	for {
 		if r.Done() {
 			// Would just say "missing closing paren" but that is not what mal expects.
@@ -134,20 +135,20 @@ func (r *Reader) readList() (List, error) {
 }
 
 // readAtom constructs an atom from the next input token.
-func (r *Reader) readAtom(token lexer.Token) (MalType, error) {
+func (r *Reader) readAtom(token lexer.Token) (core.Type, error) {
 	if token.Type == lexer.TOKEN_INT {
 		integer, err := strconv.ParseInt(token.Value, 10, 64)
 		if err != nil {
 			return nil, r.wrapf(err, "cannot read %q as int", token.Value)
 		}
-		return Integer(integer), nil
+		return core.Integer(integer), nil
 	}
 
-	return Symbol(token.Value), nil
+	return core.Symbol(token.Value), nil
 }
 
 // readQuote quotes the next form.
-func (r *Reader) readQuote() (MalType, error) {
+func (r *Reader) readQuote() (core.Type, error) {
 	if r.Done() {
 		return nil, r.err("nothing left to quote")
 	}
@@ -155,11 +156,11 @@ func (r *Reader) readQuote() (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	return List([]MalType{Symbol("quote"), quoted}), nil
+	return core.List([]core.Type{core.Symbol("quote"), quoted}), nil
 }
 
-func (r *Reader) readDummy(closing lexer.TokenType) (Dummy, error) {
-	res := Dummy{}
+func (r *Reader) readDummy(closing lexer.TokenType) (core.Dummy, error) {
+	res := core.Dummy{}
 	for {
 		if r.Done() {
 			// Would just say "missing closing paren" but that is not what mal expects.

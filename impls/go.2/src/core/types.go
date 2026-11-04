@@ -1,4 +1,4 @@
-package main
+package core
 
 type TypeName string
 
@@ -9,13 +9,13 @@ const (
 	DUMMY   TypeName = "dummy"
 )
 
-type MalType interface {
+type Type interface {
 	Type() TypeName
 }
 
 type Integer int64
 type Symbol string
-type List []MalType
+type List []Type
 type Dummy struct{}
 
 func (Integer) Type() TypeName { return INTEGER }
@@ -23,7 +23,7 @@ func (Symbol) Type() TypeName  { return SYMBOL }
 func (List) Type() TypeName    { return LIST }
 func (Dummy) Type() TypeName   { return DUMMY }
 
-func (lst List) Map[To any](fun func(MalType) To) []To {
+func (lst List) Map[To any](fun func(Type) To) []To {
 	res := make([]To, len(lst))
 	for i, el := range lst {
 		res[i] = fun(el)
