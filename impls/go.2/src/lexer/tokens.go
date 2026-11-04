@@ -4,12 +4,16 @@ type TokenType int
 
 //revive:disable:var-naming
 const (
-	TOKEN_ERROR  TokenType = iota
-	TOKEN_LPAREN           // Opening parenthesis (
-	TOKEN_RPAREN           // Closing parenthesis )
-	TOKEN_DQS              // Double quoted string "..."
-	TOKEN_SYMBOL           // Symbol.
-	TOKEN_INT              // Integer.
+	TOKEN_ERROR    TokenType = iota
+	TOKEN_LPAREN             // Opening parenthesis (
+	TOKEN_RPAREN             // Closing parenthesis )
+	TOKEN_LBRACKET           // Opening square bracket [
+	TOKEN_RBRACKET           // Closing square bracket ]
+	TOKEN_LBRACE             // Opening curly brace {
+	TOKEN_RBRACE             // Closing curly brace }
+	TOKEN_DQS                // Double quoted string "..."
+	TOKEN_SYMBOL             // Symbol.
+	TOKEN_INT                // Integer.
 )
 
 type Token struct {
@@ -17,6 +21,7 @@ type Token struct {
 	Value string
 }
 
+//revive:disable:cyclomatic
 func (t TokenType) String() string {
 	switch t {
 	case TOKEN_ERROR:
@@ -25,6 +30,14 @@ func (t TokenType) String() string {
 		return "LPAREN"
 	case TOKEN_RPAREN:
 		return "RPAREN"
+	case TOKEN_LBRACKET:
+		return "LBRACKET"
+	case TOKEN_RBRACKET:
+		return "RBRACKET"
+	case TOKEN_LBRACE:
+		return "LBRACE"
+	case TOKEN_RBRACE:
+		return "RBRACE"
 	case TOKEN_DQS:
 		return "DQS"
 	case TOKEN_SYMBOL:

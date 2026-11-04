@@ -1,4 +1,4 @@
-//revive:disable:cognitive-complexity,line-length-limit
+//revive:disable:cognitive-complexity,line-length-limit,function-length
 package lexer
 
 import "testing"
@@ -260,10 +260,6 @@ func TestTokenizeInvalid(t *testing.T) {
 		want    []Token
 		wantErr bool
 	}{
-		{name: "open bracket", input: "[", want: nil, wantErr: true},
-		{name: "close bracket", input: "]", want: nil, wantErr: true},
-		{name: "open brace", input: "{", want: nil, wantErr: true},
-		{name: "close brace", input: "}", want: nil, wantErr: true},
 		{name: "single quote", input: "'", want: nil, wantErr: true},
 		{name: "backtick", input: "`", want: nil, wantErr: true},
 		{name: "tilde", input: "~", want: nil, wantErr: true},
@@ -281,11 +277,6 @@ func TestTokenizeInvalid(t *testing.T) {
 		{name: "symbol then bang", input: "foo!bar", want: nil, wantErr: true},
 		{name: "symbol then quote", input: `foo"bar"`, want: nil, wantErr: true},
 		{name: "int then quote", input: `123"foo"`, want: nil, wantErr: true},
-		{name: "valid then invalid start", input: "foo [", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: true},
-		{name: "two valid then invalid", input: "foo bar [", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: true},
-		{name: "list then invalid", input: "() [", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: true},
-		{name: "int then invalid", input: "123 [", want: []Token{{Type: TOKEN_INT, Value: "123"}}, wantErr: true},
-		{name: "string then invalid", input: `"foo" [`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}}, wantErr: true},
 		{name: "symbol boundary lparen", input: "foo(bar)", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
 		{name: "symbol boundary rparen", input: "foo)bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
 		{name: "int boundary lparen", input: "123(foo)", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
@@ -294,6 +285,19 @@ func TestTokenizeInvalid(t *testing.T) {
 		{name: "string adjacent lparen", input: `"foo"(bar)`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
 		{name: "escaped newline", input: "\"foo\\\nbar\"", want: nil, wantErr: true},
 		{name: "trailing backslash", input: "\"foo\\", want: nil, wantErr: true},
+
+		// Works temporarily, might need to be changed once braces and brackets are properly defined.
+
+		{name: "open bracket", input: "[", want: []Token{{Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
+		{name: "close bracket", input: "]", want: []Token{{Type: TOKEN_RBRACKET, Value: "]"}}, wantErr: false},
+		{name: "open brace", input: "{", want: []Token{{Type: TOKEN_LBRACE, Value: "{"}}, wantErr: false},
+		{name: "close brace", input: "}", want: []Token{{Type: TOKEN_RBRACE, Value: "}"}}, wantErr: false},
+
+		{name: "valid then square bracket", input: "foo [", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
+		{name: "two valid then square bracket", input: "foo bar [", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
+		{name: "list then square bracket", input: "() [", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
+		{name: "int then square bracket", input: "123 [", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
+		{name: "string then square bracket", input: `"foo" [`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
 	}
 
 	for _, tt := range tests {
@@ -374,7 +378,7 @@ func TestTokenizeWhitespace(t *testing.T) {
 		{name: "string comma symbol", input: "\"foo\",bar", want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
 		{name: "string space int", input: "\"foo\" 123", want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
 		{name: "multiline mixed", input: "  ( \n foo\t,123 \r\n )  ", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "whitespace before invalid", input: "foo , [", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: true},
+		{name: "whitespace before invalid", input: "foo , à", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: true},
 	}
 
 	for _, tt := range tests {

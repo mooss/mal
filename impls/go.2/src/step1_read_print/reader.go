@@ -90,6 +90,12 @@ func (r *Reader) readForm() (MalType, error) {
 		return r.readList()
 	case lexer.TOKEN_RPAREN:
 		return nil, r.err("unexpected closing paren")
+	case lexer.TOKEN_LBRACE:
+		return r.readDummy(lexer.TOKEN_RBRACE)
+	case lexer.TOKEN_LBRACKET:
+		return r.readDummy(lexer.TOKEN_RBRACKET)
+	case lexer.TOKEN_RBRACE, lexer.TOKEN_RBRACKET:
+		return nil, r.err("unexpected closing dummy")
 	case lexer.TOKEN_ERROR:
 		return nil, r.err("unexpected error token")
 	case lexer.TOKEN_DQS, lexer.TOKEN_SYMBOL, lexer.TOKEN_INT:
@@ -119,6 +125,26 @@ func (r *Reader) readList() (List, error) {
 			return nil, err
 		}
 		res = append(res, next)
+	}
+}
+
+func (r *Reader) readDummy(closing lexer.TokenType) (Dummy, error) {
+	res := Dummy{}
+	for {
+		if r.Done() {
+			// Would just say "missing closing paren" but that is not what mal expects.
+			return res, r.err("unbalanced expression (dummy)")
+		}
+
+		if r.Peek().Type == closing {
+			r.position++
+			return res, nil
+		}
+
+		_, err := r.readForm()
+		if err != nil {
+			return res, err
+		}
 	}
 }
 

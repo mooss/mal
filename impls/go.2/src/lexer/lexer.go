@@ -111,7 +111,7 @@ func (lex *Lexer) Success(typ TokenType) (Token, error) {
 func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
 	peek := lex.Peek()
 	switch peek {
-	case '(', ')', EOF, ' ', '\t', '\n', '\r', ',':
+	case '(', ')', '[', ']', '{', '}', EOF, ' ', '\t', '\n', '\r', ',':
 	default:
 		lex.Next() // Make the faulty rune a part of the token included in the error message.
 		return Token{}, lex.Failuref(InvalidTokenBoundary, "%q is not a boundary character", peek)
@@ -139,6 +139,8 @@ func (lex *Lexer) SkipWhitespace() {
 
 // lexMal extracts the next Mal token.
 // It returns the token on success, EndOfInput on end-of-input, or another error on lexical failure.
+//
+//revive:disable:cyclomatic
 func lexMal(lex *Lexer) (Token, error) {
 	lex.SkipWhitespace()
 	peek := lex.Peek()
@@ -151,6 +153,18 @@ func lexMal(lex *Lexer) (Token, error) {
 	case ')':
 		lex.Next()
 		return lex.Success(TOKEN_RPAREN)
+	case '[':
+		lex.Next()
+		return lex.Success(TOKEN_LBRACKET)
+	case ']':
+		lex.Next()
+		return lex.Success(TOKEN_RBRACKET)
+	case '{':
+		lex.Next()
+		return lex.Success(TOKEN_LBRACE)
+	case '}':
+		lex.Next()
+		return lex.Success(TOKEN_RBRACE)
 	case '"':
 		return lexDqs(lex)
 	default:
