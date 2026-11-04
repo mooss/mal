@@ -86,6 +86,7 @@ func (r *Reader) ReadForm() (MalType, error) {
 func (r *Reader) readForm() (MalType, error) {
 	token := r.Next()
 	switch token.Type {
+	// Balanced expressions.
 	case lexer.TOKEN_LPAREN:
 		return r.readList()
 	case lexer.TOKEN_RPAREN:
@@ -96,10 +97,14 @@ func (r *Reader) readForm() (MalType, error) {
 		return r.readDummy(lexer.TOKEN_RBRACKET)
 	case lexer.TOKEN_RBRACE, lexer.TOKEN_RBRACKET:
 		return nil, r.err("unexpected closing dummy")
-	case lexer.TOKEN_ERROR:
-		return nil, r.err("unexpected error token")
+
+	// Quotes, atoms and errors.
+	case lexer.TOKEN_SQUOTE:
+		return r.readQuote()
 	case lexer.TOKEN_DQS, lexer.TOKEN_SYMBOL, lexer.TOKEN_INT:
 		return r.readAtom(token)
+	case lexer.TOKEN_ERROR:
+		return nil, r.err("unexpected error token")
 	default:
 		return nil, r.err("unexpected token type")
 	}
@@ -128,6 +133,31 @@ func (r *Reader) readList() (List, error) {
 	}
 }
 
+// readAtom constructs an atom from the next input token.
+func (r *Reader) readAtom(token lexer.Token) (MalType, error) {
+	if token.Type == lexer.TOKEN_INT {
+		integer, err := strconv.ParseInt(token.Value, 10, 64)
+		if err != nil {
+			return nil, r.wrapf(err, "cannot read %q as int", token.Value)
+		}
+		return Integer(integer), nil
+	}
+
+	return Symbol(token.Value), nil
+}
+
+// readQuote quotes the next form.
+func (r *Reader) readQuote() (MalType, error) {
+	if r.Done() {
+		return nil, r.err("nothing left to quote")
+	}
+	quoted, err := r.readForm()
+	if err != nil {
+		return nil, err
+	}
+	return List([]MalType{Symbol("quote"), quoted}), nil
+}
+
 func (r *Reader) readDummy(closing lexer.TokenType) (Dummy, error) {
 	res := Dummy{}
 	for {
@@ -146,17 +176,4 @@ func (r *Reader) readDummy(closing lexer.TokenType) (Dummy, error) {
 			return res, err
 		}
 	}
-}
-
-// readAtom constructs an atom from the next input token.
-func (r *Reader) readAtom(token lexer.Token) (MalType, error) {
-	if token.Type == lexer.TOKEN_INT {
-		integer, err := strconv.ParseInt(token.Value, 10, 64)
-		if err != nil {
-			return nil, r.wrapf(err, "cannot read %q as int", token.Value)
-		}
-		return Integer(integer), nil
-	}
-
-	return Symbol(token.Value), nil
 }

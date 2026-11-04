@@ -11,6 +11,7 @@ const (
 	TOKEN_RBRACKET           // Closing square bracket ]
 	TOKEN_LBRACE             // Opening curly brace {
 	TOKEN_RBRACE             // Closing curly brace }
+	TOKEN_SQUOTE             // Single quote '
 	TOKEN_DQS                // Double quoted string "..."
 	TOKEN_SYMBOL             // Symbol.
 	TOKEN_INT                // Integer.
@@ -38,6 +39,8 @@ func (t TokenType) String() string {
 		return "LBRACE"
 	case TOKEN_RBRACE:
 		return "RBRACE"
+	case TOKEN_SQUOTE:
+		return "SQUOTE"
 	case TOKEN_DQS:
 		return "DQS"
 	case TOKEN_SYMBOL:

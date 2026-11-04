@@ -39,9 +39,9 @@ var EndOfInput = errors.New("end of input") //nolint:revive,staticcheck
 type LexicalFailure string
 
 const (
-	UnterminatedDQS      LexicalFailure = "unterminated double quoted string"
-	InvalidStart         LexicalFailure = "invalid token start"
-	InvalidTokenBoundary LexicalFailure = "invalid token boundary"
+	UnbalancedDoubleQuote LexicalFailure = "unbalanced double quote"
+	InvalidStart          LexicalFailure = "invalid token start"
+	InvalidTokenBoundary  LexicalFailure = "invalid token boundary"
 )
 
 const EOF = -1
@@ -111,7 +111,7 @@ func (lex *Lexer) Success(typ TokenType) (Token, error) {
 func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
 	peek := lex.Peek()
 	switch peek {
-	case '(', ')', '[', ']', '{', '}', EOF, ' ', '\t', '\n', '\r', ',':
+	case '(', ')', '[', ']', '{', '}', '\'', EOF, ' ', '\t', '\n', '\r', ',':
 	default:
 		lex.Next() // Make the faulty rune a part of the token included in the error message.
 		return Token{}, lex.Failuref(InvalidTokenBoundary, "%q is not a boundary character", peek)
@@ -165,6 +165,9 @@ func lexMal(lex *Lexer) (Token, error) {
 	case '}':
 		lex.Next()
 		return lex.Success(TOKEN_RBRACE)
+	case '\'':
+		lex.Next()
+		return lex.Success(TOKEN_SQUOTE)
 	case '"':
 		return lexDqs(lex)
 	default:
@@ -211,7 +214,7 @@ func lexDqs(lex *Lexer) (Token, error) {
 			}
 			fallthrough
 		case EOF, '\n':
-			return Token{}, lex.Failure(UnterminatedDQS)
+			return Token{}, lex.Failure(UnbalancedDoubleQuote)
 		default:
 		}
 	}

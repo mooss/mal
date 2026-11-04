@@ -62,23 +62,23 @@ func TestTokenizeStrings(t *testing.T) {
 	}
 }
 
-func TestTokenizeParens(t *testing.T) {
+func testSingleCharToken(t *testing.T, char string, typ TokenType) {
+	t.Helper()
 	tests := []struct {
 		name    string
 		input   string
 		want    []Token
 		wantErr bool
 	}{
-		{name: "single open", input: "(", want: []Token{{Type: TOKEN_LPAREN, Value: "("}}, wantErr: false},
-		{name: "single close", input: ")", want: []Token{{Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "empty list", input: "()", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "spaced list", input: "( )", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "whitespace padded", input: "  (\n\t )  ", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "nested", input: "(())", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "deeply nested", input: "((()))", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "two lists", input: "()()", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "two lists spaced", input: "() ()", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "newlines", input: "(\n(\n)\n)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "single", input: char, want: []Token{{Type: typ, Value: char}}, wantErr: false},
+		{name: "doubled", input: char + char, want: []Token{{Type: typ, Value: char}, {Type: typ, Value: char}}, wantErr: false},
+		{name: "spaced", input: char + " " + char, want: []Token{{Type: typ, Value: char}, {Type: typ, Value: char}}, wantErr: false},
+		{name: "whitespace padded", input: "  " + char + "\n\t ", want: []Token{{Type: typ, Value: char}}, wantErr: false},
+		{name: "symbol before", input: "foo" + char, want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: typ, Value: char}}, wantErr: false},
+		{name: "symbol after", input: char + "foo", want: []Token{{Type: typ, Value: char}, {Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
+		{name: "int before", input: "123" + char, want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: typ, Value: char}}, wantErr: false},
+		{name: "int after", input: char + "123", want: []Token{{Type: typ, Value: char}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
+		{name: "symbol spaced", input: "foo " + char + " bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: typ, Value: char}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
 	}
 
 	for _, tt := range tests {
@@ -100,6 +100,28 @@ func TestTokenizeParens(t *testing.T) {
 			if gotErr != tt.wantErr {
 				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
 			}
+		})
+	}
+}
+
+func TestTokenizeSingleCharTokens(t *testing.T) {
+	cases := []struct {
+		name string
+		char string
+		typ  TokenType
+	}{
+		{name: "lparen", char: "(", typ: TOKEN_LPAREN},
+		{name: "rparen", char: ")", typ: TOKEN_RPAREN},
+		{name: "lbracket", char: "[", typ: TOKEN_LBRACKET},
+		{name: "rbracket", char: "]", typ: TOKEN_RBRACKET},
+		{name: "lbrace", char: "{", typ: TOKEN_LBRACE},
+		{name: "rbrace", char: "}", typ: TOKEN_RBRACE},
+		{name: "squote", char: "'", typ: TOKEN_SQUOTE},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			testSingleCharToken(t, tc.char, tc.typ)
 		})
 	}
 }
@@ -260,7 +282,6 @@ func TestTokenizeInvalid(t *testing.T) {
 		want    []Token
 		wantErr bool
 	}{
-		{name: "single quote", input: "'", want: nil, wantErr: true},
 		{name: "backtick", input: "`", want: nil, wantErr: true},
 		{name: "tilde", input: "~", want: nil, wantErr: true},
 		{name: "bang", input: "!", want: nil, wantErr: true},
@@ -285,19 +306,6 @@ func TestTokenizeInvalid(t *testing.T) {
 		{name: "string adjacent lparen", input: `"foo"(bar)`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
 		{name: "escaped newline", input: "\"foo\\\nbar\"", want: nil, wantErr: true},
 		{name: "trailing backslash", input: "\"foo\\", want: nil, wantErr: true},
-
-		// Works temporarily, might need to be changed once braces and brackets are properly defined.
-
-		{name: "open bracket", input: "[", want: []Token{{Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
-		{name: "close bracket", input: "]", want: []Token{{Type: TOKEN_RBRACKET, Value: "]"}}, wantErr: false},
-		{name: "open brace", input: "{", want: []Token{{Type: TOKEN_LBRACE, Value: "{"}}, wantErr: false},
-		{name: "close brace", input: "}", want: []Token{{Type: TOKEN_RBRACE, Value: "}"}}, wantErr: false},
-
-		{name: "valid then square bracket", input: "foo [", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
-		{name: "two valid then square bracket", input: "foo bar [", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
-		{name: "list then square bracket", input: "() [", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
-		{name: "int then square bracket", input: "123 [", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
-		{name: "string then square bracket", input: `"foo" [`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_LBRACKET, Value: "["}}, wantErr: false},
 	}
 
 	for _, tt := range tests {
