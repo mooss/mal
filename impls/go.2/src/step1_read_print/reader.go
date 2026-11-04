@@ -105,7 +105,8 @@ func (r *Reader) readList() (List, error) {
 	res := List{}
 	for {
 		if r.Done() {
-			return nil, r.err("missing closing paren")
+			// Would just say "missing closing paren" but that is not what mal expects.
+			return nil, r.err("unbalanced expression (missing closing paren)")
 		}
 
 		if r.Peek().Type == lexer.TOKEN_RPAREN {

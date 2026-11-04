@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -110,7 +111,7 @@ func (lex *Lexer) Success(typ TokenType) (Token, error) {
 func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
 	peek := lex.Peek()
 	switch peek {
-	case '(', ')', EOF, ' ', '\t', '\n', '\r':
+	case '(', ')', EOF, ' ', '\t', '\n', '\r', ',':
 	default:
 		lex.Next() // Make the faulty rune a part of the token included in the error message.
 		return Token{}, lex.Failuref(InvalidTokenBoundary, "%q is not a boundary character", peek)
@@ -123,7 +124,8 @@ func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
 func (lex *Lexer) SkipWhitespace() {
 	for {
 		switch lex.Peek() {
-		case ' ', '\t', '\n', '\r':
+		// mal treats comma as whitespace.
+		case ' ', '\t', '\n', '\r', ',':
 			lex.Next()
 			lex.start = lex.pos
 		default:
@@ -203,30 +205,16 @@ func lexDqs(lex *Lexer) (Token, error) {
 
 ///////////////////////
 // Utility functions //
+// Might not be optimal, if needed could be turned into lookup tables.
 
 // isPlainTokenRest returns whether r can go in a plain token (outside of the first character).
-// In other words if it is one of the following characters:
-// *+,-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-// Yet another way to describe it is ASCII letters, ASCII numbers or one of the starslash group.
 func isPlainTokenRest(r rune) bool {
-	return isStarSlash(r) || isNumASCII(r) || isAlphaASCII(r)
+	return strings.ContainsRune("*+-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", r)
 }
 
 // isPlainTokenStart returns whether r can be the first character of a plain token.
-// In other words, if it is an ASCII letter or one of the starslash group.
 func isPlainTokenStart(r rune) bool {
-	return isStarSlash(r) || isAlphaASCII(r)
-}
-
-// isStarSlash returns true if rune is a member of the starslash group (the characters between * and
-// / in the ASCII table, i.e. `*+,-./`).
-func isStarSlash(r rune) bool {
-	return ('*' <= r && r <= '/')
-}
-
-// isAlphaASCII returns true if r is an alphabetical ASCII character.
-func isAlphaASCII(r rune) bool {
-	return ('A' <= r && r <= 'Z') || ('a' <= r && r <= 'z')
+	return strings.ContainsRune("*+-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", r)
 }
 
 // isNumASCII returns true if r is a numerical ASCII character.
