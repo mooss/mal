@@ -59,7 +59,9 @@ func (lex *Lexer) Over() bool {
 	return lex.pos >= len(lex.Input)
 }
 
-// Peek returns the next rune without advancing the input.
+// Peek returns the rune at index+lex.pos without advancing the input.
+// Always returns EOF when out of bounds.
+// Index must not be negative.
 func (lex *Lexer) Peek(index int) rune {
 	index += lex.pos
 	if index >= len(lex.Input) {
@@ -142,50 +144,43 @@ func (lex *Lexer) SkipWhitespace() {
 //revive:disable:cyclomatic
 func lexMal(lex *Lexer) (Token, error) {
 	lex.SkipWhitespace()
-	peek := lex.Peek(0)
-	switch peek {
+	next := lex.Next()
+	switch next {
 	case EOF:
 		return Token{}, EndOfInput
 
 	// Balanced expressions.
 	case '(':
-		lex.Next()
 		return lex.Success(TOKEN_LPAREN)
 	case ')':
-		lex.Next()
 		return lex.Success(TOKEN_RPAREN)
 	case '[':
-		lex.Next()
 		return lex.Success(TOKEN_LBRACKET)
 	case ']':
-		lex.Next()
 		return lex.Success(TOKEN_RBRACKET)
 	case '{':
-		lex.Next()
 		return lex.Success(TOKEN_LBRACE)
 	case '}':
-		lex.Next()
 		return lex.Success(TOKEN_RBRACE)
 	case '"':
 		return lexDqs(lex)
 
+	// Atoms.
 	case '-', '+':
-		if isNumASCII(lex.Peek(1)) {
-			return lexInt(lex)
+		if isNumASCII(lex.Peek(0)) {
+			return lexInt(lex, next)
 		}
 	case '\'':
-		lex.Next()
 		return lex.Success(TOKEN_SQUOTE)
 	default:
 	}
 
-	if isNumASCII(peek) {
-		return lexInt(lex)
-	} else if isPlainTokenStart(peek) {
+	if isNumASCII(next) {
+		return lexInt(lex, next)
+	} else if isPlainTokenStart(next) {
 		return lexSymbol(lex)
 	}
 
-	lex.Next() // Advance the input to show the rune in the error message.
 	return Token{}, lex.Failure(InvalidStart)
 }
 
@@ -199,8 +194,7 @@ func lexSymbol(lex *Lexer) (Token, error) {
 }
 
 // lexInt lexes an integer token.
-func lexInt(lex *Lexer) (Token, error) {
-	first := lex.Peek(0)
+func lexInt(lex *Lexer, first rune) (Token, error) {
 	if first == '-' || first == '+' {
 		lex.Next()
 	}
@@ -211,9 +205,8 @@ func lexInt(lex *Lexer) (Token, error) {
 }
 
 // lexDqs lexes a double quoted string.
-// The lexer is supposed to be placed at the opening double quote.
+// Assumes that the opening double quote has already been consumed.
 func lexDqs(lex *Lexer) (Token, error) {
-	lex.Next() // Consume the opening double quote.
 	for {
 		switch lex.Next() {
 		case '"':
