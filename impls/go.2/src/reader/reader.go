@@ -68,6 +68,11 @@ func (*Reader) err(msg string) error {
 	return errors.New("reader: " + msg)
 }
 
+// errf returns a reader error formatted with msg and args.
+func (*Reader) errf(msg string, args ...any) error {
+	return fmt.Errorf("reader: "+msg, args...)
+}
+
 //////////////////
 // Read methods //
 
@@ -84,19 +89,23 @@ func (r *Reader) ReadForm() (core.Type, error) {
 }
 
 // readForm constructs the next type from the input tokens.
+//
+//revive:disable:cyclomatic
 func (r *Reader) readForm() (core.Type, error) {
 	token := r.Next()
 	switch token.Type {
 	// Balanced expressions.
 	case lexer.TOKEN_LPAREN:
-		return r.readList()
+		return r.readSequence[core.List](lexer.TOKEN_RPAREN)
 	case lexer.TOKEN_RPAREN:
 		return nil, r.err("unexpected closing paren")
+	case lexer.TOKEN_LBRACKET:
+		return r.readSequence[core.Vector](lexer.TOKEN_RBRACKET)
+	case lexer.TOKEN_RBRACKET:
+		return nil, r.err("unexpected closing bracket")
 	case lexer.TOKEN_LBRACE:
 		return r.readDummy(lexer.TOKEN_RBRACE)
-	case lexer.TOKEN_LBRACKET:
-		return r.readDummy(lexer.TOKEN_RBRACKET)
-	case lexer.TOKEN_RBRACE, lexer.TOKEN_RBRACKET:
+	case lexer.TOKEN_RBRACE:
 		return nil, r.err("unexpected closing dummy")
 
 	// Quotes, atoms and errors.
@@ -111,17 +120,16 @@ func (r *Reader) readForm() (core.Type, error) {
 	}
 }
 
-// readList constructs a list from the remaining input tokens (assumes that the opening paren has
-// already been consumed).
-func (r *Reader) readList() (core.List, error) {
-	res := core.List{}
+// readSequence constructs a sequence type from the remaining input tokens (assumes that the opening
+// delimiter has already been consumed).
+func (r *Reader) readSequence[T ~[]core.Type](closing lexer.TokenType) (T, error) {
+	var res T
 	for {
 		if r.Done() {
-			// Would just say "missing closing paren" but that is not what mal expects.
-			return nil, r.err("unbalanced expression (missing closing paren)")
+			return nil, r.errf("unbalanced expression (missing %s)", closing.What())
 		}
 
-		if r.Peek().Type == lexer.TOKEN_RPAREN {
+		if r.Peek().Type == closing {
 			r.position++
 			return res, nil
 		}

@@ -12,14 +12,14 @@ import (
 func sym(s string) core.Symbol { return core.Symbol(s) }
 func num(n int64) core.Integer { return core.Integer(n) }
 func dummy() core.Dummy        { return core.Dummy{} }
+func vec(elems ...core.Type) core.Vector {
+	return core.Vector(elems)
+}
 func quoted(f core.Type) core.List {
 	return core.List{core.Symbol("quote"), f}
 }
 
 func lst(elems ...core.Type) core.List {
-	if len(elems) == 0 {
-		return core.List{}
-	}
 	return core.List(elems)
 }
 
@@ -42,6 +42,17 @@ func equalType(a, b core.Type) bool {
 		return ok && av == bv
 	case core.List:
 		bv, ok := b.(core.List)
+		if !ok || len(av) != len(bv) {
+			return false
+		}
+		for i := range av {
+			if !equalType(av[i], bv[i]) {
+				return false
+			}
+		}
+		return true
+	case core.Vector:
+		bv, ok := b.(core.Vector)
 		if !ok || len(av) != len(bv) {
 			return false
 		}
@@ -196,7 +207,7 @@ func TestReadLists(t *testing.T) {
 		{name: "no spaces", input: "(foo)", want: lst(sym("foo"))},
 		{name: "multiline", input: "  ( \n foo\t 123 \r\n )  ", want: lst(sym("foo"), num(123))},
 		{name: "quote inside", input: "('foo 1)", want: lst(quoted(sym("foo")), num(1))},
-		{name: "dummy inside", input: "([1])", want: lst(dummy())},
+		{name: "vector inside", input: "([1])", want: lst(vec(num(1)))},
 		{name: "braces inside", input: "({a})", want: lst(dummy())},
 		{name: "first form only", input: "(1) (2)", want: lst(num(1))},
 	})
@@ -213,7 +224,7 @@ func TestReadQuotes(t *testing.T) {
 		{name: "double quote", input: "''foo", want: quoted(quoted(sym("foo")))},
 		{name: "triple quote", input: "'''foo", want: quoted(quoted(quoted(sym("foo"))))},
 		{name: "quoted list with quote", input: "'('foo)", want: quoted(lst(quoted(sym("foo"))))},
-		{name: "quoted dummy", input: "'[1]", want: quoted(dummy())},
+		{name: "quoted vector", input: "'[1]", want: quoted(vec(num(1)))},
 		{name: "quoted dummy braces", input: "'{a}", want: quoted(dummy())},
 		{name: "lone quote", input: "'", wantErr: true},
 		{name: "lone quote padded", input: "'   ", wantErr: true},
@@ -224,27 +235,33 @@ func TestReadQuotes(t *testing.T) {
 	})
 }
 
-func TestReadDummies(t *testing.T) {
+func TestReadVectors(t *testing.T) {
 	runSingleCases(t, []singleCase{
-		{name: "empty brackets", input: "[]", want: dummy()},
-		{name: "empty braces", input: "{}", want: dummy()},
-		{name: "padded brackets", input: "[ ]", want: dummy()},
-		{name: "padded braces", input: "{ }", want: dummy()},
-		{name: "commas", input: "[,]", want: dummy()},
-		{name: "ints", input: "[1 2 3]", want: dummy()},
-		{name: "symbols", input: "{foo bar}", want: dummy()},
-		{name: "list inside", input: "[(1 2)]", want: dummy()},
-		{name: "nested brackets", input: "[[]]", want: dummy()},
-		{name: "nested braces", input: "{{}}", want: dummy()},
-		{name: "mixed nested", input: "[{}]", want: dummy()},
-		{name: "quote inside", input: "['foo]", want: dummy()},
-		{name: "string inside", input: `["hello" foo]`, want: dummy()},
+		{name: "empty brackets", input: "[]", want: vec()},
+		{name: "padded brackets", input: "[ ]", want: vec()},
+		{name: "commas", input: "[,]", want: vec()},
+		{name: "ints", input: "[1 2 3]", want: vec(num(1), num(2), num(3))},
+		{name: "list inside", input: "[(1 2)]", want: vec(lst(num(1), num(2)))},
+		{name: "nested brackets", input: "[[]]", want: vec(vec())},
+		{name: "mixed nested", input: "[{}]", want: vec(dummy())},
+		{name: "quote inside", input: "['foo]", want: vec(quoted(sym("foo")))},
+		{name: "string inside", input: `["hello" foo]`, want: vec(sym(`"hello"`), sym("foo"))},
 		{name: "unclosed bracket", input: "[", wantErr: true},
-		{name: "unclosed brace", input: "{", wantErr: true},
 		{name: "unclosed with content", input: "[1 2", wantErr: true},
 		{name: "mismatched", input: "[(1]", wantErr: true},
 		{name: "paren in dummy", input: "[)", wantErr: true},
 		{name: "lone rbracket", input: "]", wantErr: true},
+	})
+}
+
+func TestReadDummies(t *testing.T) {
+	runSingleCases(t, []singleCase{
+		{name: "empty braces", input: "{}", want: dummy()},
+		{name: "padded braces", input: "{ }", want: dummy()},
+		{name: "symbols", input: "{foo bar}", want: dummy()},
+		{name: "nested braces", input: "{{}}", want: dummy()},
+		{name: "unclosed brace", input: "{", wantErr: true},
+		{name: "paren in dummy", input: "{)", wantErr: true},
 		{name: "lone rbrace", input: "}", wantErr: true},
 	})
 }
@@ -284,7 +301,7 @@ func TestReadMultipleForms(t *testing.T) {
 		{name: "two lists", input: "(1) (2)", want: []core.Type{lst(num(1)), lst(num(2))}, wantErr: false},
 		{name: "quote then list", input: "'a (1 2)", want: []core.Type{quoted(sym("a")), lst(num(1), num(2))}, wantErr: false},
 		{name: "commas", input: "1, 2 , (3)", want: []core.Type{num(1), num(2), lst(num(3))}, wantErr: false},
-		{name: "dummy then list", input: "[] (1)", want: []core.Type{dummy(), lst(num(1))}, wantErr: false},
+		{name: "vector then list", input: "[] (1)", want: []core.Type{vec(), lst(num(1))}, wantErr: false},
 		{name: "trailing rparen", input: "(1))", want: []core.Type{lst(num(1))}, wantErr: true},
 		{name: "trailing rbracket", input: "(1) ]", want: []core.Type{lst(num(1))}, wantErr: true},
 		{name: "second unbalanced", input: "(1) (2", want: []core.Type{lst(num(1))}, wantErr: true},
