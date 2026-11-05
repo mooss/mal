@@ -157,6 +157,9 @@ func (r *Reader) readInt(token lexer.Token) (core.Type, error) {
 
 // readSymbol constructs a symbol from the given input token.
 func (*Reader) readSymbol(token lexer.Token) (core.Type, error) {
+	if token.Value == "nil" {
+		return core.Nil{}, nil
+	}
 	return core.Symbol(token.Value), nil
 }
 

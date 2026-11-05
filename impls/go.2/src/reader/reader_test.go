@@ -13,6 +13,8 @@ func sym(s string) core.Symbol { return core.Symbol(s) }
 func str(s string) core.String { return core.String(s) }
 func num(n int64) core.Integer { return core.Integer(n) }
 func dummy() core.Dummy        { return core.Dummy{} }
+func _nil() core.Nil           { return core.Nil{} }
+
 func vec(elems ...core.Type) core.Vector {
 	return core.Vector(elems)
 }
@@ -26,7 +28,6 @@ func lst(elems ...core.Type) core.List {
 
 // equalType compares Mal values structurally.
 // Extend it when new core types are added (for example strings).
-// Nil vs empty list counts as equal.
 func equalType(a, b core.Type) bool {
 	if a == nil || b == nil {
 		return a == nil && b == nil
@@ -68,6 +69,9 @@ func equalType(a, b core.Type) bool {
 		return true
 	case core.Dummy:
 		_, ok := b.(core.Dummy)
+		return ok
+	case core.Nil:
+		_, ok := b.(core.Nil)
 		return ok
 	default:
 		return false
@@ -180,7 +184,7 @@ func TestReadAtoms(t *testing.T) {
 		{name: "dash", input: "foo-bar", want: sym("foo-bar")},
 		{name: "slash", input: "foo/bar", want: sym("foo/bar")},
 		{name: "dot", input: "foo.bar", want: sym("foo.bar")},
-		{name: "nil", input: "nil", want: sym("nil")},
+		{name: "nil", input: "nil", want: _nil()},
 		{name: "true", input: "true", want: sym("true")},
 		{name: "empty string", input: `""`, want: str(``)},
 		{name: "simple string", input: `"hello"`, want: str(`hello`)},
@@ -189,6 +193,46 @@ func TestReadAtoms(t *testing.T) {
 		{name: "escaped quote", input: `"a\"b"`, want: str(`a"b`)},
 		{name: "padded symbol", input: "  foo  ", want: sym("foo")},
 		{name: "padded int", input: " ,\t42\r\n, ", want: num(42)},
+	})
+}
+
+func TestReadNil(t *testing.T) {
+	runSingleCases(t, []singleCase{
+		{name: "nil padded", input: "  nil  ", want: _nil()},
+		{name: "nil in list", input: "(nil)", want: lst(_nil())},
+		{name: "nil in list mixed", input: "(1 nil foo)", want: lst(num(1), _nil(), sym("foo"))},
+		{name: "nil in vector", input: "[nil]", want: vec(_nil())},
+		{name: "nil in vector mixed", input: `[nil 1 "hi"]`, want: vec(_nil(), num(1), str(`hi`))},
+		{name: "quoted nil", input: "'nil", want: quoted(_nil())},
+		{name: "nil quoted list", input: "'(nil)", want: quoted(lst(_nil()))},
+		{name: "nil in dummy", input: "{nil}", want: dummy()},
+		{name: "nil prefix is symbol", input: "nilx", want: sym("nilx")},
+		{name: "nil suffix dash is symbol", input: "nil-", want: sym("nil-")},
+		{name: "uppercase NIL is symbol", input: "NIL", want: sym("NIL")},
+		{name: "nil vs symbol not equal", input: "nil", want: _nil()},
+	})
+	runMultiCases(t, []multiCase{
+		//nolint:dupword
+		{name: "two nils", input: "nil nil", want: []core.Type{_nil(), _nil()}, wantErr: false},
+		{name: "nil mixed", input: `nil 1 foo "hi"`, want: []core.Type{_nil(), num(1), sym("foo"), str(`hi`)}, wantErr: false},
+		{name: "nil in forms", input: "(nil) [nil] nil", want: []core.Type{lst(_nil()), vec(_nil()), _nil()}, wantErr: false},
+	})
+	t.Run("nil not equal other types", func(t *testing.T) {
+		if equalType(_nil(), sym("nil")) {
+			t.Error("nil should not equal symbol nil")
+		}
+		if equalType(_nil(), lst()) {
+			t.Error("nil should not equal empty list")
+		}
+		if equalType(_nil(), vec()) {
+			t.Error("nil should not equal empty vector")
+		}
+		if equalType(_nil(), num(0)) {
+			t.Error("nil should not equal zero")
+		}
+		if !equalType(_nil(), _nil()) {
+			t.Error("nil should equal nil")
+		}
 	})
 }
 

@@ -17,6 +17,7 @@ const (
 	VECTOR   TypeName = "vector"
 	ERROR    TypeName = "error"
 	DUMMY    TypeName = "dummy"
+	NIL      TypeName = "nil"
 )
 
 type Type interface {
@@ -32,6 +33,7 @@ type String string
 type Vector []Type
 type Error struct{ error }
 type Dummy struct{}
+type Nil struct{}
 
 func (Symbol) Type() TypeName   { return SYMBOL }
 func (List) Type() TypeName     { return LIST }
@@ -41,6 +43,7 @@ func (String) Type() TypeName   { return STRING }
 func (Vector) Type() TypeName   { return VECTOR }
 func (Error) Type() TypeName    { return ERROR }
 func (Dummy) Type() TypeName    { return DUMMY }
+func (Nil) Type() TypeName      { return NIL }
 
 func (s Symbol) String() string  { return string(s) }
 func (l List) String() string    { return "(" + strings.Join(_map(Type.String, l), " ") + ")" }
@@ -50,6 +53,7 @@ func (s String) String() string  { return strconv.Quote(string(s)) }
 func (v Vector) String() string  { return "[" + strings.Join(_map(Type.String, v), " ") + "]" }
 func (e Error) String() string   { return fmt.Sprintf("(error %q)", e.Error()) }
 func (Dummy) String() string     { return "dummy" }
+func (Nil) String() string       { return "nil" }
 
 func _map[From, To any](fun func(From) To, source []From) []To {
 	res := make([]To, len(source))
