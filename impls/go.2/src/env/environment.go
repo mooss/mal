@@ -9,6 +9,7 @@ type _sym = core.Symbol
 type _lst = core.List
 type _fun = core.Function
 type _int = core.Integer
+type _vec = core.Vector
 type _err = core.Error
 
 type Env map[string]core.Function
@@ -20,15 +21,16 @@ var Initial Env = map[string]core.Function{
 	"/": func(l _int, r _int) _int { return l / r }, // Will panic on r == 0.
 }
 
-//revive:disable:cognitive-complexity
-func Eval(ast core.Type, e Env) core.Type {
+//revive:disable:cognitive-complexity,cyclomatic
+func Eval(ast core.Type, env Env) core.Type {
 	switch typed := ast.(type) {
 	case _sym:
-		value, present := e[string(typed)]
+		value, present := env[string(typed)]
 		if !present {
 			return core.Errorf("symbol %#q not found", typed)
 		}
 		return value
+
 	case _lst:
 		if len(typed) == 0 {
 			return typed
@@ -39,22 +41,34 @@ func Eval(ast core.Type, e Env) core.Type {
 		}
 
 		// Apply phase.
-		fun, cerr := as[_fun](Eval(typed[0], e))
+		fun, cerr := as[_fun](Eval(typed[0], env))
 		if cerr != nil {
 			return *cerr
 		}
 
-		arg1, cerr := as[_int](Eval(typed[1], e))
+		arg1, cerr := as[_int](Eval(typed[1], env))
 		if cerr != nil {
 			return *cerr
 		}
 
-		arg2, cerr := as[_int](Eval(typed[2], e))
+		arg2, cerr := as[_int](Eval(typed[2], env))
 		if cerr != nil {
 			return *cerr
 		}
 
 		return fun(arg1, arg2)
+
+	case _vec:
+		res := make(_vec, len(typed))
+		for i, el := range typed {
+			value := Eval(el, env)
+			if is[core.Error](value) {
+				return value
+			}
+			res[i] = value
+		}
+		return res
+
 	default:
 		return ast
 	}
@@ -70,4 +84,9 @@ func as[T core.Type](val core.Type) (T, *_err) {
 		return res, &err
 	}
 	return res, nil
+}
+
+func is[T any](val any) bool {
+	_, res := val.(T)
+	return res
 }
