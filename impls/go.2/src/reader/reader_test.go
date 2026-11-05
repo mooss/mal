@@ -10,6 +10,7 @@ import (
 
 // Constructors keep tables concise and make new types easy to add.
 func sym(s string) core.Symbol { return core.Symbol(s) }
+func str(s string) core.String { return core.String(s) }
 func num(n int64) core.Integer { return core.Integer(n) }
 func dummy() core.Dummy        { return core.Dummy{} }
 func vec(elems ...core.Type) core.Vector {
@@ -39,6 +40,9 @@ func equalType(a, b core.Type) bool {
 		return ok && av == bv
 	case core.Symbol:
 		bv, ok := b.(core.Symbol)
+		return ok && av == bv
+	case core.String:
+		bv, ok := b.(core.String)
 		return ok && av == bv
 	case core.List:
 		bv, ok := b.(core.List)
@@ -178,11 +182,11 @@ func TestReadAtoms(t *testing.T) {
 		{name: "dot", input: "foo.bar", want: sym("foo.bar")},
 		{name: "nil", input: "nil", want: sym("nil")},
 		{name: "true", input: "true", want: sym("true")},
-		{name: "empty string", input: `""`, want: sym(`""`)},
-		{name: "simple string", input: `"hello"`, want: sym(`"hello"`)},
-		{name: "string with space", input: `"hello world"`, want: sym(`"hello world"`)},
-		{name: "string with comma", input: `"a,b"`, want: sym(`"a,b"`)},
-		{name: "escaped quote", input: `"a\"b"`, want: sym(`"a\"b"`)},
+		{name: "empty string", input: `""`, want: str(``)},
+		{name: "simple string", input: `"hello"`, want: str(`hello`)},
+		{name: "string with space", input: `"hello world"`, want: str(`hello world`)},
+		{name: "string with comma", input: `"a,b"`, want: str(`a,b`)},
+		{name: "escaped quote", input: `"a\"b"`, want: str(`a"b`)},
 		{name: "padded symbol", input: "  foo  ", want: sym("foo")},
 		{name: "padded int", input: " ,\t42\r\n, ", want: num(42)},
 	})
@@ -201,7 +205,7 @@ func TestReadLists(t *testing.T) {
 		{name: "def", input: "(def foo 42)", want: lst(sym("def"), sym("foo"), num(42))},
 		{name: "nested", input: "((1 2) (3 4))", want: lst(lst(num(1), num(2)), lst(num(3), num(4)))},
 		{name: "deep nested", input: "(1 (2 (3)))", want: lst(num(1), lst(num(2), lst(num(3))))},
-		{name: "string in list", input: `(foo "bar baz")`, want: lst(sym("foo"), sym(`"bar baz"`))},
+		{name: "string in list", input: `(foo "bar baz")`, want: lst(sym("foo"), str(`bar baz`))},
 		{name: "commas", input: "(foo,123)", want: lst(sym("foo"), num(123))},
 		{name: "commas padded", input: "(,foo,,123,,)", want: lst(sym("foo"), num(123))},
 		{name: "no spaces", input: "(foo)", want: lst(sym("foo"))},
@@ -218,7 +222,7 @@ func TestReadQuotes(t *testing.T) {
 		{name: "symbol", input: "'foo", want: quoted(sym("foo"))},
 		{name: "spaced", input: "' foo", want: quoted(sym("foo"))},
 		{name: "int", input: "'1", want: quoted(num(1))},
-		{name: "string", input: `' "hello"`, want: quoted(sym(`"hello"`))},
+		{name: "string", input: `' "hello"`, want: quoted(str(`hello`))},
 		{name: "list", input: "'(1 2)", want: quoted(lst(num(1), num(2)))},
 		{name: "empty list", input: "'()", want: quoted(lst())},
 		{name: "double quote", input: "''foo", want: quoted(quoted(sym("foo")))},
@@ -245,7 +249,7 @@ func TestReadVectors(t *testing.T) {
 		{name: "nested brackets", input: "[[]]", want: vec(vec())},
 		{name: "mixed nested", input: "[{}]", want: vec(dummy())},
 		{name: "quote inside", input: "['foo]", want: vec(quoted(sym("foo")))},
-		{name: "string inside", input: `["hello" foo]`, want: vec(sym(`"hello"`), sym("foo"))},
+		{name: "string inside", input: `["hello" foo]`, want: vec(str(`hello`), sym("foo"))},
 		{name: "unclosed bracket", input: "[", wantErr: true},
 		{name: "unclosed with content", input: "[1 2", wantErr: true},
 		{name: "mismatched", input: "[(1]", wantErr: true},
@@ -297,7 +301,7 @@ func TestReadMultipleForms(t *testing.T) {
 		{name: "whitespace only", input: " \t\n\r,, ", want: nil, wantErr: false},
 		{name: "single int", input: "1", want: []core.Type{num(1)}, wantErr: false},
 		{name: "two ints", input: "1 2", want: []core.Type{num(1), num(2)}, wantErr: false},
-		{name: "mixed", input: `1 foo "hi"`, want: []core.Type{num(1), sym("foo"), sym(`"hi"`)}, wantErr: false},
+		{name: "mixed", input: `1 foo "hi"`, want: []core.Type{num(1), sym("foo"), str(`hi`)}, wantErr: false},
 		{name: "two lists", input: "(1) (2)", want: []core.Type{lst(num(1)), lst(num(2))}, wantErr: false},
 		{name: "quote then list", input: "'a (1 2)", want: []core.Type{quoted(sym("a")), lst(num(1), num(2))}, wantErr: false},
 		{name: "commas", input: "1, 2 , (3)", want: []core.Type{num(1), num(2), lst(num(3))}, wantErr: false},

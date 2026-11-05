@@ -111,8 +111,12 @@ func (r *Reader) readForm() (core.Type, error) {
 	// Quotes, atoms and errors.
 	case lexer.TOKEN_SQUOTE:
 		return r.readQuote()
-	case lexer.TOKEN_DQS, lexer.TOKEN_SYMBOL, lexer.TOKEN_INT:
-		return r.readAtom(token)
+	case lexer.TOKEN_DQS:
+		return r.readString(token)
+	case lexer.TOKEN_SYMBOL:
+		return r.readSymbol(token)
+	case lexer.TOKEN_INT:
+		return r.readInt(token)
 	case lexer.TOKEN_ERROR:
 		return nil, r.err("unexpected error token")
 	default:
@@ -142,17 +146,27 @@ func (r *Reader) readSequence[T ~[]core.Type](closing lexer.TokenType) (T, error
 	}
 }
 
-// readAtom constructs an atom from the next input token.
-func (r *Reader) readAtom(token lexer.Token) (core.Type, error) {
-	if token.Type == lexer.TOKEN_INT {
-		integer, err := strconv.ParseInt(token.Value, 10, 64)
-		if err != nil {
-			return nil, r.wrapf(err, "cannot read %q as int", token.Value)
-		}
-		return core.Integer(integer), nil
+// readInt constructs an int from the given input token.
+func (r *Reader) readInt(token lexer.Token) (core.Type, error) {
+	integer, err := strconv.ParseInt(token.Value, 10, 64)
+	if err != nil {
+		return nil, r.wrapf(err, "cannot read %q as int", token.Value)
 	}
+	return core.Integer(integer), nil
+}
 
+// readSymbol constructs a symbol from the given input token.
+func (*Reader) readSymbol(token lexer.Token) (core.Type, error) {
 	return core.Symbol(token.Value), nil
+}
+
+// readString constructs a string from the given input token.
+func (r *Reader) readString(token lexer.Token) (core.Type, error) {
+	str, err := strconv.Unquote(token.Value)
+	if err != nil {
+		return nil, r.wrapf(err, "cannot read %q as string", token.Value)
+	}
+	return core.String(str), nil
 }
 
 // readQuote quotes the next form.
