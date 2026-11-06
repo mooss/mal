@@ -14,6 +14,9 @@ func (m Map) String() string {
 	return "{" + strings.Join(_mapflat(core.Type.String, m), " ") + "}"
 }
 
+// TBD
+func (m Map) Eval(core.Env) core.Type { return m }
+
 // MapLit is an unevaluated sequence of map keys and values.
 type MapLit []core.Type
 
@@ -21,3 +24,6 @@ func (MapLit) Type() core.TypeName { return core.MAP_LITERAL }
 func (m MapLit) String() string {
 	return "{" + strings.Join(_map(core.Type.String, m), " ") + "}"
 }
+
+// TBD
+func (m MapLit) Eval(core.Env) core.Type { return m }

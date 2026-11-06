@@ -34,4 +34,9 @@ type Type interface {
 	Type() TypeName
 	// String returns the string representation of the Mal value.
 	String() string
+	// Eval evaluates the value against an environment.
+	Eval(Env) Type
 }
+
+// Env is an environment associating symbols to their values.
+type Env map[string]Type

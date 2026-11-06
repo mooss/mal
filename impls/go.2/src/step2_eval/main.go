@@ -25,8 +25,8 @@ func read(input string) (core.Type, error) {
 	return parsed, nil
 }
 
-func eval(expr core.Type, envi env.Env) core.Type {
-	return env.Eval(expr, envi)
+func eval(expr core.Type, envr core.Env) core.Type {
+	return expr.Eval(envr)
 }
 
 // print is a primitive so this one is called display instead.
