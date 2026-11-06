@@ -1,4 +1,4 @@
-// Package core implements lisp types.
+// Package core defines the basic lisp Type interface.
 package core
 
 // TypeName identifies a Mal type.
@@ -30,6 +30,8 @@ const (
 
 // Type is a Mal value.
 type Type interface {
+	// Type returns the TypeName identifying the Mal type of the value.
 	Type() TypeName
+	// String returns the string representation of the Mal value.
 	String() string
 }

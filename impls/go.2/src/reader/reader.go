@@ -8,6 +8,7 @@ import (
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/lexer"
+	"github.com/mooss/mal/src/typ"
 )
 
 // Reader constructs Mal types from a string.
@@ -96,11 +97,11 @@ func (r *Reader) readForm() (core.Type, error) {
 	switch token.Type {
 	// Balanced expressions.
 	case lexer.TOKEN_LPAREN:
-		return r.readSequence[core.List](lexer.TOKEN_RPAREN)
+		return r.readSequence[typ.List](lexer.TOKEN_RPAREN)
 	case lexer.TOKEN_RPAREN:
 		return nil, r.err("unexpected closing paren")
 	case lexer.TOKEN_LBRACKET:
-		return r.readSequence[core.Vector](lexer.TOKEN_RBRACKET)
+		return r.readSequence[typ.Vector](lexer.TOKEN_RBRACKET)
 	case lexer.TOKEN_RBRACKET:
 		return nil, r.err("unexpected closing bracket")
 	case lexer.TOKEN_LBRACE:
@@ -164,8 +165,8 @@ func (r *Reader) readSequence[T ~[]core.Type](closing lexer.TokenType) (T, error
 // delimiter has already been consumed).
 // Map literals are represented as a slice of elements and only instantiated as maps during
 // evaluation.
-func (r *Reader) readMapLit() (core.MapLit, error) {
-	res, err := r.readSequence[core.MapLit](lexer.TOKEN_RBRACE)
+func (r *Reader) readMapLit() (typ.MapLit, error) {
+	res, err := r.readSequence[typ.MapLit](lexer.TOKEN_RBRACE)
 	if err != nil {
 		return nil, err
 	}
@@ -183,15 +184,15 @@ func (r *Reader) readInt(token lexer.Token) (core.Type, error) {
 	if err != nil {
 		return nil, r.wrapf(err, "cannot read %q as int", token.Value)
 	}
-	return core.Integer(integer), nil
+	return typ.Integer(integer), nil
 }
 
 // readSymbol constructs a symbol from the given input token.
 func (*Reader) readSymbol(token lexer.Token) (core.Type, error) {
 	if token.Value == "nil" {
-		return core.Nil{}, nil
+		return typ.Nil{}, nil
 	}
-	return core.Symbol(token.Value), nil
+	return typ.Symbol(token.Value), nil
 }
 
 // readString constructs a string from the given input token.
@@ -200,7 +201,7 @@ func (r *Reader) readString(token lexer.Token) (core.Type, error) {
 	if err != nil {
 		return nil, r.wrapf(err, "cannot read %q as string", token.Value)
 	}
-	return core.String(str), nil
+	return typ.String(str), nil
 }
 
 // readQuote quotes the next form.
@@ -212,5 +213,5 @@ func (r *Reader) readQuote() (core.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	return core.List([]core.Type{core.Symbol("quote"), quoted}), nil
+	return typ.List([]core.Type{typ.Symbol("quote"), quoted}), nil
 }

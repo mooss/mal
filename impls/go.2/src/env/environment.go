@@ -3,23 +3,24 @@ package env
 
 import (
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/typ"
 	"github.com/mooss/mal/src/ut"
 )
 
-type _sym = core.Symbol
-type _lst = core.List
-type _fun = core.Function
-type _int = core.Integer
-type _vec = core.Vector
-type _err = core.Error
+type _sym = typ.Symbol
+type _lst = typ.List
+type _fun = typ.Function
+type _int = typ.Integer
+type _vec = typ.Vector
+type _err = typ.Error
 
-type Env map[string]core.Function
+type Env map[string]core.Type
 
-var Initial Env = map[string]core.Function{
-	"+": func(l _int, r _int) _int { return l + r },
-	"-": func(l _int, r _int) _int { return l - r },
-	"*": func(l _int, r _int) _int { return l * r },
-	"/": func(l _int, r _int) _int { return l / r }, // Will panic on r == 0.
+var Initial Env = map[string]core.Type{
+	"+": _fun(func(l _int, r _int) _int { return l + r }),
+	"-": _fun(func(l _int, r _int) _int { return l - r }),
+	"*": _fun(func(l _int, r _int) _int { return l * r }),
+	"/": _fun(func(l _int, r _int) _int { return l / r }), // Will panic on r == 0.
 }
 
 //revive:disable:cognitive-complexity,cyclomatic
@@ -28,7 +29,7 @@ func Eval(ast core.Type, env Env) core.Type {
 	case _sym:
 		value, present := env[string(typed)]
 		if !present {
-			return core.Errorf("symbol %#q not found", typed)
+			return typ.Errorf("symbol %#q not found", typed)
 		}
 		return value
 
@@ -38,7 +39,7 @@ func Eval(ast core.Type, env Env) core.Type {
 		}
 		if len(typed) != 3 {
 			msg := "only list of 3 symbols can be evaluated right now (got %d)"
-			return core.Errorf(msg, len(typed))
+			return typ.Errorf(msg, len(typed))
 		}
 
 		// Apply phase.
@@ -63,7 +64,7 @@ func Eval(ast core.Type, env Env) core.Type {
 		res := make(_vec, len(typed))
 		for i, el := range typed {
 			value := Eval(el, env)
-			if ut.Is[core.Error](value) {
+			if ut.Is[typ.Error](value) {
 				return value
 			}
 			res[i] = value
@@ -80,7 +81,7 @@ func as[T core.Type](val core.Type) (T, *_err) {
 	if !isT {
 		err, isErr := val.(_err)
 		if !isErr {
-			err = core.Errorf("expected %T but got %T (%v)", res, val, val)
+			err = typ.Errorf("expected %T but got %T (%v)", res, val, val)
 		}
 		return res, &err
 	}

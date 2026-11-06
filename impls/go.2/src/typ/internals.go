@@ -1,4 +1,4 @@
-package core
+package typ
 
 func _map[From, To any](fun func(From) To, source []From) []To {
 	res := make([]To, len(source))

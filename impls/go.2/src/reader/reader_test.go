@@ -6,28 +6,29 @@ import (
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/lexer"
+	"github.com/mooss/mal/src/typ"
 	"github.com/mooss/mal/src/ut"
 )
 
 // Constructors keep tables concise and make new types easy to add.
-func sym(s string) core.Symbol { return core.Symbol(s) }
-func str(s string) core.String { return core.String(s) }
-func num(n int64) core.Integer { return core.Integer(n) }
-func _nil() core.Nil           { return core.Nil{} }
+func sym(s string) typ.Symbol { return typ.Symbol(s) }
+func str(s string) typ.String { return typ.String(s) }
+func num(n int64) typ.Integer { return typ.Integer(n) }
+func _nil() typ.Nil           { return typ.Nil{} }
 
-func vec(elems ...core.Type) core.Vector {
-	return core.Vector(elems)
+func vec(elems ...core.Type) typ.Vector {
+	return typ.Vector(elems)
 }
-func quoted(f core.Type) core.List {
-	return core.List{core.Symbol("quote"), f}
-}
-
-func lst(elems ...core.Type) core.List {
-	return core.List(elems)
+func quoted(f core.Type) typ.List {
+	return typ.List{typ.Symbol("quote"), f}
 }
 
-func mapl(pairs ...core.Type) core.MapLit {
-	return core.MapLit(pairs)
+func lst(elems ...core.Type) typ.List {
+	return typ.List(elems)
+}
+
+func mapl(pairs ...core.Type) typ.MapLit {
+	return typ.MapLit(pairs)
 }
 
 func eqslc[T ~[]core.Type](leftVal T, right core.Type) bool {
@@ -43,8 +44,8 @@ func eqslc[T ~[]core.Type](leftVal T, right core.Type) bool {
 	return true
 }
 
-func eqmap(leftVal core.Map, right any) bool {
-	rightVal, ok := right.(core.Map)
+func eqmap(leftVal typ.Map, right any) bool {
+	rightVal, ok := right.(typ.Map)
 	if !ok || len(leftVal) != len(rightVal) {
 		return false
 	}
@@ -86,22 +87,22 @@ func equalType(left, right core.Type) bool {
 	}
 
 	switch leftVal := left.(type) {
-	case core.Integer:
+	case typ.Integer:
 		return eqscal(leftVal, right)
-	case core.Symbol:
+	case typ.Symbol:
 		return eqscal(leftVal, right)
-	case core.String:
+	case typ.String:
 		return eqscal(leftVal, right)
-	case core.List:
+	case typ.List:
 		return eqslc(leftVal, right)
-	case core.Vector:
+	case typ.Vector:
 		return eqslc(leftVal, right)
-	case core.MapLit:
+	case typ.MapLit:
 		return eqslc(leftVal, right)
-	case core.Map:
+	case typ.Map:
 		return eqmap(leftVal, right)
-	case core.Nil:
-		return ut.Is[core.Nil](right)
+	case typ.Nil:
+		return ut.Is[typ.Nil](right)
 	default:
 		return false
 	}
