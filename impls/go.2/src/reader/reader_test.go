@@ -16,22 +16,22 @@ func str(s string) typ.String { return typ.String(s) }
 func num(n int64) typ.Integer { return typ.Integer(n) }
 func _nil() typ.Nil           { return typ.Nil{} }
 
-func vec(elems ...core.Type) typ.Vector {
+func vec(elems ...core.Value) typ.Vector {
 	return typ.Vector(elems)
 }
-func quoted(f core.Type) typ.List {
+func quoted(f core.Value) typ.List {
 	return typ.List{typ.Symbol("quote"), f}
 }
 
-func lst(elems ...core.Type) typ.List {
+func lst(elems ...core.Value) typ.List {
 	return typ.List(elems)
 }
 
-func mapl(pairs ...core.Type) typ.MapLit {
+func mapl(pairs ...core.Value) typ.MapLit {
 	return typ.MapLit(pairs)
 }
 
-func eqslc[T ~[]core.Type](leftVal T, right core.Type) bool {
+func eqslc[T ~[]core.Value](leftVal T, right core.Value) bool {
 	rightVal, ok := right.(T)
 	if !ok || len(leftVal) != len(rightVal) {
 		return false
@@ -50,8 +50,8 @@ func eqmap(leftVal typ.Map, right any) bool {
 		return false
 	}
 	type pair struct {
-		k core.Type
-		v core.Type
+		k core.Value
+		v core.Value
 	}
 	bPairs := make([]pair, 0, len(rightVal))
 	for k, v := range rightVal {
@@ -81,7 +81,7 @@ func eqscal[T comparable](left T, right any) bool {
 
 // equalType compares Mal values structurally.
 // Extend it when new core types are added (for example strings).
-func equalType(left, right core.Type) bool {
+func equalType(left, right core.Value) bool {
 	if left == nil || right == nil {
 		return left == nil && right == nil
 	}
@@ -108,7 +108,7 @@ func equalType(left, right core.Type) bool {
 	}
 }
 
-func equalForms(a, b []core.Type) bool {
+func equalForms(a, b []core.Value) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -125,7 +125,7 @@ func equalForms(a, b []core.Type) bool {
 type singleCase struct {
 	name    string
 	input   string
-	want    core.Type
+	want    core.Value
 	wantErr bool
 }
 
@@ -154,7 +154,7 @@ func runSingleCases(t *testing.T, cases []singleCase) {
 type multiCase struct {
 	name    string
 	input   string
-	want    []core.Type
+	want    []core.Value
 	wantErr bool
 }
 
@@ -163,7 +163,7 @@ func runMultiCases(t *testing.T, cases []multiCase) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			r := ReadStr(tc.input)
-			var got []core.Type
+			var got []core.Value
 			gotErr := false
 			for !r.Done() {
 				form, err := r.ReadForm()
@@ -242,9 +242,9 @@ func TestReadNil(t *testing.T) {
 	})
 	runMultiCases(t, []multiCase{
 		//nolint:dupword
-		{name: "two nils", input: "nil nil", want: []core.Type{_nil(), _nil()}, wantErr: false},
-		{name: "nil mixed", input: `nil 1 foo "hi"`, want: []core.Type{_nil(), num(1), sym("foo"), str(`hi`)}, wantErr: false},
-		{name: "nil in forms", input: "(nil) [nil] nil", want: []core.Type{lst(_nil()), vec(_nil()), _nil()}, wantErr: false},
+		{name: "two nils", input: "nil nil", want: []core.Value{_nil(), _nil()}, wantErr: false},
+		{name: "nil mixed", input: `nil 1 foo "hi"`, want: []core.Value{_nil(), num(1), sym("foo"), str(`hi`)}, wantErr: false},
+		{name: "nil in forms", input: "(nil) [nil] nil", want: []core.Value{lst(_nil()), vec(_nil()), _nil()}, wantErr: false},
 	})
 	t.Run("nil not equal other types", func(t *testing.T) {
 		if equalType(_nil(), sym("nil")) {
@@ -366,10 +366,10 @@ func TestReadMaps(t *testing.T) {
 		{name: "unterminated string key", input: `{"a"`, wantErr: true},
 	})
 	runMultiCases(t, []multiCase{
-		{name: "two maps", input: `{"a" 1} {"b" 2}`, want: []core.Type{mapl(str(`a`), num(1)), mapl(str(`b`), num(2))}, wantErr: false},
-		{name: "map then list", input: `{"a" 1} (1)`, want: []core.Type{mapl(str(`a`), num(1)), lst(num(1))}, wantErr: false},
-		{name: "second unbalanced", input: `{"a" 1} {`, want: []core.Type{mapl(str(`a`), num(1))}, wantErr: true},
-		{name: "second odd", input: `{} {1}`, want: []core.Type{mapl()}, wantErr: true},
+		{name: "two maps", input: `{"a" 1} {"b" 2}`, want: []core.Value{mapl(str(`a`), num(1)), mapl(str(`b`), num(2))}, wantErr: false},
+		{name: "map then list", input: `{"a" 1} (1)`, want: []core.Value{mapl(str(`a`), num(1)), lst(num(1))}, wantErr: false},
+		{name: "second unbalanced", input: `{"a" 1} {`, want: []core.Value{mapl(str(`a`), num(1))}, wantErr: true},
+		{name: "second odd", input: `{} {1}`, want: []core.Value{mapl()}, wantErr: true},
 	})
 }
 
@@ -401,16 +401,16 @@ func TestReadMultipleForms(t *testing.T) {
 	runMultiCases(t, []multiCase{
 		{name: "empty", input: "", want: nil, wantErr: false},
 		{name: "whitespace only", input: " \t\n\r,, ", want: nil, wantErr: false},
-		{name: "single int", input: "1", want: []core.Type{num(1)}, wantErr: false},
-		{name: "two ints", input: "1 2", want: []core.Type{num(1), num(2)}, wantErr: false},
-		{name: "mixed", input: `1 foo "hi"`, want: []core.Type{num(1), sym("foo"), str(`hi`)}, wantErr: false},
-		{name: "two lists", input: "(1) (2)", want: []core.Type{lst(num(1)), lst(num(2))}, wantErr: false},
-		{name: "quote then list", input: "'a (1 2)", want: []core.Type{quoted(sym("a")), lst(num(1), num(2))}, wantErr: false},
-		{name: "commas", input: "1, 2 , (3)", want: []core.Type{num(1), num(2), lst(num(3))}, wantErr: false},
-		{name: "vector then list", input: "[] (1)", want: []core.Type{vec(), lst(num(1))}, wantErr: false},
-		{name: "trailing rparen", input: "(1))", want: []core.Type{lst(num(1))}, wantErr: true},
-		{name: "trailing rbracket", input: "(1) ]", want: []core.Type{lst(num(1))}, wantErr: true},
-		{name: "second unbalanced", input: "(1) (2", want: []core.Type{lst(num(1))}, wantErr: true},
+		{name: "single int", input: "1", want: []core.Value{num(1)}, wantErr: false},
+		{name: "two ints", input: "1 2", want: []core.Value{num(1), num(2)}, wantErr: false},
+		{name: "mixed", input: `1 foo "hi"`, want: []core.Value{num(1), sym("foo"), str(`hi`)}, wantErr: false},
+		{name: "two lists", input: "(1) (2)", want: []core.Value{lst(num(1)), lst(num(2))}, wantErr: false},
+		{name: "quote then list", input: "'a (1 2)", want: []core.Value{quoted(sym("a")), lst(num(1), num(2))}, wantErr: false},
+		{name: "commas", input: "1, 2 , (3)", want: []core.Value{num(1), num(2), lst(num(3))}, wantErr: false},
+		{name: "vector then list", input: "[] (1)", want: []core.Value{vec(), lst(num(1))}, wantErr: false},
+		{name: "trailing rparen", input: "(1))", want: []core.Value{lst(num(1))}, wantErr: true},
+		{name: "trailing rbracket", input: "(1) ]", want: []core.Value{lst(num(1))}, wantErr: true},
+		{name: "second unbalanced", input: "(1) (2", want: []core.Value{lst(num(1))}, wantErr: true},
 		{name: "token error", input: "1 `", want: nil, wantErr: true},
 		{name: "unterminated", input: "(1) \"foo", want: nil, wantErr: true},
 	})

@@ -8,14 +8,14 @@ import (
 )
 
 // Vector is a sequence of values in brackets.
-type Vector []core.Type
+type Vector []core.Value
 
 func (Vector) Type() core.TypeName { return core.VECTOR }
 func (v Vector) String() string {
-	return "[" + strings.Join(_map(core.Type.String, v), " ") + "]"
+	return "[" + strings.Join(_map(core.Value.String, v), " ") + "]"
 }
 
-func (v Vector) Eval(envr core.Env) core.Type {
+func (v Vector) Eval(envr core.Env) core.Value {
 	res := make(_vec, len(v))
 	for i, el := range v {
 		value := el.Eval(envr)

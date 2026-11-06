@@ -27,7 +27,7 @@ func _mapflat[From comparable, To any](fun func(From) To, source map[From]From) 
 	return res
 }
 
-func as[T core.Type](val core.Type) (T, *_err) {
+func as[T core.Value](val core.Value) (T, *_err) {
 	res, isT := val.(T)
 	if !isT {
 		err, isErr := val.(_err)

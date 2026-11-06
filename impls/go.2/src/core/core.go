@@ -28,15 +28,15 @@ const (
 	NIL TypeName = "nil"
 )
 
-// Type is a Mal value.
-type Type interface {
-	// Type returns the TypeName identifying the Mal type of the value.
+// Value defines the methods a Mal value must implement.
+type Value interface {
+	// Type returns the TypeName identifying the type of the value.
 	Type() TypeName
-	// String returns the string representation of the Mal value.
+	// String returns the string representation of the Mal value as Mal code.
 	String() string
 	// Eval evaluates the value against an environment.
-	Eval(Env) Type
+	Eval(Env) Value
 }
 
 // Env is an environment associating symbols to their values.
-type Env map[string]Type
+type Env map[string]Value

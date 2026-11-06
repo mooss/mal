@@ -7,14 +7,14 @@ import (
 )
 
 // List is a sequence of values.
-type List []core.Type
+type List []core.Value
 
 func (List) Type() core.TypeName { return core.LIST }
 func (lst List) String() string {
-	return "(" + strings.Join(_map(core.Type.String, lst), " ") + ")"
+	return "(" + strings.Join(_map(core.Value.String, lst), " ") + ")"
 }
 
-func (lst List) Eval(envr core.Env) core.Type {
+func (lst List) Eval(envr core.Env) core.Value {
 	if len(lst) == 0 {
 		return lst
 	}

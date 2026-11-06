@@ -11,7 +11,7 @@ import (
 	"github.com/mooss/mal/src/reader"
 )
 
-func read(input string) (core.Type, error) {
+func read(input string) (core.Value, error) {
 	rdr := reader.ReadStr(input)
 	parsed, err := rdr.ReadForm()
 	if err != nil {
@@ -25,12 +25,12 @@ func read(input string) (core.Type, error) {
 	return parsed, nil
 }
 
-func eval(expr core.Type, envr core.Env) core.Type {
+func eval(expr core.Value, envr core.Env) core.Value {
 	return expr.Eval(envr)
 }
 
 // print is a primitive so this one is called display instead.
-func display(input core.Type) string {
+func display(input core.Value) string {
 	return input.String()
 }
 

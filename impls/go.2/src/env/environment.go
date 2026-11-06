@@ -9,7 +9,7 @@ import (
 type _fun = typ.Function
 type _int = typ.Integer
 
-var Initial core.Env = map[string]core.Type{
+var Initial core.Env = map[string]core.Value{
 	"+": _fun(func(l _int, r _int) _int { return l + r }),
 	"-": _fun(func(l _int, r _int) _int { return l - r }),
 	"*": _fun(func(l _int, r _int) _int { return l * r }),

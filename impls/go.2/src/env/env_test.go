@@ -9,7 +9,7 @@ import (
 
 func TestEvalIntegerReturnsItself(t *testing.T) {
 	got := typ.Integer(42).Eval(Initial)
-	if got != core.Type(typ.Integer(42)) {
+	if got != core.Value(typ.Integer(42)) {
 		t.Fatalf("Eval(42) = %v, want 42", got)
 	}
 }
@@ -57,7 +57,7 @@ func TestEvalUsesGivenEnv(t *testing.T) {
 	}
 
 	got = typ.List{typ.Symbol("foo"), typ.Integer(1), typ.Integer(2)}.Eval(custom)
-	if got != core.Type(typ.Integer(99)) {
+	if got != core.Value(typ.Integer(99)) {
 		t.Fatalf("Eval((foo 1 2)) = %v, want 99", got)
 	}
 }
@@ -79,7 +79,7 @@ func TestEvalArithmetic(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ast := typ.List{typ.Symbol(tt.op), tt.a, tt.b}
 			got := ast.Eval(Initial)
-			if got != core.Type(tt.want) {
+			if got != core.Value(tt.want) {
 				t.Fatalf("Eval((%s %d %d)) = %v, want %d", tt.op, tt.a, tt.b, got, tt.want)
 			}
 		})
@@ -94,7 +94,7 @@ func TestEvalNestedArithmetic(t *testing.T) {
 		typ.List{typ.Symbol("-"), typ.Integer(10), typ.Integer(4)},
 	}
 	got := ast.Eval(Initial)
-	if got != core.Type(typ.Integer(12)) {
+	if got != core.Value(typ.Integer(12)) {
 		t.Fatalf("Eval nested = %v, want 12", got)
 	}
 }

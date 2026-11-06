@@ -79,7 +79,7 @@ func (*Reader) errf(msg string, args ...any) error {
 
 // ReadForm constructs the next type from the input tokens, after ensuring that there was no
 // tokenization error and that there are tokens left to read.
-func (r *Reader) ReadForm() (core.Type, error) {
+func (r *Reader) ReadForm() (core.Value, error) {
 	if err := r.tokerr(); err != nil {
 		return nil, r.wrap(err)
 	}
@@ -92,7 +92,7 @@ func (r *Reader) ReadForm() (core.Type, error) {
 // readForm constructs the next type from the input tokens.
 //
 //revive:disable:cyclomatic
-func (r *Reader) readForm() (core.Type, error) {
+func (r *Reader) readForm() (core.Value, error) {
 	token := r.Next()
 	switch token.Type {
 	// Balanced expressions.
@@ -130,7 +130,7 @@ func (r *Reader) readForm() (core.Type, error) {
 //   - An error when the reader is done.
 //   - nil, nil when the delimiter is found.
 //   - The next form otherwise.
-func (r *Reader) seekDelim(delim lexer.TokenType) (core.Type, error) {
+func (r *Reader) seekDelim(delim lexer.TokenType) (core.Value, error) {
 	if r.Done() {
 		return nil, r.errf("unbalanced expression (missing %s)", delim.What())
 	}
@@ -145,7 +145,7 @@ func (r *Reader) seekDelim(delim lexer.TokenType) (core.Type, error) {
 
 // readSequence constructs a sequence type from the remaining input tokens (assumes that the opening
 // delimiter has already been consumed).
-func (r *Reader) readSequence[T ~[]core.Type](closing lexer.TokenType) (T, error) {
+func (r *Reader) readSequence[T ~[]core.Value](closing lexer.TokenType) (T, error) {
 	var res T
 	for {
 		next, err := r.seekDelim(closing)
@@ -179,7 +179,7 @@ func (r *Reader) readMapLit() (typ.MapLit, error) {
 }
 
 // readInt constructs an int from the given input token.
-func (r *Reader) readInt(token lexer.Token) (core.Type, error) {
+func (r *Reader) readInt(token lexer.Token) (core.Value, error) {
 	integer, err := strconv.ParseInt(token.Value, 10, 64)
 	if err != nil {
 		return nil, r.wrapf(err, "cannot read %q as int", token.Value)
@@ -188,7 +188,7 @@ func (r *Reader) readInt(token lexer.Token) (core.Type, error) {
 }
 
 // readSymbol constructs a symbol from the given input token.
-func (*Reader) readSymbol(token lexer.Token) (core.Type, error) {
+func (*Reader) readSymbol(token lexer.Token) (core.Value, error) {
 	if token.Value == "nil" {
 		return typ.Nil{}, nil
 	}
@@ -196,7 +196,7 @@ func (*Reader) readSymbol(token lexer.Token) (core.Type, error) {
 }
 
 // readString constructs a string from the given input token.
-func (r *Reader) readString(token lexer.Token) (core.Type, error) {
+func (r *Reader) readString(token lexer.Token) (core.Value, error) {
 	str, err := strconv.Unquote(token.Value)
 	if err != nil {
 		return nil, r.wrapf(err, "cannot read %q as string", token.Value)
@@ -205,7 +205,7 @@ func (r *Reader) readString(token lexer.Token) (core.Type, error) {
 }
 
 // readQuote quotes the next form.
-func (r *Reader) readQuote() (core.Type, error) {
+func (r *Reader) readQuote() (core.Value, error) {
 	if r.Done() {
 		return nil, r.err("nothing left to quote")
 	}
@@ -213,5 +213,5 @@ func (r *Reader) readQuote() (core.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	return typ.List([]core.Type{typ.Symbol("quote"), quoted}), nil
+	return typ.List([]core.Value{typ.Symbol("quote"), quoted}), nil
 }
