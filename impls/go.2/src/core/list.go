@@ -2,6 +2,7 @@ package core
 
 import "strings"
 
+// List is a sequence of values.
 type List []Type
 
 func (List) Type() TypeName   { return LIST }

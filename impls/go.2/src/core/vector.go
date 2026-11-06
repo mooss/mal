@@ -2,6 +2,7 @@ package core
 
 import "strings"
 
+// Vector is a sequence of values in brackets.
 type Vector []Type
 
 func (Vector) Type() TypeName   { return VECTOR }

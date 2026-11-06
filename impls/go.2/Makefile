@@ -8,3 +8,6 @@ lint:
 
 test:
 	@go test ./src/...
+
+fmt:
+	@go fmt ./...
