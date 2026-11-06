@@ -16,10 +16,10 @@ func (v Vector) String() string {
 }
 
 func (v Vector) Eval(envr core.Env) core.Value {
-	res := make(_vec, len(v))
+	res := make(Vector, len(v))
 	for i, el := range v {
 		value := el.Eval(envr)
-		if ut.Is[Error](value) {
+		if ut.Is[Fatal](value) {
 			return value
 		}
 		res[i] = value

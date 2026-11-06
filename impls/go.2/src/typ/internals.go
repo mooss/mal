@@ -2,11 +2,6 @@ package typ
 
 import "github.com/mooss/mal/src/core"
 
-type _err = Error
-type _fun = Function
-type _int = Integer
-type _vec = Vector
-
 func _map[From, To any](fun func(From) To, source []From) []To {
 	res := make([]To, len(source))
 	for i, el := range source {
@@ -27,12 +22,12 @@ func _mapflat[From comparable, To any](fun func(From) To, source map[From]From) 
 	return res
 }
 
-func as[T core.Value](val core.Value) (T, *_err) {
+func as[T core.Value](val core.Value) (T, *Fatal) {
 	res, isT := val.(T)
 	if !isT {
-		err, isErr := val.(_err)
+		err, isErr := val.(Fatal)
 		if !isErr {
-			err = Errorf("expected %T but got %T (%v)", res, val, val)
+			err = Fatalf("expected %T but got %T (%v)", res, val, val)
 		}
 		return res, &err
 	}

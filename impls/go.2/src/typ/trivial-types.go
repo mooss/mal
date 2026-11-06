@@ -10,14 +10,14 @@ import (
 	"github.com/mooss/mal/src/core"
 )
 
-// Error wraps a Go error as a Mal value.
-type Error struct{ error }
+// Fatal is an error that interrupts all execution immediately and irrecoverably.
+type Fatal struct{ error }
 
-// Errorf creates an Error with a formatted message.
-func Errorf(msg string, args ...any) Error { return Error{error: fmt.Errorf(msg, args...)} }
-func (Error) Type() core.TypeName          { return core.ERROR }
-func (e Error) String() string             { return fmt.Sprintf("(error %q)", e.Error()) }
-func (e Error) Eval(core.Env) core.Value   { return e }
+// Fatalf creates a Fatal error with a formatted message.
+func Fatalf(msg string, args ...any) Fatal { return Fatal{error: fmt.Errorf(msg, args...)} }
+func (Fatal) Type() core.TypeName          { return core.ERROR }
+func (e Fatal) String() string             { return fmt.Sprintf("(fatal %q)", e.Error()) }
+func (e Fatal) Eval(core.Env) core.Value   { return e }
 
 // Integer is a 64-bit signed integer value.
 type Integer int64
@@ -48,7 +48,7 @@ func (s Symbol) String() string    { return string(s) }
 func (s Symbol) Eval(envr core.Env) core.Value {
 	value, present := envr[string(s)]
 	if !present {
-		return Errorf("symbol %#q not found", s)
+		return Fatalf("symbol %#q not found", s)
 	}
 	return value
 }
