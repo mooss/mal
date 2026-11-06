@@ -5,6 +5,7 @@ import (
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/typ"
+	"github.com/mooss/mal/src/ut"
 )
 
 func TestEvalIntegerReturnsItself(t *testing.T) {
@@ -18,7 +19,7 @@ func TestEvalEmptyListReturnsItself(t *testing.T) {
 	got := typ.List{}.Eval(Initial)
 	lst, ok := got.(typ.List)
 	if !ok {
-		t.Fatalf("Eval(empty list) type = %T, want typ.List", got)
+		t.Fatalf("Eval(empty list) type = %T, want %T", got, typ.List{})
 	}
 	if len(lst) != 0 {
 		t.Fatalf("Eval(empty list) = %v, want empty list", lst)
@@ -28,16 +29,16 @@ func TestEvalEmptyListReturnsItself(t *testing.T) {
 func TestEvalSymbolLookup(t *testing.T) {
 	for _, sym := range []string{"+", "-", "*", "/"} {
 		got := typ.Symbol(sym).Eval(Initial)
-		if got.Type() != core.FUNCTION {
-			t.Fatalf("Eval(%q).Type() = %s, want %s", sym, got.Type(), core.FUNCTION)
+		if !ut.Is[typ.Function](got) {
+			t.Fatalf("Eval(%q) = %#v, want %T", sym, got, typ.Function(nil))
 		}
 	}
 }
 
 func TestEvalUnknownSymbolReturnsError(t *testing.T) {
 	got := typ.Symbol("nope").Eval(Initial)
-	if got.Type() != core.FATAL {
-		t.Fatalf("Eval(unknown symbol).Type() = %s, want %s", got.Type(), core.FATAL)
+	if !ut.Is[typ.Fatal](got) {
+		t.Fatalf("Eval(unknown symbol) = %#v, want %T", got, typ.Fatal{})
 	}
 }
 
@@ -47,13 +48,13 @@ func TestEvalUsesGivenEnv(t *testing.T) {
 	}
 
 	got := typ.Symbol("foo").Eval(custom)
-	if got.Type() != core.FUNCTION {
-		t.Fatalf("Eval(foo) with custom env type = %s, want %s", got.Type(), core.FUNCTION)
+	if !ut.Is[typ.Function](got) {
+		t.Fatalf("Eval(foo) with custom env = %#v, want %T", got, typ.Function(nil))
 	}
 
 	got = typ.Symbol("+").Eval(custom)
-	if got.Type() != core.FATAL {
-		t.Fatalf("Eval(+) with custom env type = %s, want %s", got.Type(), core.FATAL)
+	if !ut.Is[typ.Fatal](got) {
+		t.Fatalf("Eval(+) with custom env = %#v, want %T", got, typ.Fatal{})
 	}
 
 	got = typ.List{typ.Symbol("foo"), typ.Integer(1), typ.Integer(2)}.Eval(custom)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/typ"
+	"github.com/mooss/mal/src/ut"
 )
 
 type evalCounter struct {
@@ -35,7 +36,7 @@ func (v evalOrder) Eval(core.Env) core.Value {
 
 func requireError(t *testing.T, value core.Value) {
 	t.Helper()
-	if value.Type() != core.FATAL {
-		t.Fatalf("Eval() type = %v, want %v", value.Type(), core.FATAL)
+	if !ut.Is[typ.Fatal](value) {
+		t.Fatalf("Eval() = %#v, want %T", value, typ.Fatal{})
 	}
 }

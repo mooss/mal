@@ -92,7 +92,7 @@ func TestMapLitEvalEvaluatesKeysAndValuesInOrder(t *testing.T) {
 
 	values, ok := got.(typ.Map)
 	if !ok {
-		t.Fatalf("Eval() type = %T, want Map", got)
+		t.Fatalf("Eval() type = %T, want %T", got, typ.Map{})
 	}
 	if values[typ.Integer(1)] != typ.Integer(10) || values[typ.Integer(2)] != typ.Integer(20) {
 		t.Errorf("Eval() = %s, want {1 10 2 20}", values.String())
@@ -120,7 +120,7 @@ func TestMapEvalReturnsItself(t *testing.T) {
 	original := typ.Map{typ.Integer(1): typ.Integer(2)}
 	got, ok := original.Eval(core.Env{}).(typ.Map)
 	if !ok {
-		t.Fatalf("Eval() type = %T, want Map", original.Eval(core.Env{}))
+		t.Fatalf("Eval() type = %T, want %T", original.Eval(core.Env{}), typ.Map{})
 	}
 
 	got[typ.Integer(3)] = typ.Integer(4)
