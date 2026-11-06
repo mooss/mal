@@ -15,7 +15,7 @@ type Fatal struct{ error }
 
 // Fatalf creates a Fatal error with a formatted message.
 func Fatalf(msg string, args ...any) Fatal { return Fatal{error: fmt.Errorf(msg, args...)} }
-func (Fatal) Type() core.TypeName          { return core.ERROR }
+func (Fatal) Type() core.TypeName          { return core.FATAL }
 func (e Fatal) String() string             { return fmt.Sprintf("(fatal %q)", e.Error()) }
 func (e Fatal) Eval(core.Env) core.Value   { return e }
 

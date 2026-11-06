@@ -36,8 +36,8 @@ func TestEvalSymbolLookup(t *testing.T) {
 
 func TestEvalUnknownSymbolReturnsError(t *testing.T) {
 	got := typ.Symbol("nope").Eval(Initial)
-	if got.Type() != core.ERROR {
-		t.Fatalf("Eval(unknown symbol).Type() = %s, want %s", got.Type(), core.ERROR)
+	if got.Type() != core.FATAL {
+		t.Fatalf("Eval(unknown symbol).Type() = %s, want %s", got.Type(), core.FATAL)
 	}
 }
 
@@ -52,8 +52,8 @@ func TestEvalUsesGivenEnv(t *testing.T) {
 	}
 
 	got = typ.Symbol("+").Eval(custom)
-	if got.Type() != core.ERROR {
-		t.Fatalf("Eval(+) with custom env type = %s, want %s", got.Type(), core.ERROR)
+	if got.Type() != core.FATAL {
+		t.Fatalf("Eval(+) with custom env type = %s, want %s", got.Type(), core.FATAL)
 	}
 
 	got = typ.List{typ.Symbol("foo"), typ.Integer(1), typ.Integer(2)}.Eval(custom)

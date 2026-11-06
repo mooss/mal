@@ -39,7 +39,7 @@ func NewMapForm(vals ...core.Value) (MapForm, error) {
 	return res, nil
 }
 
-func (MapForm) Type() core.TypeName { return core.MAP_LITERAL }
+func (MapForm) Type() core.TypeName { return core.MAP_FORM }
 func (m MapForm) String() string {
 	parts := make([]string, 0, len(m)*2)
 	for _, assoc := range m {

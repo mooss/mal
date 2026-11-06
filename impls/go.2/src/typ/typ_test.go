@@ -35,7 +35,7 @@ func (v evalOrder) Eval(core.Env) core.Value {
 
 func requireError(t *testing.T, value core.Value) {
 	t.Helper()
-	if value.Type() != core.ERROR {
-		t.Fatalf("Eval() type = %v, want %v", value.Type(), core.ERROR)
+	if value.Type() != core.FATAL {
+		t.Fatalf("Eval() type = %v, want %v", value.Type(), core.FATAL)
 	}
 }
