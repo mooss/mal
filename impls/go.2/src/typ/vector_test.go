@@ -13,11 +13,11 @@ func TestVectorEvalEvaluatesElementsInOrder(t *testing.T) {
 		"second": typ.Integer(20),
 		"third":  typ.Integer(30),
 	}
-	got := typ.Vector{typ.Symbol("first"), typ.Symbol("second"), typ.Symbol("third")}.Eval(envr)
+	got := typ.VectorForm{typ.Symbol("first"), typ.Symbol("second"), typ.Symbol("third")}.Eval(envr)
 
 	values, ok := got.(typ.Vector)
 	if !ok {
-		t.Fatalf("Eval() type = %T, want Vector", got)
+		t.Fatalf("Eval() type = %T, want %T", got, typ.Vector{})
 	}
 	if len(values) != 3 {
 		t.Fatalf("Eval() length = %d, want 3", len(values))
@@ -34,7 +34,7 @@ func TestVectorEvalPropagatesFirstFatalAndStops(t *testing.T) {
 		"first":  firstFatal,
 		"second": secondFatal,
 	}
-	got := typ.Vector{
+	got := typ.VectorForm{
 		typ.Symbol("first"),
 		typ.Symbol("second"),
 		evalCounter{count: &count},

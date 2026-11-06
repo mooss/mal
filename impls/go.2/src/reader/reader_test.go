@@ -16,8 +16,8 @@ func str(s string) typ.String { return typ.String(s) }
 func num(n int64) typ.Integer { return typ.Integer(n) }
 func _nil() typ.Nil           { return typ.Nil{} }
 
-func vec(elems ...core.Value) typ.Vector {
-	return typ.Vector(elems)
+func vec(elems ...core.Value) typ.VectorForm {
+	return typ.VectorForm(elems)
 }
 func quoted(f core.Value) typ.List {
 	return typ.List{typ.Symbol("quote"), f}
@@ -112,7 +112,7 @@ func equalType(left, right core.Value) bool {
 		return eqscal(leftVal, right)
 	case typ.List:
 		return eqslc(leftVal, right)
-	case typ.Vector:
+	case typ.VectorForm:
 		return eqslc(leftVal, right)
 	case typ.MapForm:
 		return eqMapForm(leftVal, right)

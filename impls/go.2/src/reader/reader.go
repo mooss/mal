@@ -101,7 +101,7 @@ func (r *Reader) readForm() (core.Value, error) {
 	case lexer.TOKEN_RPAREN:
 		return nil, r.err("unexpected closing paren")
 	case lexer.TOKEN_LBRACKET:
-		return r.readSequence[typ.Vector](lexer.TOKEN_RBRACKET)
+		return r.readSequence[typ.VectorForm](lexer.TOKEN_RBRACKET)
 	case lexer.TOKEN_RBRACKET:
 		return nil, r.err("unexpected closing bracket")
 	case lexer.TOKEN_LBRACE:

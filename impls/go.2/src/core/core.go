@@ -6,26 +6,28 @@ type TypeName string
 
 //revive:disable:var-naming
 const (
-	// SYMBOL is the name of the symbol type.
-	SYMBOL TypeName = "symbol"
-	// LIST is the name of the list type.
-	LIST TypeName = "list"
+	// ERROR is the name of the error type.
+	ERROR TypeName = "error"
 	// FUNCTION is the name of the function type.
 	FUNCTION TypeName = "function"
 	// INTEGER is the name of the integer type.
 	INTEGER TypeName = "integer"
-	// STRING is the name of the string type.
-	STRING TypeName = "string"
-	// VECTOR is the name of the vector type.
-	VECTOR TypeName = "vector"
+	// LIST is the name of the list type.
+	LIST TypeName = "list"
 	// MAP is the name of the map type.
 	MAP TypeName = "map"
 	// MAP_LITERAL is the name of the unevaluated map type.
 	MAP_LITERAL TypeName = "map-literal"
-	// ERROR is the name of the error type.
-	ERROR TypeName = "error"
 	// NIL is the name of the nil type.
 	NIL TypeName = "nil"
+	// STRING is the name of the string type.
+	STRING TypeName = "string"
+	// SYMBOL is the name of the symbol type.
+	SYMBOL TypeName = "symbol"
+	// VECTOR is the name of the vector type.
+	VECTOR TypeName = "vector"
+	// VECTOR_FORM is the name of the unevaluated vector type.
+	VECTOR_FORM TypeName = "vector-form"
 )
 
 // Value defines the methods a Mal value must implement.

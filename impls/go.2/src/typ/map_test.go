@@ -58,7 +58,7 @@ func TestMapLitEvalAcceptsOnlySupportedKeyTypes(t *testing.T) {
 
 	for _, key := range []core.Value{
 		typ.List{typ.Integer(1)},
-		typ.Vector{typ.Integer(1)},
+		typ.VectorForm{typ.Integer(1)},
 		typ.Map{typ.Integer(1): typ.Integer(2)},
 		typ.MapForm{{Key: typ.Integer(1), Value: typ.Integer(2)}},
 		typ.Function(func(a typ.Integer, b typ.Integer) typ.Integer { return a + b }),
