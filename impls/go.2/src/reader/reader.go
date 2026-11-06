@@ -171,8 +171,8 @@ func (r *Reader) readMapLit() (typ.MapLit, error) {
 		return nil, err
 	}
 
-	if len(res)%2 != 0 {
-		return nil, r.err("odd-numbered map literal")
+	if err := res.ValidateEven(); err != nil {
+		return nil, r.wrap(err)
 	}
 
 	return res, nil

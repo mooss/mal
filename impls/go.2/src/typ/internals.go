@@ -33,3 +33,11 @@ func as[T core.Value](val core.Value) (T, *Fatal) {
 	}
 	return res, nil
 }
+
+func validKey(value core.Value) bool {
+	switch value.(type) {
+	case Integer, Nil, String, Symbol:
+		return true
+	}
+	return false
+}
