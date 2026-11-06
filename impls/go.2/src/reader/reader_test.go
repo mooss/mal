@@ -27,8 +27,25 @@ func lst(elems ...core.Value) typ.List {
 	return typ.List(elems)
 }
 
-func mapl(pairs ...core.Value) typ.MapLit {
-	return typ.MapLit(pairs)
+func mapl(pairs ...core.Value) typ.MapForm {
+	form, err := typ.NewMapForm(pairs...)
+	if err != nil {
+		panic(err)
+	}
+	return form
+}
+
+func eqMapForm(left typ.MapForm, right core.Value) bool {
+	rightVal, ok := right.(typ.MapForm)
+	if !ok || len(left) != len(rightVal) {
+		return false
+	}
+	for i := range left {
+		if !equalType(left[i].Key, rightVal[i].Key) || !equalType(left[i].Value, rightVal[i].Value) {
+			return false
+		}
+	}
+	return true
 }
 
 func eqslc[T ~[]core.Value](leftVal T, right core.Value) bool {
@@ -97,8 +114,8 @@ func equalType(left, right core.Value) bool {
 		return eqslc(leftVal, right)
 	case typ.Vector:
 		return eqslc(leftVal, right)
-	case typ.MapLit:
-		return eqslc(leftVal, right)
+	case typ.MapForm:
+		return eqMapForm(leftVal, right)
 	case typ.Map:
 		return eqmap(leftVal, right)
 	case typ.Nil:

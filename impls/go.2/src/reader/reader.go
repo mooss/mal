@@ -163,19 +163,29 @@ func (r *Reader) readSequence[T ~[]core.Value](closing lexer.TokenType) (T, erro
 
 // readMapLit constructs a map literal from the remaining input tokens (assumes that the opening
 // delimiter has already been consumed).
-// Map literals are represented as a slice of elements and only instantiated as maps during
+// Map literals are represented as a slice of key/value pairs and only instantiated as maps during
 // evaluation.
-func (r *Reader) readMapLit() (typ.MapLit, error) {
-	res, err := r.readSequence[typ.MapLit](lexer.TOKEN_RBRACE)
-	if err != nil {
-		return nil, err
-	}
+func (r *Reader) readMapLit() (typ.MapForm, error) {
+	var res typ.MapForm
+	for {
+		key, err := r.seekDelim(lexer.TOKEN_RBRACE)
+		if err != nil {
+			return nil, err
+		}
+		if key == nil {
+			return res, nil
+		}
 
-	if err := res.ValidateEven(); err != nil {
-		return nil, r.wrap(err)
-	}
+		value, err := r.seekDelim(lexer.TOKEN_RBRACE)
+		if err != nil {
+			return nil, err
+		}
+		if value == nil {
+			return nil, r.err("odd-numbered map literal")
+		}
 
-	return res, nil
+		res = append(res, typ.Assoc{Key: key, Value: value})
+	}
 }
 
 // readInt constructs an int from the given input token.
