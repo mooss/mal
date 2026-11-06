@@ -3,6 +3,7 @@ package env
 
 import (
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/ut"
 )
 
 type _sym = core.Symbol
@@ -62,7 +63,7 @@ func Eval(ast core.Type, env Env) core.Type {
 		res := make(_vec, len(typed))
 		for i, el := range typed {
 			value := Eval(el, env)
-			if is[core.Error](value) {
+			if ut.Is[core.Error](value) {
 				return value
 			}
 			res[i] = value
@@ -84,9 +85,4 @@ func as[T core.Type](val core.Type) (T, *_err) {
 		return res, &err
 	}
 	return res, nil
-}
-
-func is[T any](val any) bool {
-	_, res := val.(T)
-	return res
 }

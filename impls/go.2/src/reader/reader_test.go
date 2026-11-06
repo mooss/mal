@@ -6,13 +6,13 @@ import (
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/lexer"
+	"github.com/mooss/mal/src/ut"
 )
 
 // Constructors keep tables concise and make new types easy to add.
 func sym(s string) core.Symbol { return core.Symbol(s) }
 func str(s string) core.String { return core.String(s) }
 func num(n int64) core.Integer { return core.Integer(n) }
-func dummy() core.Dummy        { return core.Dummy{} }
 func _nil() core.Nil           { return core.Nil{} }
 
 func vec(elems ...core.Type) core.Vector {
@@ -26,53 +26,82 @@ func lst(elems ...core.Type) core.List {
 	return core.List(elems)
 }
 
-// equalType compares Mal values structurally.
-// Extend it when new core types are added (for example strings).
-func equalType(a, b core.Type) bool {
-	if a == nil || b == nil {
-		return a == nil && b == nil
-	}
-	if a.Type() != b.Type() {
+func mapl(pairs ...core.Type) core.MapLit {
+	return core.MapLit(pairs)
+}
+
+func eqslc[T ~[]core.Type](leftVal T, right core.Type) bool {
+	rightVal, ok := right.(T)
+	if !ok || len(leftVal) != len(rightVal) {
 		return false
 	}
-	switch av := a.(type) {
+	for i := range leftVal {
+		if !equalType(leftVal[i], rightVal[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func eqmap(leftVal core.Map, right any) bool {
+	rightVal, ok := right.(core.Map)
+	if !ok || len(leftVal) != len(rightVal) {
+		return false
+	}
+	type pair struct {
+		k core.Type
+		v core.Type
+	}
+	bPairs := make([]pair, 0, len(rightVal))
+	for k, v := range rightVal {
+		bPairs = append(bPairs, pair{k, v})
+	}
+	used := make([]bool, len(bPairs))
+	for ak, avv := range leftVal {
+		found := false
+		for i, p := range bPairs {
+			if !used[i] && equalType(ak, p.k) && equalType(avv, p.v) {
+				used[i] = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+func eqscal[T comparable](left T, right any) bool {
+	rightVal, ok := right.(T)
+	return ok && left == rightVal
+}
+
+// equalType compares Mal values structurally.
+// Extend it when new core types are added (for example strings).
+func equalType(left, right core.Type) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+
+	switch leftVal := left.(type) {
 	case core.Integer:
-		bv, ok := b.(core.Integer)
-		return ok && av == bv
+		return eqscal(leftVal, right)
 	case core.Symbol:
-		bv, ok := b.(core.Symbol)
-		return ok && av == bv
+		return eqscal(leftVal, right)
 	case core.String:
-		bv, ok := b.(core.String)
-		return ok && av == bv
+		return eqscal(leftVal, right)
 	case core.List:
-		bv, ok := b.(core.List)
-		if !ok || len(av) != len(bv) {
-			return false
-		}
-		for i := range av {
-			if !equalType(av[i], bv[i]) {
-				return false
-			}
-		}
-		return true
+		return eqslc(leftVal, right)
 	case core.Vector:
-		bv, ok := b.(core.Vector)
-		if !ok || len(av) != len(bv) {
-			return false
-		}
-		for i := range av {
-			if !equalType(av[i], bv[i]) {
-				return false
-			}
-		}
-		return true
-	case core.Dummy:
-		_, ok := b.(core.Dummy)
-		return ok
+		return eqslc(leftVal, right)
+	case core.MapLit:
+		return eqslc(leftVal, right)
+	case core.Map:
+		return eqmap(leftVal, right)
 	case core.Nil:
-		_, ok := b.(core.Nil)
-		return ok
+		return ut.Is[core.Nil](right)
 	default:
 		return false
 	}
@@ -205,7 +234,6 @@ func TestReadNil(t *testing.T) {
 		{name: "nil in vector mixed", input: `[nil 1 "hi"]`, want: vec(_nil(), num(1), str(`hi`))},
 		{name: "quoted nil", input: "'nil", want: quoted(_nil())},
 		{name: "nil quoted list", input: "'(nil)", want: quoted(lst(_nil()))},
-		{name: "nil in dummy", input: "{nil}", want: dummy()},
 		{name: "nil prefix is symbol", input: "nilx", want: sym("nilx")},
 		{name: "nil suffix dash is symbol", input: "nil-", want: sym("nil-")},
 		{name: "uppercase NIL is symbol", input: "NIL", want: sym("NIL")},
@@ -256,7 +284,6 @@ func TestReadLists(t *testing.T) {
 		{name: "multiline", input: "  ( \n foo\t 123 \r\n )  ", want: lst(sym("foo"), num(123))},
 		{name: "quote inside", input: "('foo 1)", want: lst(quoted(sym("foo")), num(1))},
 		{name: "vector inside", input: "([1])", want: lst(vec(num(1)))},
-		{name: "braces inside", input: "({a})", want: lst(dummy())},
 		{name: "first form only", input: "(1) (2)", want: lst(num(1))},
 	})
 }
@@ -273,13 +300,11 @@ func TestReadQuotes(t *testing.T) {
 		{name: "triple quote", input: "'''foo", want: quoted(quoted(quoted(sym("foo"))))},
 		{name: "quoted list with quote", input: "'('foo)", want: quoted(lst(quoted(sym("foo"))))},
 		{name: "quoted vector", input: "'[1]", want: quoted(vec(num(1)))},
-		{name: "quoted dummy braces", input: "'{a}", want: quoted(dummy())},
 		{name: "lone quote", input: "'", wantErr: true},
 		{name: "lone quote padded", input: "'   ", wantErr: true},
 		{name: "quote closer", input: "' )", wantErr: true},
 		{name: "quote closer bracket", input: "' ]", wantErr: true},
 		{name: "quote unbalanced", input: "'(1", wantErr: true},
-		{name: "quote unbalanced dummy", input: "'[1", wantErr: true},
 	})
 }
 
@@ -291,26 +316,59 @@ func TestReadVectors(t *testing.T) {
 		{name: "ints", input: "[1 2 3]", want: vec(num(1), num(2), num(3))},
 		{name: "list inside", input: "[(1 2)]", want: vec(lst(num(1), num(2)))},
 		{name: "nested brackets", input: "[[]]", want: vec(vec())},
-		{name: "mixed nested", input: "[{}]", want: vec(dummy())},
 		{name: "quote inside", input: "['foo]", want: vec(quoted(sym("foo")))},
 		{name: "string inside", input: `["hello" foo]`, want: vec(str(`hello`), sym("foo"))},
 		{name: "unclosed bracket", input: "[", wantErr: true},
 		{name: "unclosed with content", input: "[1 2", wantErr: true},
 		{name: "mismatched", input: "[(1]", wantErr: true},
-		{name: "paren in dummy", input: "[)", wantErr: true},
 		{name: "lone rbracket", input: "]", wantErr: true},
 	})
 }
 
-func TestReadDummies(t *testing.T) {
+func TestReadMaps(t *testing.T) {
 	runSingleCases(t, []singleCase{
-		{name: "empty braces", input: "{}", want: dummy()},
-		{name: "padded braces", input: "{ }", want: dummy()},
-		{name: "symbols", input: "{foo bar}", want: dummy()},
-		{name: "nested braces", input: "{{}}", want: dummy()},
-		{name: "unclosed brace", input: "{", wantErr: true},
-		{name: "paren in dummy", input: "{)", wantErr: true},
+		{name: "empty", input: "{}", want: mapl()},
+		{name: "padded", input: "{ }", want: mapl()},
+		{name: "commas", input: "{,}", want: mapl()},
+		{name: "commas padded", input: "{,,,}", want: mapl()},
+		{name: "single string key", input: `{"a" 1}`, want: mapl(str(`a`), num(1))},
+		{name: "doc example", input: `{"a" a, "b" 3}`, want: mapl(str(`a`), sym("a"), str(`b`), num(3))},
+		{name: "symbol keys", input: "{foo bar, baz qux}", want: mapl(sym("foo"), sym("bar"), sym("baz"), sym("qux"))},
+		{name: "int keys", input: "{1 2, 3 4}", want: mapl(num(1), num(2), num(3), num(4))},
+		{name: "no spaces", input: `{"a"1}`, want: mapl(str(`a`), num(1))},
+		{name: "commas between pairs", input: `{,"a",1,,"b",2,,}`, want: mapl(str(`a`), num(1), str(`b`), num(2))},
+		{name: "multiline", input: "{\n\"a\" 1,\n\"b\" 2\n}", want: mapl(str(`a`), num(1), str(`b`), num(2))},
+		{name: "nested values", input: `{"a" [1 2], "b" (3 4)}`, want: mapl(str(`a`), vec(num(1), num(2)), str(`b`), lst(num(3), num(4)))},
+		{name: "nested map", input: `{"a" {"b" 2}}`, want: mapl(str(`a`), mapl(str(`b`), num(2)))},
+		{name: "map in list", input: `({"a" 1} {"b" 2})`, want: lst(mapl(str(`a`), num(1)), mapl(str(`b`), num(2)))},
+		{name: "map in vector", input: `[{"a" 1} {"b" 2}]`, want: vec(mapl(str(`a`), num(1)), mapl(str(`b`), num(2)))},
+		{name: "list with map", input: `(foo {"a" 1})`, want: lst(sym("foo"), mapl(str(`a`), num(1)))},
+		{name: "vector with map", input: `[foo {"a" 1}]`, want: vec(sym("foo"), mapl(str(`a`), num(1)))},
+		{name: "quote inside value", input: `{a 'foo}`, want: mapl(sym("a"), quoted(sym("foo")))},
+		{name: "quoted map", input: `'{"a" 1}`, want: quoted(mapl(str(`a`), num(1)))},
+		{name: "quoted key", input: `{'foo 1}`, want: mapl(quoted(sym("foo")), num(1))},
+		{name: "nil key and value", input: `{nil 1, "a" nil}`, want: mapl(_nil(), num(1), str(`a`), _nil())},
+		{name: "nil in map in forms", input: `{nil nil}`, want: mapl(_nil(), _nil())},
+		{name: "first form only", input: `{"a" 1} {"b" 2}`, want: mapl(str(`a`), num(1))},
+		{name: "unclosed", input: "{", wantErr: true},
+		{name: "unclosed with content", input: `{"a" 1`, wantErr: true},
+		{name: "unclosed nested", input: `{"a" {"b" 2}`, wantErr: true},
+		{name: "mismatched paren", input: "{(1}", wantErr: true},
+		{name: "mismatched bracket", input: "{[1}", wantErr: true},
+		{name: "close paren", input: `{"a" 1)`, wantErr: true},
+		{name: "close bracket", input: `{"a" 1]`, wantErr: true},
 		{name: "lone rbrace", input: "}", wantErr: true},
+		{name: "odd single", input: "{1}", wantErr: true},
+		{name: "odd triple", input: "{1 2 3}", wantErr: true},
+		{name: "odd single string", input: `{"a"}`, wantErr: true},
+		{name: "odd five", input: `{"a" 1 "b" 2 "c"}`, wantErr: true},
+		{name: "unterminated string key", input: `{"a"`, wantErr: true},
+	})
+	runMultiCases(t, []multiCase{
+		{name: "two maps", input: `{"a" 1} {"b" 2}`, want: []core.Type{mapl(str(`a`), num(1)), mapl(str(`b`), num(2))}, wantErr: false},
+		{name: "map then list", input: `{"a" 1} (1)`, want: []core.Type{mapl(str(`a`), num(1)), lst(num(1))}, wantErr: false},
+		{name: "second unbalanced", input: `{"a" 1} {`, want: []core.Type{mapl(str(`a`), num(1))}, wantErr: true},
+		{name: "second odd", input: `{} {1}`, want: []core.Type{mapl()}, wantErr: true},
 	})
 }
 
@@ -327,7 +385,6 @@ func TestReadErrors(t *testing.T) {
 		{name: "unclosed nested", input: "(foo (bar)", wantErr: true},
 		{name: "bracket in list", input: "(]", wantErr: true},
 		{name: "brace in list", input: "(}", wantErr: true},
-		{name: "paren in dummy", input: "{)", wantErr: true},
 		{name: "backtick", input: "`", wantErr: true},
 		{name: "int then letters", input: "123abc", wantErr: true},
 		{name: "int then dash", input: "1-", wantErr: true},

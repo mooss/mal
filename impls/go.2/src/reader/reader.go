@@ -104,9 +104,9 @@ func (r *Reader) readForm() (core.Type, error) {
 	case lexer.TOKEN_RBRACKET:
 		return nil, r.err("unexpected closing bracket")
 	case lexer.TOKEN_LBRACE:
-		return r.readDummy(lexer.TOKEN_RBRACE)
+		return r.readMapLit()
 	case lexer.TOKEN_RBRACE:
-		return nil, r.err("unexpected closing dummy")
+		return nil, r.err("unexpected closing brace")
 
 	// Quotes, atoms and errors.
 	case lexer.TOKEN_SQUOTE:
@@ -124,26 +124,57 @@ func (r *Reader) readForm() (core.Type, error) {
 	}
 }
 
+// seekDelim seeks a balanced expression delimiter.
+// Returns:
+//   - An error when the reader is done.
+//   - nil, nil when the delimiter is found.
+//   - The next form otherwise.
+func (r *Reader) seekDelim(delim lexer.TokenType) (core.Type, error) {
+	if r.Done() {
+		return nil, r.errf("unbalanced expression (missing %s)", delim.What())
+	}
+
+	if r.Peek().Type == delim {
+		r.position++
+		return nil, nil
+	}
+
+	return r.readForm()
+}
+
 // readSequence constructs a sequence type from the remaining input tokens (assumes that the opening
 // delimiter has already been consumed).
 func (r *Reader) readSequence[T ~[]core.Type](closing lexer.TokenType) (T, error) {
 	var res T
 	for {
-		if r.Done() {
-			return nil, r.errf("unbalanced expression (missing %s)", closing.What())
-		}
-
-		if r.Peek().Type == closing {
-			r.position++
-			return res, nil
-		}
-
-		next, err := r.readForm()
+		next, err := r.seekDelim(closing)
 		if err != nil {
 			return nil, err
 		}
+
+		if next == nil {
+			return res, nil
+		}
+
 		res = append(res, next)
 	}
+}
+
+// readMapLit constructs a map literal from the remaining input tokens (assumes that the opening
+// delimiter has already been consumed).
+// Map literals are represented as a slice of elements and only instantiated as maps during
+// evaluation.
+func (r *Reader) readMapLit() (core.MapLit, error) {
+	res, err := r.readSequence[core.MapLit](lexer.TOKEN_RBRACE)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(res)%2 != 0 {
+		return nil, r.err("odd-numbered map literal")
+	}
+
+	return res, nil
 }
 
 // readInt constructs an int from the given input token.
@@ -182,24 +213,4 @@ func (r *Reader) readQuote() (core.Type, error) {
 		return nil, err
 	}
 	return core.List([]core.Type{core.Symbol("quote"), quoted}), nil
-}
-
-func (r *Reader) readDummy(closing lexer.TokenType) (core.Dummy, error) {
-	res := core.Dummy{}
-	for {
-		if r.Done() {
-			// Would just say "missing closing paren" but that is not what mal expects.
-			return res, r.err("unbalanced expression (dummy)")
-		}
-
-		if r.Peek().Type == closing {
-			r.position++
-			return res, nil
-		}
-
-		_, err := r.readForm()
-		if err != nil {
-			return res, err
-		}
-	}
 }
