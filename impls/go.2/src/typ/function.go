@@ -22,11 +22,11 @@ func II[A, B, R core.Value](fun func(A, B) R) Function {
 		}
 
 		a, err := as[A](args[0])
-		if err != nil {
+		if err.NotNil() {
 			return err
 		}
 		b, err := as[B](args[1])
-		if err != nil {
+		if err.NotNil() {
 			return err
 		}
 

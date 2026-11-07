@@ -22,16 +22,16 @@ func _mapflat[From comparable, To any](fun func(From) To, source map[From]From) 
 	return res
 }
 
-func as[T core.Value](val core.Value) (T, *Fatal) {
+func as[T core.Value](val core.Value) (T, Fatal) {
 	res, isT := val.(T)
 	if !isT {
-		err, isErr := val.(Fatal)
-		if !isErr {
+		err, isFatal := val.(Fatal)
+		if !isFatal {
 			err = Fatalf("expected %T but got %T (%v)", res, val, val)
 		}
-		return res, &err
+		return res, err
 	}
-	return res, nil
+	return res, Fatal{}
 }
 
 func validKey(value core.Value) bool {

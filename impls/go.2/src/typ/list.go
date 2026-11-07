@@ -26,8 +26,8 @@ func (lst List) Eval(envr core.Env) core.Value {
 
 	// Apply phase.
 	fun, err := as[Function](lst[0].Eval(envr))
-	if err != nil {
-		return *err
+	if err.NotNil() {
+		return err
 	}
 
 	args := make([]core.Value, len(lst)-1)
