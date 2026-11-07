@@ -14,7 +14,7 @@ func TestListEvalRejectsNonFunctionHead(t *testing.T) {
 func TestListEvalPropagatesFatalFromHeadAndArguments(t *testing.T) {
 	fatal := typ.Fatalf("nested failure")
 	envr := core.Env{"failure": fatal}
-	fun := typ.Function(func(typ.Integer, typ.Integer) typ.Integer { return 0 })
+	fun := typ.Function(func(...core.Value) core.Value { return typ.Integer(0) })
 
 	for _, lst := range []typ.List{
 		{typ.Symbol("failure"), typ.Integer(1), typ.Integer(2)},

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/ut"
 )
 
 // List is a sequence of values.
@@ -24,20 +25,19 @@ func (lst List) Eval(envr core.Env) core.Value {
 	}
 
 	// Apply phase.
-	fun, cerr := as[Function](lst[0].Eval(envr))
-	if cerr != nil {
-		return *cerr
+	fun, err := as[Function](lst[0].Eval(envr))
+	if err != nil {
+		return *err
 	}
 
-	arg1, cerr := as[Integer](lst[1].Eval(envr))
-	if cerr != nil {
-		return *cerr
+	args := make([]core.Value, len(lst)-1)
+	for i, arg := range lst[1:] {
+		arg = arg.Eval(envr)
+		if ut.Is[Fatal](arg) {
+			return arg
+		}
+		args[i] = arg
 	}
 
-	arg2, cerr := as[Integer](lst[2].Eval(envr))
-	if cerr != nil {
-		return *cerr
-	}
-
-	return fun(arg1, arg2)
+	return fun(args...)
 }

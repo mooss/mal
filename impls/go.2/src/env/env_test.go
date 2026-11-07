@@ -44,7 +44,7 @@ func TestEvalUnknownSymbolReturnsError(t *testing.T) {
 
 func TestEvalUsesGivenEnv(t *testing.T) {
 	custom := core.Env{
-		"foo": _fun(func(_, _ typ.Integer) typ.Integer { return 99 }),
+		"foo": typ.Function(func(...core.Value) core.Value { return typ.Integer(99) }),
 	}
 
 	got := typ.Symbol("foo").Eval(custom)

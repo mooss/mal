@@ -61,7 +61,7 @@ func TestMapLitEvalAcceptsOnlySupportedKeyTypes(t *testing.T) {
 		typ.VectorForm{typ.Integer(1)},
 		typ.Map{typ.Integer(1): typ.Integer(2)},
 		typ.MapForm{{Key: typ.Integer(1), Value: typ.Integer(2)}},
-		typ.Function(func(a typ.Integer, b typ.Integer) typ.Integer { return a + b }),
+		typ.Function(func(...core.Value) core.Value { return nil }),
 	} {
 		got := typ.MapForm{{Key: key, Value: typ.Integer(2)}}.Eval(core.Env{})
 		if !ut.Is[typ.Fatal](got) {
