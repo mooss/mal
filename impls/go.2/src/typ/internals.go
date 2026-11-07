@@ -27,7 +27,7 @@ func as[T core.Value](val core.Value) (T, Fatal) {
 	if !isT {
 		err, isFatal := val.(Fatal)
 		if !isFatal {
-			err = Fatalf("expected %T but got %T (%v)", res, val, val)
+			err = Fatalf("expected %s but got %s (%v)", res.Type(), val.Type(), val)
 		}
 		return res, err
 	}
