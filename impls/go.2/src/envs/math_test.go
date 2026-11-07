@@ -1,22 +1,23 @@
-package env
+package envs_test
 
 import (
 	"testing"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/envs"
 	"github.com/mooss/mal/src/typ"
 	"github.com/mooss/mal/src/ut"
 )
 
 func TestEvalIntegerReturnsItself(t *testing.T) {
-	got := typ.Integer(42).Eval(Initial)
+	got := typ.Integer(42).Eval(envs.Math)
 	if got != core.Value(typ.Integer(42)) {
 		t.Fatalf("Eval(42) = %v, want 42", got)
 	}
 }
 
 func TestEvalEmptyListReturnsItself(t *testing.T) {
-	got := typ.List{}.Eval(Initial)
+	got := typ.List{}.Eval(envs.Math)
 	lst, ok := got.(typ.List)
 	if !ok {
 		t.Fatalf("Eval(empty list) type = %T, want %T", got, typ.List{})
@@ -28,7 +29,7 @@ func TestEvalEmptyListReturnsItself(t *testing.T) {
 
 func TestEvalSymbolLookup(t *testing.T) {
 	for _, sym := range []string{"+", "-", "*", "/"} {
-		got := typ.Symbol(sym).Eval(Initial)
+		got := typ.Symbol(sym).Eval(envs.Math)
 		if !ut.Is[typ.Function](got) {
 			t.Fatalf("Eval(%q) = %#v, want %T", sym, got, typ.Function(nil))
 		}
@@ -36,7 +37,7 @@ func TestEvalSymbolLookup(t *testing.T) {
 }
 
 func TestEvalUnknownSymbolReturnsError(t *testing.T) {
-	got := typ.Symbol("nope").Eval(Initial)
+	got := typ.Symbol("nope").Eval(envs.Math)
 	if !ut.Is[typ.Fatal](got) {
 		t.Fatalf("Eval(unknown symbol) = %#v, want %T", got, typ.Fatal{})
 	}
@@ -78,7 +79,7 @@ func TestEvalArithmetic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ast := typ.List{typ.Symbol(tt.op), tt.a, tt.b}
-			got := ast.Eval(Initial)
+			got := ast.Eval(envs.Math)
 			if got != core.Value(tt.want) {
 				t.Fatalf("Eval((%s %d %d)) = %v, want %d", tt.op, tt.a, tt.b, got, tt.want)
 			}
@@ -93,7 +94,7 @@ func TestEvalNestedArithmetic(t *testing.T) {
 		typ.List{typ.Symbol("*"), typ.Integer(2), typ.Integer(3)},
 		typ.List{typ.Symbol("-"), typ.Integer(10), typ.Integer(4)},
 	}
-	got := ast.Eval(Initial)
+	got := ast.Eval(envs.Math)
 	if got != core.Value(typ.Integer(12)) {
 		t.Fatalf("Eval nested = %v, want 12", got)
 	}

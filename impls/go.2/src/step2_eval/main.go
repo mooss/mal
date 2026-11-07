@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/mooss/mal/src/env"
+	"github.com/mooss/mal/src/envs"
 	"github.com/mooss/mal/src/reader"
 	"github.com/mooss/mal/src/repl"
 	"github.com/mooss/mal/src/ut"
@@ -15,6 +15,6 @@ func main() {
 			return "", err
 		}
 
-		return parsed.Eval(env.Initial).String(), nil
+		return parsed.Eval(envs.Math).String(), nil
 	}))
 }

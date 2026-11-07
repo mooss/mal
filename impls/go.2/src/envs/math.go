@@ -1,5 +1,5 @@
-// Package env implements environments.
-package env
+// Package envs implements environments.
+package envs
 
 import (
 	"github.com/mooss/mal/src/core"
@@ -11,7 +11,7 @@ type _int = typ.Integer
 // bint transforms a binary int function into a typ.Function
 var bint = typ.II[_int, _int, _int]
 
-var Initial = core.Bindings{
+var Math = core.Bindings{
 	"+": bint(func(l _int, r _int) _int { return l + r }),
 	"-": bint(func(l _int, r _int) _int { return l - r }),
 	"*": bint(func(l _int, r _int) _int { return l * r }),
