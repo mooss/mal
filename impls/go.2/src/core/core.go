@@ -50,6 +50,7 @@ func (b Bindings) AsEnv() Env { return Env{inner: b} }
 // Env is an environment associating symbols to their values.
 type Env struct {
 	inner Bindings
+	outer *Env
 }
 
 // NewEnv creates a new environment, optionally pre-populated with the given bindings.
@@ -62,15 +63,22 @@ func NewEnv(bindings ...Bindings) Env {
 }
 
 // Get returns the value bound to key, reporting whether it was present.
-func (e Env) Get(key string) (Value, bool) {
+func (e Env) Get(key string) Value {
 	value, present := e.inner[key]
-	return value, present
+	if present {
+		return value
+	}
+
+	for outer := e.outer; outer != nil; outer = outer.outer {
+		value, present := outer.inner[key]
+		if present {
+			return value
+		}
+	}
+	return nil
 }
 
 // Set binds key to val in the environment.
 func (e Env) Set(key string, val Value) {
-	if e.inner == nil {
-		e.inner = make(map[string]Value)
-	}
 	e.inner[key] = val
 }
