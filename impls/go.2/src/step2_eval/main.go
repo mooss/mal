@@ -1,82 +1,20 @@
 package main
 
 import (
-	"fmt"
-	"io"
-	"os"
-
-	"github.com/chzyer/readline"
-	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/env"
 	"github.com/mooss/mal/src/reader"
+	"github.com/mooss/mal/src/repl"
+	"github.com/mooss/mal/src/ut"
 )
-
-func read(input string) (core.Value, error) {
-	rdr := reader.ReadStr(input)
-	parsed, err := rdr.ReadForm()
-	if err != nil {
-		return nil, err
-	}
-
-	if rest := rdr.Rest(); rest != nil {
-		return nil, fmt.Errorf("leftover tokens remain: %v", rest)
-	}
-
-	return parsed, nil
-}
-
-func eval(expr core.Value, envr core.Env) core.Value {
-	return expr.Eval(envr)
-}
-
-// print is a primitive so this one is called display instead.
-func display(input core.Value) string {
-	return input.String()
-}
-
-func red(input string) (string, error) {
-	parsed, err := read(input)
-	if err != nil {
-		return "", err
-	}
-
-	return display(eval(parsed, env.Initial)), nil
-}
 
 //revive:disable:cognitive-complexity
 func main() {
-	prompt, err := readline.New("user> ")
-	if err != nil {
-		fatal(err)
-	}
-	defer prompt.Close()
-
-	for {
-		input, err := prompt.Readline()
+	ut.Must(repl.Run(func(input string) (string, error) {
+		parsed, err := reader.ReadProgram(input)
 		if err != nil {
-			if err == io.EOF { //nolint:errorlint
-				break
-			}
-			fatal(err)
+			return "", err
 		}
 
-		res, err := red(input)
-		if err != nil {
-			report(err)
-		} else {
-			fmt.Println(res)
-		}
-	}
-}
-
-///////////
-// Utils //
-
-func fatal(err error) {
-	fmt.Fprintln(os.Stderr, "Fatal:", err)
-	os.Exit(1)
-}
-
-func report(err error) {
-	fmt.Println("Error:", err)
+		return parsed.Eval(env.Initial).String(), nil
+	}))
 }

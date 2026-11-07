@@ -3,7 +3,6 @@ package reader
 import (
 	"errors"
 	"fmt"
-	"slices"
 	"strconv"
 
 	"github.com/mooss/mal/src/core"
@@ -16,16 +15,6 @@ type Reader struct {
 	tokens   []lexer.Token
 	position int
 	tokerr   func() error
-}
-
-// ReadStr returns a Reader parsing the given string.
-func ReadStr(input string) Reader {
-	tokenIt, errFn := lexer.TokenIterator(input)
-	return Reader{
-		tokens:   slices.Collect(tokenIt),
-		position: 0,
-		tokerr:   errFn,
-	}
 }
 
 // Next returns the next token and advances the input.
