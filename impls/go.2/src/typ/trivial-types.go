@@ -47,7 +47,7 @@ type Symbol string
 func (Symbol) Type() core.TypeName { return core.SYMBOL }
 func (s Symbol) String() string    { return string(s) }
 func (s Symbol) Eval(envr core.Env) core.Value {
-	value, present := envr[string(s)]
+	value, present := envr.Get(string(s))
 	if !present {
 		return Fatalf("symbol %#q not found", s)
 	}

@@ -50,7 +50,7 @@ func TestMapLitEvalAcceptsOnlySupportedKeyTypes(t *testing.T) {
 		// typ.List{typ.Symbol("quote"), typ.Symbol("sym")},
 		typ.Nil{},
 	} {
-		got := typ.MapForm{{Key: key, Value: typ.Integer(2)}}.Eval(core.Env{})
+		got := typ.MapForm{{Key: key, Value: typ.Integer(2)}}.Eval(core.NewEnv())
 		if ut.Is[typ.Fatal](got) {
 			t.Errorf("Eval() rejected valid key %T: %s", key, got)
 		}
@@ -63,7 +63,7 @@ func TestMapLitEvalAcceptsOnlySupportedKeyTypes(t *testing.T) {
 		typ.MapForm{{Key: typ.Integer(1), Value: typ.Integer(2)}},
 		typ.Function(func(...core.Value) core.Value { return nil }),
 	} {
-		got := typ.MapForm{{Key: key, Value: typ.Integer(2)}}.Eval(core.Env{})
+		got := typ.MapForm{{Key: key, Value: typ.Integer(2)}}.Eval(core.NewEnv())
 		if !ut.Is[typ.Fatal](got) {
 			t.Errorf("Eval() accepted invalid key type %T", key)
 		}
@@ -80,7 +80,7 @@ func TestMapLitEvalEvaluatesKeysAndValuesInOrder(t *testing.T) {
 		Value: evalOrder{"second value", typ.Integer(20), &order}},
 	}
 
-	got := literal.Eval(core.Env{})
+	got := literal.Eval(core.NewEnv())
 	if ut.Is[typ.Fatal](got) {
 		t.Fatalf("Eval() returned error: %s", got.String())
 	}
@@ -101,7 +101,8 @@ func TestMapLitEvalEvaluatesKeysAndValuesInOrder(t *testing.T) {
 
 func TestMapLitEvalPropagatesFatalFromKeyAndValue(t *testing.T) {
 	fatal := typ.Fatalf("nested failure")
-	envr := core.Env{"failure": fatal}
+	envr := core.NewEnv()
+	envr.Set("failure", fatal)
 
 	got := typ.MapForm{{Key: typ.Symbol("failure"), Value: typ.Integer(1)}}.Eval(envr)
 	requireError(t, got)
@@ -118,9 +119,9 @@ func TestMapLitEvalPropagatesFatalFromKeyAndValue(t *testing.T) {
 
 func TestMapEvalReturnsItself(t *testing.T) {
 	original := typ.Map{typ.Integer(1): typ.Integer(2)}
-	got, ok := original.Eval(core.Env{}).(typ.Map)
+	got, ok := original.Eval(core.NewEnv()).(typ.Map)
 	if !ok {
-		t.Fatalf("Eval() type = %T, want %T", original.Eval(core.Env{}), typ.Map{})
+		t.Fatalf("Eval() type = %T, want %T", original.Eval(core.NewEnv()), typ.Map{})
 	}
 
 	got[typ.Integer(3)] = typ.Integer(4)

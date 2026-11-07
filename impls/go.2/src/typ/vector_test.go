@@ -8,11 +8,11 @@ import (
 )
 
 func TestVectorEvalEvaluatesElementsInOrder(t *testing.T) {
-	envr := core.Env{
+	envr := core.Bindings{
 		"first":  typ.Integer(10),
 		"second": typ.Integer(20),
 		"third":  typ.Integer(30),
-	}
+	}.AsEnv()
 	got := typ.VectorForm{typ.Symbol("first"), typ.Symbol("second"), typ.Symbol("third")}.Eval(envr)
 
 	values, ok := got.(typ.Vector)
@@ -30,10 +30,10 @@ func TestVectorEvalPropagatesFirstFatalAndStops(t *testing.T) {
 	firstFatal := typ.Fatalf("first failure")
 	secondFatal := typ.Fatalf("second failure")
 	count := 0
-	envr := core.Env{
+	envr := core.Bindings{
 		"first":  firstFatal,
 		"second": secondFatal,
-	}
+	}.AsEnv()
 	got := typ.VectorForm{
 		typ.Symbol("first"),
 		typ.Symbol("second"),

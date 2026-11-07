@@ -1,5 +1,7 @@
-// Package core defines the basic lisp Type interface.
+// Package core defines fundamental types for the interpreter.
 package core
+
+import "maps"
 
 // TypeName identifies a Mal type.
 type TypeName string
@@ -40,5 +42,35 @@ type Value interface {
 	Eval(Env) Value
 }
 
+// Bindings is a primitive environment associating symbols to their values.
+type Bindings map[string]Value
+
+func (b Bindings) AsEnv() Env { return Env{inner: b} }
+
 // Env is an environment associating symbols to their values.
-type Env map[string]Value
+type Env struct {
+	inner Bindings
+}
+
+// NewEnv creates a new environment, optionally pre-populated with the given bindings.
+func NewEnv(bindings ...Bindings) Env {
+	store := make(map[string]Value)
+	for _, b := range bindings {
+		maps.Copy(store, b)
+	}
+	return Env{inner: store}
+}
+
+// Get returns the value bound to key, reporting whether it was present.
+func (e Env) Get(key string) (Value, bool) {
+	value, present := e.inner[key]
+	return value, present
+}
+
+// Set binds key to val in the environment.
+func (e Env) Set(key string, val Value) {
+	if e.inner == nil {
+		e.inner = make(map[string]Value)
+	}
+	e.inner[key] = val
+}

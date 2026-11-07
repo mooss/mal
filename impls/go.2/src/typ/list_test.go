@@ -8,12 +8,13 @@ import (
 )
 
 func TestListEvalRejectsNonFunctionHead(t *testing.T) {
-	requireError(t, typ.List{typ.Integer(1), typ.Integer(2), typ.Integer(3)}.Eval(core.Env{}))
+	requireError(t, typ.List{typ.Integer(1), typ.Integer(2), typ.Integer(3)}.Eval(core.NewEnv()))
 }
 
 func TestListEvalPropagatesFatalFromHeadAndArguments(t *testing.T) {
 	fatal := typ.Fatalf("nested failure")
-	envr := core.Env{"failure": fatal}
+	envr := core.NewEnv()
+	envr.Set("failure", fatal)
 	fun := typ.Function(func(...core.Value) core.Value { return typ.Integer(0) })
 
 	for _, lst := range []typ.List{
