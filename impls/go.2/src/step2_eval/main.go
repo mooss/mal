@@ -9,12 +9,13 @@ import (
 
 //revive:disable:cognitive-complexity
 func main() {
-	ut.Must(repl.Run(func(input string) (string, error) {
-		parsed, err := reader.ReadProgram(input)
+	rep := func(input string) (string, error) {
+		parsed, err := reader.ParseOne(input)
 		if err != nil {
 			return "", err
 		}
 
 		return parsed.Eval(envs.Math).String(), nil
-	}))
+	}
+	ut.Must(repl.Run(rep))
 }

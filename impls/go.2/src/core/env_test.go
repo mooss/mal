@@ -4,7 +4,7 @@ import "testing"
 
 type envTestValue string
 
-func (v envTestValue) Type() TypeName { return "test" }
+func (envTestValue) Type() TypeName   { return "test" }
 func (v envTestValue) String() string { return string(v) }
 func (v envTestValue) Eval(Env) Value { return v }
 
@@ -31,7 +31,8 @@ func TestNewEnvMergesAndCopiesBindings(t *testing.T) {
 
 	first["first"] = envTestValue("changed")
 	if got := env.Get("first"); got != envTestValue("first") {
-		t.Errorf("Get(%q) after changing source bindings = %v, want %v", "first", got, envTestValue("first"))
+		msg := "Get(%q) after changing source bindings = %v, want %v"
+		t.Errorf(msg, "first", got, envTestValue("first"))
 	}
 }
 

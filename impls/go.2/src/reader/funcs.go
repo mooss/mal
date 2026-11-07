@@ -18,8 +18,8 @@ func ReadStr(input string) Reader {
 	}
 }
 
-// ReadProgram reads the input string as one expression.
-func ReadProgram(input string) (core.Value, error) {
+// ParseOne parses the input string as one expression, failing when there are leftover tokens.
+func ParseOne(input string) (core.Value, error) {
 	rdr := ReadStr(input)
 	parsed, err := rdr.ReadForm()
 	if err != nil {
