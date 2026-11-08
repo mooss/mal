@@ -25,13 +25,27 @@ func (lst List) Eval(envr core.Env) core.Value {
 	}
 
 	// Apply phase.
-	fun, err := as[Function](lst[0].Eval(envr))
-	if err.NotNil() {
-		return err
+	op := lst[0].Eval(envr)
+	switch op := op.(type) {
+	case Function:
+		return evalFun(envr, op, lst[1:])
+	case Special:
+		return op(envr, lst[1:]...)
+	case Fatal:
+		return op
 	}
 
-	args := make([]core.Value, len(lst)-1)
-	for i, arg := range lst[1:] {
+	return expected("callable", op)
+}
+
+////////////////////////////
+// Eval-related utilities //
+
+// evalFun evaluates a function by calling it with its evaluated arguments.
+// Any fatal argument encountered stops the evaluation and is returned as-is.
+func evalFun(envr core.Env, fun Function, rest []core.Value) core.Value {
+	args := make([]core.Value, len(rest))
+	for i, arg := range rest {
 		arg = arg.Eval(envr)
 		if ut.Is[Fatal](arg) {
 			return arg

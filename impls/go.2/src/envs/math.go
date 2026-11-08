@@ -1,12 +1,9 @@
-// Package envs implements environments.
 package envs
 
 import (
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/typ"
 )
-
-type _int = typ.Integer
 
 // bint transforms a binary int function into a typ.Function
 var bint = typ.II[_int, _int, _int]

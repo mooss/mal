@@ -22,12 +22,15 @@ func _mapflat[From comparable, To any](fun func(From) To, source map[From]From) 
 	return res
 }
 
-// as attempts to assert that val has the intended type T.
+/////////////////////
+// Type assertions //
+
+// As attempts to assert that val has the intended type T.
 // When the type is not expected, a Fatal "expected ..." error is returned.
 // When the unexpected type is already a Fatal error, it is returned as is.
 // Intended to be used for type assertions and to preserve and forward the errors encountered during
 // evaluation.
-func as[T core.Value](val core.Value) (T, Fatal) {
+func As[T core.Value](val core.Value) (T, Fatal) {
 	res, isT := val.(T)
 	if !isT {
 		err, isFatal := val.(Fatal)
@@ -37,6 +40,26 @@ func as[T core.Value](val core.Value) (T, Fatal) {
 		return res, err
 	}
 	return res, Fatal{}
+}
+
+func as2Args[A, B core.Value](args []core.Value) (A, B, Fatal) {
+	var a A
+	var b B
+
+	if len(args) != 2 {
+		return a, b, Fatalf("expected 2 args, got %d", len(args))
+	}
+
+	a, err := As[A](args[0])
+	if err.NotNil() {
+		return a, b, err
+	}
+	b, err = As[B](args[1])
+	if err.NotNil() {
+		return a, b, err
+	}
+
+	return a, b, Fatal{}
 }
 
 // expected format a Fatal error explaining that a type other than the expected one was found.

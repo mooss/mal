@@ -18,7 +18,14 @@ func Fatalf(msg string, args ...any) Fatal { return Fatal{error: fmt.Errorf(msg,
 func (Fatal) Type() core.TypeName          { return core.FATAL }
 func (f Fatal) String() string             { return fmt.Sprintf("(fatal %q)", f.Error()) }
 func (f Fatal) Eval(core.Env) core.Value   { return f }
-func (f Fatal) NotNil() bool               { return f.error != nil }
+
+// NotNil returns true when the embedded error is not nil.
+func (f Fatal) NotNil() bool { return f.error != nil }
+
+// Qualify returns a new fatal error with "{prefix}: " added in front of the error.
+func (f Fatal) Qualify(prefix string) Fatal {
+	return Fatal{error: fmt.Errorf("%s: %w", prefix, f.error)}
+}
 
 // Integer is a 64-bit signed integer value.
 type Integer int64
