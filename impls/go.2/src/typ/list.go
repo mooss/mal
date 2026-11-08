@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/mooss/mal/src/core"
-	"github.com/mooss/mal/src/ut"
 )
 
 // List is a sequence of values.
@@ -18,10 +17,6 @@ func (lst List) String() string {
 func (lst List) Eval(envr core.Env) core.Value {
 	if len(lst) == 0 {
 		return lst
-	}
-	if len(lst) != 3 {
-		msg := "only list of 3 symbols can be evaluated right now (got %d)"
-		return Fatalf(msg, len(lst))
 	}
 
 	// Apply phase.
@@ -44,13 +39,9 @@ func (lst List) Eval(envr core.Env) core.Value {
 // evalFun evaluates a function by calling it with its evaluated arguments.
 // Any fatal argument encountered stops the evaluation and is returned as-is.
 func evalFun(envr core.Env, fun Function, rest []core.Value) core.Value {
-	args := make([]core.Value, len(rest))
-	for i, arg := range rest {
-		arg = arg.Eval(envr)
-		if ut.Is[Fatal](arg) {
-			return arg
-		}
-		args[i] = arg
+	args, err := EvalArgs(envr, rest...)
+	if err.NotNil() {
+		return err
 	}
 
 	return fun(args...)

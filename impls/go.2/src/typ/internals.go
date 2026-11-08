@@ -25,23 +25,6 @@ func _mapflat[From comparable, To any](fun func(From) To, source map[From]From) 
 /////////////////////
 // Type assertions //
 
-// As attempts to assert that val has the intended type T.
-// When the type is not expected, a Fatal "expected ..." error is returned.
-// When the unexpected type is already a Fatal error, it is returned as is.
-// Intended to be used for type assertions and to preserve and forward the errors encountered during
-// evaluation.
-func As[T core.Value](val core.Value) (T, Fatal) {
-	res, isT := val.(T)
-	if !isT {
-		err, isFatal := val.(Fatal)
-		if !isFatal {
-			err = expected(res.Type(), val)
-		}
-		return res, err
-	}
-	return res, Fatal{}
-}
-
 func as2Args[A, B core.Value](args []core.Value) (A, B, Fatal) {
 	var a A
 	var b B

@@ -43,7 +43,7 @@ func letStar(envr core.Env, bindings typ.List, form core.Value) core.Value {
 
 var LetStar = typ.SpII(letStar)
 
-var MalSpecial = core.Bindings{
+var MalSpecial core.Env = core.Bindings{
 	"def!": DefBang,
 	"let*": LetStar,
 }.AsEnv()
