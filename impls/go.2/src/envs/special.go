@@ -8,6 +8,14 @@ import (
 	"github.com/mooss/mal/src/ut"
 )
 
+var MalSpecial core.Env = core.Bindings{
+	"def!": typ.SpII(defBang),
+	"fn*":  typ.SpII(lambda),
+	"let*": typ.SpII(letStar),
+	"do":   typ.Special(specDo),
+	"if":   typ.Special(specIf),
+}.AsEnv()
+
 //////////////////////////////////
 // Special forms implementation //
 
@@ -123,23 +131,6 @@ func specIf(envr core.Env, args ...core.Value) core.Value {
 	}
 }
 
-///////////////////////////////////////
-// Expose and register special forms //
-
-var DefBang = typ.SpII(defBang)
-var Lambda = typ.SpII(lambda)
-var LetStar = typ.SpII(letStar)
-var SpecDo = typ.Special(specDo)
-var SpecIf = typ.Special(specIf)
-
-var MalSpecial core.Env = core.Bindings{
-	"def!": DefBang,
-	"fn*":  Lambda,
-	"let*": LetStar,
-	"do":   SpecDo,
-	"if":   SpecIf,
-}.AsEnv()
-
 /////////////////
 // Local utils //
 
@@ -151,7 +142,7 @@ func asListOrVec(elements core.Value) ([]core.Value, typ.Fatal) {
 	case typ.VectorForm:
 		bindlist = typed
 	default:
-		return nil, typ.Unexpected(fmt.Sprintf("%s or %s", core.LIST, core.VECTOR_FORM), elements)
+		return nil, typ.Expected(fmt.Sprintf("%s or %s", core.LIST, core.VECTOR_FORM), elements)
 	}
 	return bindlist, typ.Fatal{}
 }

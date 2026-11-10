@@ -16,7 +16,7 @@ import (
 func As[T core.Value](val core.Value) (T, Fatal) {
 	res, isT := val.(T)
 	if !isT {
-		return res, Unexpected(res.Type(), val)
+		return res, Expected(res.Type(), val)
 	}
 	return res, Fatal{}
 }
@@ -43,7 +43,7 @@ func AsSeq[T core.Value](values ...core.Value) (iter.Seq[T], func() Fatal) {
 			val := values[i]
 			typed, isT := val.(T)
 			if !isT {
-				fatal = Unexpected(typed.Type(), val)
+				fatal = Expected(typed.Type(), val)
 				i = len(values)
 				return
 			}
@@ -69,7 +69,7 @@ func AsSlice[T core.Value](values ...core.Value) ([]T, Fatal) {
 }
 
 // Equal returns true if the given values have the same type and the same value.
-func Equal(left, right core.Value) bool {
+func Equal(left, right core.Value) Bool {
 	return left.Type() == right.Type() && left == right
 }
 
@@ -101,9 +101,9 @@ func FmtExpectedNArgs(expected string, got int) Fatal {
 	return Fatalf("expected %s args, got %d", expected, got)
 }
 
-// Unexpected format a Fatal error explaining that an unexpected type was given.
+// Expected format a Fatal error explaining that an unexpected type was given.
 // When the unexpected type is already a Fatal error, it is returned as-is.
-func Unexpected[T ~string](expected T, got core.Value) Fatal {
+func Expected[T ~string](expected T, got core.Value) Fatal {
 	err, isFatal := got.(Fatal)
 	if isFatal {
 		return err

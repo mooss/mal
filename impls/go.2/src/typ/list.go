@@ -29,7 +29,7 @@ func (lst List) Eval(envr core.Env) core.Value {
 		return op(envr, lst[1:]...)
 	}
 
-	return Unexpected("callable", op)
+	return Expected("callable", op)
 }
 
 ////////////////////////////

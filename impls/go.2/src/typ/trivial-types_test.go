@@ -89,8 +89,8 @@ func TestBoolTrivial(t *testing.T) {
 		val typ.Bool
 		str string
 	}{
-		{typ.Bool(true), "true"},
-		{typ.Bool(false), "false"},
+		{typ.True, "true"},
+		{typ.False, "false"},
 	} {
 		assertTrivial[typ.Bool](t, envr, tc.val, tc.str)
 	}

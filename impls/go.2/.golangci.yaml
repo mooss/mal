@@ -41,6 +41,8 @@ linters:
           disabled: true
         - name: function-result-limit
           disabled: true
+        - name: bare-return
+          disabled: true
   exclusions:
     generated: lax
     presets:

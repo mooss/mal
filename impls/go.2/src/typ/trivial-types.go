@@ -13,6 +13,9 @@ import (
 // Bool is a boolean.
 type Bool bool
 
+var True = Bool(true)
+var False = Bool(false)
+
 func (Bool) Type() core.TypeName        { return core.BOOL }
 func (b Bool) String() string           { return strconv.FormatBool(bool(b)) }
 func (b Bool) Eval(core.Env) core.Value { return b }

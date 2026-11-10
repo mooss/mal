@@ -26,3 +26,14 @@ func II[A, B, R core.Value](fun func(A, B) R) Function {
 		return fun(a, b)
 	}
 }
+
+func I[A, R core.Value](fun func(A) R) Function {
+	return func(args ...core.Value) core.Value {
+		a, err := as1Arg[A](args)
+		if err.NotNil() {
+			return err
+		}
+
+		return fun(a)
+	}
+}

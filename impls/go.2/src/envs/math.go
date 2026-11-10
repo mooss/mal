@@ -7,10 +7,18 @@ import (
 	"github.com/mooss/mal/src/ut"
 )
 
-var (
-	arityGt1Err = typ.Fatalf("expected at least 1 argument")
-	arityGt2Err = typ.Fatalf("expected at least 2 argument")
-)
+var Math core.Env = core.Bindings{
+	"+":     reduce(plus[_int]),
+	"-":     typ.Function(minusInt),
+	"*":     reduce(times[_int]),
+	"/":     typ.Function(divInt),
+	"true":  typ.True,
+	"false": typ.False,
+	"<":     typ.II(lt[_int]),
+	"<=":    typ.II(leq[_int]),
+	">":     typ.II(gt[_int]),
+	">=":    typ.II(geq[_int]),
+}.AsEnv()
 
 func reduce[T core.Value](fn func(T, T) T) typ.Function {
 	return func(args ...core.Value) core.Value {
@@ -57,11 +65,7 @@ func divInt(args ...core.Value) core.Value {
 	return reduce(div[_int])(args...)
 }
 
-var Math core.Env = core.Bindings{
-	"+":     reduce(plus[_int]),
-	"-":     typ.Function(minusInt),
-	"*":     reduce(times[_int]),
-	"/":     typ.Function(divInt),
-	"true":  typ.Bool(true),
-	"false": typ.Bool(false),
-}.AsEnv()
+func lt[T numbers](l, t T) typ.Bool  { return l < t }
+func leq[T numbers](l, t T) typ.Bool { return l <= t }
+func gt[T numbers](l, t T) typ.Bool  { return l > t }
+func geq[T numbers](l, t T) typ.Bool { return l >= t }

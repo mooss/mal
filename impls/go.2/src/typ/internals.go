@@ -17,18 +17,31 @@ func _mapflat[From comparable, To any](fun func(From) To, source map[From]From) 
 /////////////////////
 // Type assertions //
 
-func as2Args[A, B core.Value](args []core.Value) (a A, b B, err Fatal) {
-	if err = ExpectNArgs(2, args); err.NotNil() {
-		return a, b, err
+func as1Arg[A core.Value](args []core.Value) (a A, err Fatal) {
+	if err = ExpectNArgs(1, args); err.NotNil() {
+		return
 	}
 
 	a, err = As[A](args[0])
 	if err.NotNil() {
-		return a, b, err
+		return
+	}
+
+	return a, Fatal{}
+}
+
+func as2Args[A, B core.Value](args []core.Value) (a A, b B, err Fatal) {
+	if err = ExpectNArgs(2, args); err.NotNil() {
+		return
+	}
+
+	a, err = As[A](args[0])
+	if err.NotNil() {
+		return
 	}
 	b, err = As[B](args[1])
 	if err.NotNil() {
-		return a, b, err
+		return
 	}
 
 	return a, b, Fatal{}
@@ -36,20 +49,20 @@ func as2Args[A, B core.Value](args []core.Value) (a A, b B, err Fatal) {
 
 func as3Args[A, B, C core.Value](args []core.Value) (a A, b B, c C, err Fatal) {
 	if err = ExpectNArgs(3, args); err.NotNil() {
-		return a, b, c, err
+		return
 	}
 
 	a, err = As[A](args[0])
 	if err.NotNil() {
-		return a, b, c, err
+		return
 	}
 	b, err = As[B](args[1])
 	if err.NotNil() {
-		return a, b, c, err
+		return
 	}
 	c, err = As[C](args[2])
 	if err.NotNil() {
-		return a, b, c, err
+		return
 	}
 
 	return a, b, c, Fatal{}
