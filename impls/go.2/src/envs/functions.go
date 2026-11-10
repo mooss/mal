@@ -15,7 +15,7 @@ var MalFunctions core.Env = core.Bindings{
 	"list?":  typ.I(isList),
 	"empty?": typ.I(isEmpty),
 	"count":  typ.I(count),
-	"=":      typ.II(typ.Equal),
+	"=":      typ.II(equal),
 
 	"pr-str":  typ.Function(prStr),
 	"println": typ.Function(prnln),
@@ -34,6 +34,10 @@ func count(arg core.Value) core.Value {
 	return typ.Integer(res)
 }
 
+func equal(left, right core.Value) typ.Bool {
+	return typ.Bool(left.Equal(right))
+}
+
 func isEmpty(arg core.Value) core.Value {
 	size, err := length(arg)
 	if err.NotNil() {
@@ -48,6 +52,8 @@ func isList(arg core.Value) typ.Bool {
 
 func length(container core.Value) (res int, err typ.Fatal) {
 	switch typed := container.(type) {
+	case typ.Nil:
+		res = 0
 	case typ.List:
 		res = len(typed)
 	case typ.Map:

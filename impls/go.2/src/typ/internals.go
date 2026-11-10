@@ -1,6 +1,11 @@
 package typ
 
-import "github.com/mooss/mal/src/core"
+import (
+	"maps"
+	"slices"
+
+	"github.com/mooss/mal/src/core"
+)
 
 func _mapflat[From comparable, To any](fun func(From) To, source map[From]From) []To {
 	res := make([]To, len(source)*2)
@@ -75,4 +80,21 @@ func validKey(value core.Value) bool {
 		return true
 	}
 	return false
+}
+
+//////////////////////
+// Equality helpers //
+
+func assocEq(a, b Assoc) bool {
+	return a.Key.Equal(b.Key) && a.Value.Equal(b.Value)
+}
+
+func mapEq(left Map, right core.Value) bool {
+	r, ok := right.(Map)
+	return ok && maps.EqualFunc(left, r, core.Value.Equal)
+}
+
+func sliceEq[E any, S ~[]E](left S, right core.Value, eq func(E, E) bool) bool {
+	r, ok := right.(S)
+	return ok && slices.EqualFunc(left, r, eq)
 }

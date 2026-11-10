@@ -6,9 +6,10 @@ import "github.com/mooss/mal/src/core"
 // according to its own rules.
 type Special func(core.Env, ...core.Value) core.Value
 
-func (Special) Type() core.TypeName          { return core.SPECIAL }
-func (Special) String() string               { return "<internal special form>" }
+func (Special) Equal(core.Value) bool        { return false }
 func (spe Special) Eval(core.Env) core.Value { return spe }
+func (Special) String() string               { return "<internal special form>" }
+func (Special) Type() core.TypeName          { return core.SPECIAL }
 
 func SpII[A, B, R core.Value](fun func(core.Env, A, B) R) Special {
 	return func(env core.Env, args ...core.Value) core.Value {

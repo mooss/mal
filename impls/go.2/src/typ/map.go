@@ -11,11 +11,12 @@ import (
 // Map is a mapping from values to values.
 type Map map[core.Value]core.Value
 
-func (Map) Type() core.TypeName { return core.MAP }
+func (m Map) Equal(other core.Value) bool { return mapEq(m, other) }
+func (m Map) Eval(core.Env) core.Value    { return m }
 func (m Map) String() string {
 	return "{" + strings.Join(_mapflat(core.Value.String, m), " ") + "}"
 }
-func (m Map) Eval(core.Env) core.Value { return m }
+func (Map) Type() core.TypeName { return core.MAP }
 
 // Assoc represents a key-value association.
 type Assoc struct {
@@ -37,24 +38,6 @@ func NewMapForm(vals ...core.Value) (MapForm, error) {
 		res = append(res, Assoc{Key: vals[i], Value: vals[i+1]})
 	}
 	return res, nil
-}
-
-func (MapForm) Type() core.TypeName { return core.MAP_FORM }
-func (m MapForm) String() string {
-	parts := make([]string, 0, len(m)*2)
-	for _, assoc := range m {
-		parts = append(parts, assoc.Key.String(), assoc.Value.String())
-	}
-	return "{" + strings.Join(parts, " ") + "}"
-}
-
-// Flatten flattens the map form back into a sequence of alternating keys and values.
-func (m MapForm) Flatten() []core.Value {
-	res := make([]core.Value, 0, len(m)*2)
-	for _, assoc := range m {
-		res = append(res, assoc.Key, assoc.Value)
-	}
-	return res
 }
 
 // Eval evaluates all keys and values in order, returning a fatal error at the first invalid key
@@ -79,3 +62,24 @@ func (m MapForm) Eval(envr core.Env) core.Value {
 	}
 	return res
 }
+
+func (m MapForm) Equal(other core.Value) bool { return sliceEq(m, other, assocEq) }
+
+// Flatten flattens the map form back into a sequence of alternating keys and values.
+func (m MapForm) Flatten() []core.Value {
+	res := make([]core.Value, 0, len(m)*2)
+	for _, assoc := range m {
+		res = append(res, assoc.Key, assoc.Value)
+	}
+	return res
+}
+
+func (m MapForm) String() string {
+	parts := make([]string, 0, len(m)*2)
+	for _, assoc := range m {
+		parts = append(parts, assoc.Key.String(), assoc.Value.String())
+	}
+	return "{" + strings.Join(parts, " ") + "}"
+}
+
+func (MapForm) Type() core.TypeName { return core.MAP_FORM }

@@ -44,4 +44,6 @@ type Value interface {
 	String() string
 	// Eval evaluates the value against an environment.
 	Eval(Env) Value
+	// Equal returns true when other is equal to the receiver.
+	Equal(Value) bool
 }

@@ -68,11 +68,6 @@ func AsSlice[T core.Value](values ...core.Value) ([]T, Fatal) {
 	return res, Fatal{}
 }
 
-// Equal returns true if the given values have the same type and the same value.
-func Equal(left, right core.Value) Bool {
-	return left.Type() == right.Type() && left == right
-}
-
 // EvalArgs evaluates all its arguments in order, returning them as a slice.
 // The first Fatal error encountered triggers a short-circuit and is returned as an error.
 func EvalArgs(envr core.Env, args ...core.Value) ([]core.Value, Fatal) {
@@ -96,11 +91,6 @@ func ExpectNArgs(expected int, got []core.Value) Fatal {
 	return FmtExpectedNArgs(strconv.Itoa(expected), len(got))
 }
 
-// FmtExpectedNArgs format a Fatal "expected ... args, got ..." error.
-func FmtExpectedNArgs(expected string, got int) Fatal {
-	return Fatalf("expected %s args, got %d", expected, got)
-}
-
 // Expected format a Fatal error explaining that an unexpected type was given.
 // When the unexpected type is already a Fatal error, it is returned as-is.
 func Expected[T ~string](expected T, got core.Value) Fatal {
@@ -109,4 +99,14 @@ func Expected[T ~string](expected T, got core.Value) Fatal {
 		return err
 	}
 	return Fatalf("expected %s but got %s (%v)", expected, got.Type(), got)
+}
+
+// FmtExpectedNArgs format a Fatal "expected ... args, got ..." error.
+func FmtExpectedNArgs(expected string, got int) Fatal {
+	return Fatalf("expected %s args, got %d", expected, got)
+}
+
+func TrivialEq[T comparable](left T, right any) bool {
+	rt, ok := right.(T)
+	return ok && left == rt
 }

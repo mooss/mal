@@ -10,10 +10,7 @@ import (
 // List is a sequence of values.
 type List []core.Value
 
-func (List) Type() core.TypeName { return core.LIST }
-func (lst List) String() string {
-	return "(" + strings.Join(fun.Map(core.Value.String, lst), " ") + ")"
-}
+func (lst List) Equal(other core.Value) bool { return sliceEq(lst, other, core.Value.Equal) }
 
 func (lst List) Eval(envr core.Env) core.Value {
 	if len(lst) == 0 {
@@ -31,6 +28,12 @@ func (lst List) Eval(envr core.Env) core.Value {
 
 	return Expected("callable", op)
 }
+
+func (lst List) String() string {
+	return "(" + strings.Join(fun.Map(core.Value.String, lst), " ") + ")"
+}
+
+func (List) Type() core.TypeName { return core.LIST }
 
 ////////////////////////////
 // Eval-related utilities //

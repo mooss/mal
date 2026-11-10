@@ -9,9 +9,10 @@ import (
 // those evaluated arguments will be passed to the function.
 type Function func(...core.Value) core.Value
 
-func (Function) Type() core.TypeName          { return core.FUNCTION }
-func (Function) String() string               { return "<internal function>" }
+func (Function) Equal(core.Value) bool        { return false }
 func (fun Function) Eval(core.Env) core.Value { return fun }
+func (Function) String() string               { return "<internal function>" }
+func (Function) Type() core.TypeName          { return core.FUNCTION }
 
 ////////////////////////
 // Conversion helpers //

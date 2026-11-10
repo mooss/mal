@@ -11,10 +11,7 @@ import (
 // VectorForm is an unevaluated sequence of values.
 type VectorForm []core.Value
 
-func (VectorForm) Type() core.TypeName { return core.VECTOR_FORM }
-func (v VectorForm) String() string {
-	return "[" + strings.Join(fun.Map(core.Value.String, v), " ") + "]"
-}
+func (v VectorForm) Equal(other core.Value) bool { return sliceEq(v, other, core.Value.Equal) }
 
 func (v VectorForm) Eval(envr core.Env) core.Value {
 	res := make(Vector, len(v))
@@ -28,11 +25,20 @@ func (v VectorForm) Eval(envr core.Env) core.Value {
 	return res
 }
 
+func (v VectorForm) String() string {
+	return "[" + strings.Join(fun.Map(core.Value.String, v), " ") + "]"
+}
+
+func (VectorForm) Type() core.TypeName { return core.VECTOR_FORM }
+
 // Vector is a sequence of values.
 type Vector []core.Value
 
-func (Vector) Type() core.TypeName { return core.VECTOR }
+func (v Vector) Equal(other core.Value) bool { return sliceEq(v, other, core.Value.Equal) }
+func (v Vector) Eval(core.Env) core.Value    { return v }
+
 func (v Vector) String() string {
 	return "[" + strings.Join(fun.Map(core.Value.String, v), " ") + "]"
 }
-func (v Vector) Eval(core.Env) core.Value { return v }
+
+func (Vector) Type() core.TypeName { return core.VECTOR }

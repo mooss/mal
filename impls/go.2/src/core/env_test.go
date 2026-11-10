@@ -1,25 +1,30 @@
-package core
+package core_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/mooss/mal/src/core"
+)
 
 type _tv string
 
-func (_tv) Type() TypeName   { return "test" }
-func (v _tv) String() string { return string(v) }
-func (v _tv) Eval(Env) Value { return v }
+func (_tv) Type() core.TypeName           { return "test" }
+func (v _tv) String() string              { return string(v) }
+func (v _tv) Eval(core.Env) core.Value    { return v }
+func (v _tv) Equal(other core.Value) bool { return v == other }
 
 func TestNewEnvMergesAndCopiesBindings(t *testing.T) {
-	first := Bindings{
+	first := core.Bindings{
 		"first":  _tv("first"),
 		"shared": _tv("first"),
 	}
-	second := Bindings{
+	second := core.Bindings{
 		"second": _tv("second"),
 		"shared": _tv("second"),
 	}
 
-	env := NewEnv(first, second)
-	for key, want := range map[string]Value{
+	env := core.NewEnv(first, second)
+	for key, want := range map[string]core.Value{
 		"first":  _tv("first"),
 		"second": _tv("second"),
 		"shared": _tv("second"),
@@ -37,37 +42,32 @@ func TestNewEnvMergesAndCopiesBindings(t *testing.T) {
 }
 
 func TestEnvGetSearchesOuterScopes(t *testing.T) {
-	grandparent := NewEnv(Bindings{"grandparent": _tv("grandparent")})
-	parent := Env{
-		inner: Bindings{"parent": _tv("parent"), "shadowed": _tv("parent")},
-		outer: &grandparent,
-	}
-	env := Env{
-		inner: Bindings{"local": _tv("local"), "shadowed": _tv("local")},
-		outer: &parent,
-	}
+	grandparent := core.NewEnv(core.Bindings{"grandparent": _tv("grandparent")})
+	parent := grandparent.Nest(core.Bindings{"parent": _tv("parent"), "shadowed": _tv("parent")})
+	child := parent.Nest(core.Bindings{"local": _tv("local"), "shadowed": _tv("local")})
 
-	for key, want := range map[string]Value{
+	for key, want := range map[string]core.Value{
 		"local":       _tv("local"),
 		"parent":      _tv("parent"),
 		"grandparent": _tv("grandparent"),
 		"shadowed":    _tv("local"),
 	} {
-		if got := env.Get(key); got != want {
+		if got := child.Get(key); got != want {
 			t.Errorf("Get(%q) = %v, want %v", key, got, want)
 		}
 	}
-	if got := env.Get("missing"); got != nil {
+	if got := child.Get("missing"); got != nil {
 		t.Errorf("Get(%q) = %v, want nil", "missing", got)
 	}
 }
 
 func TestEnvSetUpdatesOnlyCurrentScope(t *testing.T) {
-	parent := NewEnv(Bindings{
+	parent := core.NewEnv(core.Bindings{
 		"shared": _tv("parent"),
 		"parent": _tv("parent"),
 	})
-	env := Env{inner: Bindings{}, outer: &parent}
+
+	env := parent.Nest(core.Bindings{})
 
 	env.Set("shared", _tv("child"))
 	env.Set("local", _tv("local"))
@@ -78,13 +78,13 @@ func TestEnvSetUpdatesOnlyCurrentScope(t *testing.T) {
 	if got := parent.Get("shared"); got != _tv("parent") {
 		t.Errorf("parent Get(%q) = %v, want %v", "shared", got, _tv("parent"))
 	}
-	if got := env.inner["local"]; got != _tv("local") {
+	if got := env.Get("local"); got != _tv("local") {
 		t.Errorf("inner[%q] = %v, want %v", "local", got, _tv("local"))
 	}
 }
 
 func TestBindingsAsEnvSharesBindings(t *testing.T) {
-	bindings := Bindings{"key": _tv("before")}
+	bindings := core.Bindings{"key": _tv("before")}
 	env := bindings.AsEnv()
 
 	bindings["key"] = _tv("after")
@@ -99,16 +99,16 @@ func TestBindingsAsEnvSharesBindings(t *testing.T) {
 }
 
 func TestEnvNestLookupShadowsAndFallsBack(t *testing.T) {
-	outer := NewEnv(Bindings{
+	outer := core.NewEnv(core.Bindings{
 		"outer":  _tv("outer"),
 		"shared": _tv("outer"),
 	})
-	nested := outer.Nest(Bindings{
+	nested := outer.Nest(core.Bindings{
 		"inner":  _tv("inner"),
 		"shared": _tv("inner"),
 	})
 
-	for key, want := range map[string]Value{
+	for key, want := range map[string]core.Value{
 		"inner":  _tv("inner"),
 		"outer":  _tv("outer"),
 		"shared": _tv("inner"),
@@ -137,23 +137,23 @@ func TestEnvNestLookupShadowsAndFallsBack(t *testing.T) {
 }
 
 func TestCatEnvRightmostAndInnermostPrecedenceFlat(t *testing.T) {
-	left := NewEnv(Bindings{
+	left := core.NewEnv(core.Bindings{
 		"left":   _tv("left"),
 		"shared": _tv("left"),
 	})
-	rightOuter := NewEnv(Bindings{
+	rightOuter := core.NewEnv(core.Bindings{
 		"right-outer": _tv("right-outer"),
 		"shared":      _tv("right-outer"),
 		"nested":      _tv("outer"),
 	})
-	right := rightOuter.Nest(Bindings{
+	right := rightOuter.Nest(core.Bindings{
 		"right-inner": _tv("right-inner"),
 		"shared":      _tv("right-inner"),
 		"nested":      _tv("inner"),
 	})
 
-	merged := CatEnv(left, right)
-	for key, want := range map[string]Value{
+	merged := core.CatEnv(left, right)
+	for key, want := range map[string]core.Value{
 		"left":        _tv("left"),
 		"right-outer": _tv("right-outer"),
 		"right-inner": _tv("right-inner"),
@@ -164,16 +164,10 @@ func TestCatEnvRightmostAndInnermostPrecedenceFlat(t *testing.T) {
 			t.Errorf("Get(%q) = %v, want %v", key, got, want)
 		}
 	}
-	if merged.outer != nil {
-		t.Error("CatEnv result should be flat without outer environment")
-	}
 
-	leftOnly := CatEnv(left)
+	leftOnly := core.CatEnv(left)
 	if got := leftOnly.Get("shared"); got != _tv("left") {
 		t.Errorf("Get(%q) = %v, want %v", "shared", got, _tv("left"))
-	}
-	if leftOnly.outer != nil {
-		t.Error("CatEnv single result should be flat without outer environment")
 	}
 
 	merged.Set("left", _tv("changed"))
@@ -183,10 +177,10 @@ func TestCatEnvRightmostAndInnermostPrecedenceFlat(t *testing.T) {
 }
 
 func TestEnvGetMissingReturnsNil(t *testing.T) {
-	if got := NewEnv().Get("missing"); got != nil {
+	if got := core.NewEnv().Get("missing"); got != nil {
 		t.Errorf("Get(%q) on empty env = %v, want nil", "missing", got)
 	}
-	env := NewEnv(Bindings{"present": _tv("present")}).Nest(Bindings{
+	env := core.NewEnv(core.Bindings{"present": _tv("present")}).Nest(core.Bindings{
 		"local": _tv("local"),
 	})
 	if got := env.Get("missing"); got != nil {
@@ -195,7 +189,7 @@ func TestEnvGetMissingReturnsNil(t *testing.T) {
 }
 
 func TestBindingsAsEnvNilAllowsSet(t *testing.T) {
-	var bindings Bindings
+	var bindings core.Bindings
 	env := bindings.AsEnv()
 	env.Set("key", _tv("value"))
 	if got := env.Get("key"); got != _tv("value") {

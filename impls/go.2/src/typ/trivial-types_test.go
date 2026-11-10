@@ -32,7 +32,7 @@ func assertRepr[T core.Value](t *testing.T, v core.Value, wantStr string) {
 
 func assertSelfEval(t *testing.T, env core.Env, v core.Value) {
 	t.Helper()
-	if got := v.Eval(env); !typ.Equal(got, v) {
+	if got := v.Eval(env); !got.Equal(v) {
 		t.Fatalf("%v (%T).Eval() = %v, want %v", v, v, got, v)
 	}
 }
@@ -45,7 +45,7 @@ func assertTrivial[T core.Value](t *testing.T, env core.Env, v core.Value, wantS
 
 func assertEval(t *testing.T, env core.Env, v, want core.Value) {
 	t.Helper()
-	if got := v.Eval(env); !typ.Equal(got, want) {
+	if got := v.Eval(env); !got.Equal(want) {
 		t.Fatalf("%v (%T).Eval() = %v, want %v", v, v, got, want)
 	}
 }

@@ -31,21 +31,6 @@ func TestListEvalPropagatesFatalFromHeadAndArguments(t *testing.T) {
 		}
 	}
 }
-
-// logger records evaluation order and returns val.
-type logger struct {
-	id  string
-	log *[]string
-	val core.Value
-}
-
-func (logger) Type() core.TypeName { return core.LIST }
-func (p logger) String() string    { return p.id }
-func (p logger) Eval(core.Env) core.Value {
-	*p.log = append(*p.log, p.id)
-	return p.val
-}
-
 func TestListEvalEmptyReturnsItself(t *testing.T) {
 	envr := core.NewEnv()
 	lst := typ.List{}
