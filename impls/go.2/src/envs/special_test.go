@@ -14,14 +14,43 @@ func fatalMsg(v core.Value) string {
 	return fmt.Sprintf("%v", v)
 }
 
+type newBindingsFunc func(...core.Value) core.Value
+
+func listBindings(vals ...core.Value) core.Value {
+	return typ.List(vals)
+}
+
+func vectorBindings(vals ...core.Value) core.Value {
+	return typ.VectorForm(vals)
+}
+
+// runLetStarBothForms executes testFn with both list (parens) and vector (square brackets)
+// binding forms.
+func runLetStarBothForms(t *testing.T, testFn func(*testing.T, newBindingsFunc)) {
+	t.Helper()
+	forms := map[string]newBindingsFunc{
+		"list":   listBindings,
+		"vector": vectorBindings,
+	}
+	for name, newBindings := range forms {
+		t.Run(name, func(t *testing.T) {
+			testFn(t, newBindings)
+		})
+	}
+}
+
 func TestLetStarSequentialScopingAndOuterIsolation(t *testing.T) {
+	runLetStarBothForms(t, testLetStarSequentialScopingAndOuterIsolation)
+}
+
+func testLetStarSequentialScopingAndOuterIsolation(t *testing.T, newBindings newBindingsFunc) {
 	outer := core.NewEnv(core.Bindings{
 		"a": typ.Symbol("outer-a-val"),
 	})
-	bindings := typ.List{
+	bindings := newBindings(
 		typ.Symbol("x"), typ.Symbol("a"),
 		typ.Symbol("y"), typ.Symbol("x"),
-	}
+	)
 	form := typ.Symbol("y")
 
 	res := letStar(outer, bindings, form)
@@ -43,8 +72,12 @@ func TestLetStarSequentialScopingAndOuterIsolation(t *testing.T) {
 }
 
 func TestLetStarOddBindingsError(t *testing.T) {
+	runLetStarBothForms(t, testLetStarOddBindingsErrorInner)
+}
+
+func testLetStarOddBindingsErrorInner(t *testing.T, newBindings newBindingsFunc) {
 	outer := core.NewEnv()
-	res := letStar(outer, typ.List{typ.Symbol("x")}, typ.Symbol("x"))
+	res := letStar(outer, newBindings(typ.Symbol("x")), typ.Symbol("x"))
 	if !ut.Is[typ.Fatal](res) {
 		t.Fatalf("expected fatal for odd bindings, got %v", res)
 	}
@@ -54,13 +87,17 @@ func TestLetStarOddBindingsError(t *testing.T) {
 }
 
 func TestLetStarNonSymbolKeyQualifyPrefix(t *testing.T) {
+	runLetStarBothForms(t, testLetStarNonSymbolKeyQualifyPrefixInner)
+}
+
+func testLetStarNonSymbolKeyQualifyPrefixInner(t *testing.T, newBindings newBindingsFunc) {
 	outer := core.NewEnv(core.Bindings{
 		"a": typ.Symbol("a-val"),
 	})
 	// empty list is a value but not a symbol.
-	bindings := typ.List{
+	bindings := newBindings(
 		typ.List{}, typ.Symbol("a"),
-	}
+	)
 	res := letStar(outer, bindings, typ.Symbol("a"))
 	if !ut.Is[typ.Fatal](res) {
 		t.Fatalf("expected fatal for non-symbol key, got %v", res)
@@ -71,12 +108,16 @@ func TestLetStarNonSymbolKeyQualifyPrefix(t *testing.T) {
 }
 
 func TestLetStarFatalValueForwardingWithoutSet(t *testing.T) {
+	runLetStarBothForms(t, testLetStarFatalValueForwardingWithoutSetInner)
+}
+
+func testLetStarFatalValueForwardingWithoutSetInner(t *testing.T, newBindings newBindingsFunc) {
 	outer := core.NewEnv(core.Bindings{
 		"good": typ.Symbol("good-val"),
 	})
-	bindings := typ.List{
+	bindings := newBindings(
 		typ.Symbol("ok"), typ.Symbol("missing"),
-	}
+	)
 	res := letStar(outer, bindings, typ.Symbol("ok"))
 	if !ut.Is[typ.Fatal](res) {
 		t.Fatalf("expected fatal forwarding, got %v", res)
