@@ -1,3 +1,4 @@
+//revive:disable:cognitive-complexity
 package typ_test
 
 import (
@@ -58,6 +59,48 @@ func TestListEvalEmptyReturnsItself(t *testing.T) {
 	}
 	if got.String() != "()" {
 		t.Errorf("Eval() = %s, want ()", got.String())
+	}
+}
+
+func TestListEvalOneToFiveElementApplicationsEvaluateInOrder(t *testing.T) {
+	for total := 1; total <= 5; total++ {
+		envr := core.NewEnv()
+		var log []string
+		var gotArgs []core.Value
+		fun := typ.Function(func(args ...core.Value) core.Value {
+			gotArgs = append([]core.Value(nil), args...)
+			return typ.Integer(total)
+		})
+		lst := typ.List{logger{id: "op", log: &log, val: fun}}
+		wantLog := []string{"op"}
+		for i := 1; i < total; i++ {
+			id := string(rune('a' + i - 1))
+			lst = append(lst, logger{id: id, log: &log, val: typ.Integer(i)})
+			wantLog = append(wantLog, id)
+		}
+		got := lst.Eval(envr)
+		if got.String() != typ.Integer(total).String() {
+			t.Errorf("total %d: Eval() = %s, want %d", total, got.String(), total)
+		}
+		if len(log) != len(wantLog) {
+			t.Errorf("total %d: eval order = %v, want %v", total, log, wantLog)
+			continue
+		}
+		for i := range wantLog {
+			if log[i] != wantLog[i] {
+				t.Errorf("total %d: eval order = %v, want %v", total, log, wantLog)
+				break
+			}
+		}
+		if len(gotArgs) != total-1 {
+			t.Errorf("total %d: function args len = %d, want %d", total, len(gotArgs), total-1)
+			continue
+		}
+		for i, arg := range gotArgs {
+			if arg.String() != typ.Integer(i+1).String() {
+				t.Errorf("total %d: arg %d = %s, want %d", total, i, arg.String(), i+1)
+			}
+		}
 	}
 }
 

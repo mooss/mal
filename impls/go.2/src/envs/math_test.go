@@ -5,6 +5,7 @@ import (
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/envs"
+	"github.com/mooss/mal/src/tut"
 	"github.com/mooss/mal/src/typ"
 	"github.com/mooss/mal/src/ut"
 )
@@ -97,5 +98,166 @@ func TestEvalNestedArithmetic(t *testing.T) {
 	got := ast.Eval(envs.Math)
 	if got != core.Value(typ.Integer(12)) {
 		t.Fatalf("Eval nested = %v, want 12", got)
+	}
+}
+
+func TestVariadicZeroArgsReturnsFatal(t *testing.T) {
+	for _, op := range []string{"+", "-", "*", "/"} {
+		input := "(" + op + ")"
+		got := tut.MustEval(envs.Math, input)
+		if !ut.Is[typ.Fatal](got) {
+			t.Fatalf("MustEval(%q) = %#v, want %T", input, got, typ.Fatal{})
+		}
+	}
+}
+
+func TestVariadicOneArg(t *testing.T) {
+	// + and * with one arg return identity.
+	for _, tc := range []struct {
+		input string
+		want  typ.Integer
+	}{
+		{"(+ 42)", 42},
+		{"(+ -7)", -7},
+		{"(+ 0)", 0},
+		{"(* 42)", 42},
+		{"(* -7)", -7},
+		{"(* 0)", 0},
+	} {
+		got := tut.MustEval(envs.Math, tc.input)
+		if got != core.Value(tc.want) {
+			t.Fatalf("MustEval(%q) = %v, want %d", tc.input, got, tc.want)
+		}
+	}
+
+	// - with one arg negates.
+	for _, tc := range []struct {
+		input string
+		want  typ.Integer
+	}{
+		{"(- 5)", -5},
+		{"(- -5)", 5},
+		{"(- 0)", 0},
+	} {
+		got := tut.MustEval(envs.Math, tc.input)
+		if got != core.Value(tc.want) {
+			t.Fatalf("MustEval(%q) = %v, want %d", tc.input, got, tc.want)
+		}
+	}
+
+	// / with one arg is an arity error.
+	for _, input := range []string{"(/ 42)", "(/ -7)", "(/ 0)"} {
+		got := tut.MustEval(envs.Math, input)
+		if !ut.Is[typ.Fatal](got) {
+			t.Fatalf("MustEval(%q) = %#v, want %T", input, got, typ.Fatal{})
+		}
+	}
+}
+
+func TestVariadicManyArgsLeftFold(t *testing.T) {
+	tests := []struct {
+		input string
+		want  typ.Integer
+	}{
+		// + variadic.
+		{"(+ 1 2 3)", 6},
+		{"(+ 1 2 3 4)", 10},
+		{"(+ 1 2 3 4 5)", 15},
+		{"(+ -1 2 -3 4)", 2},
+		// * variadic.
+		{"(* 2 3 4)", 24},
+		{"(* 2 3 4 5)", 120},
+		{"(* 1 2 3 4 5)", 120},
+		{"(* -2 3 4)", -24},
+		// - left fold: (- a b c) == ((a - b) - c).
+		{"(- 10 3 2)", 5},
+		{"(- 20 5 3 2)", 10},
+		{"(- 30 10 5 3 2)", 10},
+		{"(- 100 20 30)", 50},
+		{"(- 0 5 3)", -8},
+		// / left fold: (/ a b c) == ((a / b) / c).
+		{"(/ 100 5 2)", 10},
+		{"(/ 120 6 2)", 10},
+		{"(/ 120 3 2 2)", 10},
+		{"(/ 1000 10 5 2 2)", 5},
+		{"(/ 64 2 2 2)", 8},
+	}
+
+	for _, tt := range tests {
+		got := tut.MustEval(envs.Math, tt.input)
+		if got != core.Value(tt.want) {
+			t.Fatalf("MustEval(%q) = %v, want %d", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestMixedIntStringFatalReturnsFatal(t *testing.T) {
+	inputs := []string{
+		// Int mixed with string.
+		`(+ 1 "hi")`,
+		`(+ "hi" 1)`,
+		`(+ "a" "b")`,
+		`(+ 1 2 "three")`,
+		`(+ 1 2 3 4 "five")`,
+		`(- 5 "hi")`,
+		`(- "hi" 5)`,
+		`(- 10 3 "x")`,
+		`(- 20 5 3 "x")`,
+		`(* 2 "hi")`,
+		`(* "hi" 2)`,
+		`(* 2 3 "hi")`,
+		`(* 2 3 4 5 "hi")`,
+		`(/ 8 "hi")`,
+		`(/ "hi" 8)`,
+		`(/ 100 5 "hi")`,
+		`(/ 100 5 2 "hi")`,
+		// Int mixed with Fatal from nested failing calls.
+		`(+ 1 (/ 1))`,
+		`(+ 1 (+))`,
+		`(+ 1 (-))`,
+		`(+ 1 (*))`,
+		`(+ 1 (/))`,
+		`(- 5 (+))`,
+		`(- 10 3 (/ 1))`,
+		`(* 2 (+))`,
+		`(* 2 3 (/ 1))`,
+		`(/ 10 (+))`,
+		`(/ 10 (/) 2)`,
+		`(+ (+ "a" 1) 2)`,
+		`(* (- "a" 1) 2)`,
+	}
+
+	for _, input := range inputs {
+		got := tut.MustEval(envs.Math, input)
+		if !ut.Is[typ.Fatal](got) {
+			t.Fatalf("MustEval(%q) = %#v, want %T", input, got, typ.Fatal{})
+		}
+	}
+}
+
+func TestDeepNestedCombinations(t *testing.T) {
+	tests := []struct {
+		input string
+		want  typ.Integer
+	}{
+		{"(+ (* 2 3) (- 10 4))", 12},
+		{"(+ (* 2 3) (- 10 4) (/ 20 4))", 17},
+		{"(* (+ 1 2) (+ 3 4))", 21},
+		{"(* (+ 1 2 3) (- 10 (- 5 2)))", 42},
+		{"(- (* (+ 1 2 3) 4) (/ 20 2))", 14},
+		{"(/ (* 2 3 5) (+ 2 3))", 6},
+		{"(- (+ 10 20) (* 2 3))", 24},
+		{"(+ (* (- 10 3) (/ 12 4)) (- (/ 100 5 2) (+ 1 2 3)))", 25},
+		{"(* (- (/ 100 2) 10) (+ (- 5 2) (/ 9 3)))", 240},
+		{"(/ (- (* 10 10) 20) (+ 2 2 2 2))", 10},
+		{"(+ (- (* (/ 64 2) 2) 12) (* (+ 1 1 1) (- 10 5)))", 67},
+		{"(* (+ (/ 20 2) (- 8 3)) (- (/ 30 3) (+ 1 2)))", 105},
+	}
+
+	for _, tt := range tests {
+		got := tut.MustEval(envs.Math, tt.input)
+		if got != core.Value(tt.want) {
+			t.Fatalf("MustEval(%q) = %v, want %d", tt.input, got, tt.want)
+		}
 	}
 }
