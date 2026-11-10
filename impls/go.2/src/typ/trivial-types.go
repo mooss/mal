@@ -10,6 +10,13 @@ import (
 	"github.com/mooss/mal/src/core"
 )
 
+// Bool is a boolean.
+type Bool bool
+
+func (Bool) Type() core.TypeName        { return core.BOOL }
+func (b Bool) String() string           { return strconv.FormatBool(bool(b)) }
+func (b Bool) Eval(core.Env) core.Value { return b }
+
 // Fatal is an error that interrupts all execution immediately and irrecoverably.
 type Fatal struct{ error }
 
@@ -41,6 +48,7 @@ func (Nil) Type() core.TypeName        { return core.NIL }
 func (Nil) String() string             { return "nil" }
 func (n Nil) Eval(core.Env) core.Value { return n }
 
+// Quote is a quoted value which returns the raw value upon evaluation.
 type Quote struct{ Value core.Value }
 
 func (Quote) Type() core.TypeName        { return core.QUOTE }
@@ -62,7 +70,7 @@ func (s Symbol) String() string    { return string(s) }
 func (s Symbol) Eval(envr core.Env) core.Value {
 	value := envr.Get(string(s))
 	if value == nil {
-		return Fatalf("symbol %#q not found", s)
+		return Fatalf("symbol '%s' not found", s)
 	}
 	return value
 }

@@ -57,8 +57,10 @@ func divInt(args ...core.Value) core.Value {
 }
 
 var Math core.Env = core.Bindings{
-	"+": reduce(plus[_int]),
-	"-": typ.Function(minusInt),
-	"*": reduce(times[_int]),
-	"/": typ.Function(divInt),
+	"+":     reduce(plus[_int]),
+	"-":     typ.Function(minusInt),
+	"*":     reduce(times[_int]),
+	"/":     typ.Function(divInt),
+	"true":  typ.Bool(true),
+	"false": typ.Bool(false),
 }.AsEnv()

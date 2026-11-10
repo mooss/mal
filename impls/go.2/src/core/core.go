@@ -6,6 +6,8 @@ type TypeName string
 
 //revive:disable:var-naming
 const (
+	// BOOL is the name of the boolean type.
+	BOOL TypeName = "bool"
 	// FATAL is the name of the fatal error type.
 	FATAL TypeName = "fatal"
 	// FUNCTION is the name of the function type.

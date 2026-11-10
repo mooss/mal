@@ -14,11 +14,7 @@ import (
 func As[T core.Value](val core.Value) (T, Fatal) {
 	res, isT := val.(T)
 	if !isT {
-		err, isFatal := val.(Fatal)
-		if !isFatal {
-			err = expected(res.Type(), val)
-		}
-		return res, err
+		return res, Unexpected(res.Type(), val)
 	}
 	return res, Fatal{}
 }
@@ -45,11 +41,7 @@ func AsSeq[T core.Value](values ...core.Value) (iter.Seq[T], func() Fatal) {
 			val := values[i]
 			typed, isT := val.(T)
 			if !isT {
-				err, isFatal := val.(Fatal)
-				if !isFatal {
-					err = expected(typed.Type(), val)
-				}
-				fatal = err
+				fatal = Unexpected(typed.Type(), val)
 				i = len(values)
 				return
 			}
@@ -73,4 +65,14 @@ func EvalArgs(envr core.Env, args ...core.Value) ([]core.Value, Fatal) {
 		res[i] = evald
 	}
 	return res, Fatal{}
+}
+
+// Unexpected format a Fatal error explaining that an unexpected type was given.
+// When the unexpected type is already a Fatal error, it is returned as-is.
+func Unexpected[T ~string](expected T, got core.Value) Fatal {
+	err, isFatal := got.(Fatal)
+	if isFatal {
+		return err
+	}
+	return Fatalf("expected %s but got %s (%v)", expected, got.Type(), got)
 }

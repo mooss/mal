@@ -26,11 +26,9 @@ func (lst List) Eval(envr core.Env) core.Value {
 		return evalFun(envr, op, lst[1:])
 	case Special:
 		return op(envr, lst[1:]...)
-	case Fatal:
-		return op
 	}
 
-	return expected("callable", op)
+	return Unexpected("callable", op)
 }
 
 ////////////////////////////

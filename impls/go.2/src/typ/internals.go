@@ -45,11 +45,6 @@ func as2Args[A, B core.Value](args []core.Value) (A, B, Fatal) {
 	return a, b, Fatal{}
 }
 
-// expected format a Fatal error explaining that a type other than the expected one was found.
-func expected[T ~string](expected T, got core.Value) Fatal {
-	return Fatalf("expected %s but got %s (%v)", expected, got.Type(), got)
-}
-
 // validKey returns true when the given value can be used for a map key.
 func validKey(value core.Value) bool {
 	switch value.(type) {
