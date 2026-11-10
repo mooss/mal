@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mooss/mal/src/fun"
 	"github.com/mooss/mal/src/typ"
 	"github.com/mooss/mal/src/ut"
 )
@@ -107,7 +108,7 @@ func TestAsSeqResumeAfterPartialConsume(t *testing.T) {
 		t.Fatalf("getter after First = %q, want no error", err.String())
 	}
 	// Reduce the remainder; must resume at 2, not restart at 1.
-	sum := ut.Reduce(func(acc typ.Integer, v typ.Integer) typ.Integer {
+	sum := fun.Reduce(func(acc typ.Integer, v typ.Integer) typ.Integer {
 		return acc + v
 	}, 0, seq)
 	if sum != 5 {

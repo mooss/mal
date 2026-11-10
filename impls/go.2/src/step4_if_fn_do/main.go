@@ -10,7 +10,7 @@ import (
 
 //revive:disable:cognitive-complexity
 func main() {
-	environment := core.CatEnv(envs.Math, envs.MalSpecial)
+	environment := core.CatEnv(envs.MalDefault)
 	rep := func(input string) (string, error) {
 		parsed, err := reader.ParseOne(input)
 		if err != nil {

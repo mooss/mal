@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/fun"
 )
 
 // List is a sequence of values.
@@ -11,7 +12,7 @@ type List []core.Value
 
 func (List) Type() core.TypeName { return core.LIST }
 func (lst List) String() string {
-	return "(" + strings.Join(_map(core.Value.String, lst), " ") + ")"
+	return "(" + strings.Join(fun.Map(core.Value.String, lst), " ") + ")"
 }
 
 func (lst List) Eval(envr core.Env) core.Value {
@@ -36,11 +37,11 @@ func (lst List) Eval(envr core.Env) core.Value {
 
 // evalFun evaluates a function by calling it with its evaluated arguments.
 // Any fatal argument encountered stops the evaluation and is returned as-is.
-func evalFun(envr core.Env, fun Function, rest []core.Value) core.Value {
+func evalFun(envr core.Env, fn Function, rest []core.Value) core.Value {
 	args, err := EvalArgs(envr, rest...)
 	if err.NotNil() {
 		return err
 	}
 
-	return fun(args...)
+	return fn(args...)
 }

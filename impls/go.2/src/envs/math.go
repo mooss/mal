@@ -2,6 +2,7 @@ package envs
 
 import (
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/fun"
 	"github.com/mooss/mal/src/typ"
 	"github.com/mooss/mal/src/ut"
 )
@@ -11,7 +12,7 @@ var (
 	arityGt2Err = typ.Fatalf("expected at least 2 argument")
 )
 
-func reduce[T core.Value](fun func(T, T) T) typ.Function {
+func reduce[T core.Value](fn func(T, T) T) typ.Function {
 	return func(args ...core.Value) core.Value {
 		if len(args) == 0 {
 			return arityGt1Err
@@ -19,7 +20,7 @@ func reduce[T core.Value](fun func(T, T) T) typ.Function {
 
 		typed, gerr := typ.AsSeq[T](args...)
 		acc, _ := ut.First(typed)
-		acc = ut.Reduce(fun, acc, typed)
+		acc = fun.Reduce(fn, acc, typed)
 		if err := gerr(); err.NotNil() {
 			return err
 		}

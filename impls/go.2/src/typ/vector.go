@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/fun"
 	"github.com/mooss/mal/src/ut"
 )
 
@@ -12,7 +13,7 @@ type VectorForm []core.Value
 
 func (VectorForm) Type() core.TypeName { return core.VECTOR_FORM }
 func (v VectorForm) String() string {
-	return "[" + strings.Join(_map(core.Value.String, v), " ") + "]"
+	return "[" + strings.Join(fun.Map(core.Value.String, v), " ") + "]"
 }
 
 func (v VectorForm) Eval(envr core.Env) core.Value {
@@ -32,6 +33,6 @@ type Vector []core.Value
 
 func (Vector) Type() core.TypeName { return core.VECTOR }
 func (v Vector) String() string {
-	return "[" + strings.Join(_map(core.Value.String, v), " ") + "]"
+	return "[" + strings.Join(fun.Map(core.Value.String, v), " ") + "]"
 }
 func (v Vector) Eval(core.Env) core.Value { return v }

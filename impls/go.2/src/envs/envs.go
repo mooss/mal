@@ -8,4 +8,4 @@ import (
 
 type _int = typ.Integer
 
-var MalDefault = core.CatEnv(MalSpecial, Math)
+var MalDefault = core.CatEnv(MalSpecial, Math, MalFunctions)
