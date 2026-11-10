@@ -19,8 +19,8 @@ func _nil() typ.Nil           { return typ.Nil{} }
 func vec(elems ...core.Value) typ.VectorForm {
 	return typ.VectorForm(elems)
 }
-func quoted(f core.Value) typ.List {
-	return typ.List{typ.Symbol("quote"), f}
+func quoted(f core.Value) typ.Quote {
+	return typ.Quote{Value: f}
 }
 
 func lst(elems ...core.Value) typ.List {
@@ -120,6 +120,9 @@ func equalType(left, right core.Value) bool {
 		return eqmap(leftVal, right)
 	case typ.Nil:
 		return ut.Is[typ.Nil](right)
+	case typ.Quote:
+		rightVal, ok := right.(typ.Quote)
+		return ok && equalType(leftVal.Value, rightVal.Value)
 	default:
 		return false
 	}

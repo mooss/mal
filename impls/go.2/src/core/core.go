@@ -20,6 +20,8 @@ const (
 	MAP_FORM TypeName = "map-form"
 	// NIL is the name of the nil type.
 	NIL TypeName = "nil"
+	// QUOTE is the name of the quote type.
+	QUOTE TypeName = "quote"
 	// SPECIAL is the name of the special form type.
 	SPECIAL TypeName = "special"
 	// STRING is the name of the string type.

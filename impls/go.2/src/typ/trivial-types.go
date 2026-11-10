@@ -41,6 +41,12 @@ func (Nil) Type() core.TypeName        { return core.NIL }
 func (Nil) String() string             { return "nil" }
 func (n Nil) Eval(core.Env) core.Value { return n }
 
+type Quote struct{ Value core.Value }
+
+func (Quote) Type() core.TypeName        { return core.QUOTE }
+func (q Quote) String() string           { return "'" + q.Value.String() }
+func (q Quote) Eval(core.Env) core.Value { return q.Value }
+
 // String is a Mal string value.
 type String string
 
