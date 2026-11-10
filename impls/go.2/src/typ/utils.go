@@ -53,6 +53,11 @@ func AsSeq[T core.Value](values ...core.Value) (iter.Seq[T], func() Fatal) {
 	}, func() Fatal { return fatal }
 }
 
+// Equal returns true if the given values have the same type and the same value.
+func Equal(left, right core.Value) bool {
+	return left.Type() == right.Type() && left == right
+}
+
 // EvalArgs evaluates all its arguments in order, returning them as a slice.
 // The first Fatal error encountered triggers a short-circuit and is returned as an error.
 func EvalArgs(envr core.Env, args ...core.Value) ([]core.Value, Fatal) {
