@@ -20,3 +20,14 @@ func SpII[A, B, R core.Value](fun func(core.Env, A, B) R) Special {
 		return fun(env, a, b)
 	}
 }
+
+func SpIII[A, B, C, R core.Value](fun func(core.Env, A, B, C) R) Special {
+	return func(env core.Env, args ...core.Value) core.Value {
+		a, b, c, err := as3Args[A, B, C](args)
+		if err.NotNil() {
+			return err
+		}
+
+		return fun(env, a, b, c)
+	}
+}

@@ -25,15 +25,12 @@ func _mapflat[From comparable, To any](fun func(From) To, source map[From]From) 
 /////////////////////
 // Type assertions //
 
-func as2Args[A, B core.Value](args []core.Value) (A, B, Fatal) {
-	var a A
-	var b B
-
-	if len(args) != 2 {
-		return a, b, Fatalf("expected 2 args, got %d", len(args))
+func as2Args[A, B core.Value](args []core.Value) (a A, b B, err Fatal) {
+	if err = ExpectNArgs(2, args); err.NotNil() {
+		return a, b, err
 	}
 
-	a, err := As[A](args[0])
+	a, err = As[A](args[0])
 	if err.NotNil() {
 		return a, b, err
 	}
@@ -43,6 +40,27 @@ func as2Args[A, B core.Value](args []core.Value) (A, B, Fatal) {
 	}
 
 	return a, b, Fatal{}
+}
+
+func as3Args[A, B, C core.Value](args []core.Value) (a A, b B, c C, err Fatal) {
+	if err = ExpectNArgs(3, args); err.NotNil() {
+		return a, b, c, err
+	}
+
+	a, err = As[A](args[0])
+	if err.NotNil() {
+		return a, b, c, err
+	}
+	b, err = As[B](args[1])
+	if err.NotNil() {
+		return a, b, c, err
+	}
+	c, err = As[C](args[2])
+	if err.NotNil() {
+		return a, b, c, err
+	}
+
+	return a, b, c, Fatal{}
 }
 
 // validKey returns true when the given value can be used for a map key.

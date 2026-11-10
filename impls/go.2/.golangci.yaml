@@ -39,6 +39,8 @@ linters:
           arguments: [10]
         - name: flag-parameter
           disabled: true
+        - name: function-result-limit
+          disabled: true
   exclusions:
     generated: lax
     presets:

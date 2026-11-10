@@ -2,6 +2,8 @@ package typ
 
 import (
 	"iter"
+	"slices"
+	"strconv"
 
 	"github.com/mooss/mal/src/core"
 )
@@ -53,6 +55,19 @@ func AsSeq[T core.Value](values ...core.Value) (iter.Seq[T], func() Fatal) {
 	}, func() Fatal { return fatal }
 }
 
+// AsSlice asserts all the value as T.
+//
+// Intended to be used for type assertions and to preserve and forward the errors encountered during
+// evaluation.
+func AsSlice[T core.Value](values ...core.Value) ([]T, Fatal) {
+	seq, geterr := AsSeq[T](values...)
+	res := slices.Collect(seq)
+	if err := geterr(); err.NotNil() {
+		return nil, err
+	}
+	return res, Fatal{}
+}
+
 // Equal returns true if the given values have the same type and the same value.
 func Equal(left, right core.Value) bool {
 	return left.Type() == right.Type() && left == right
@@ -70,6 +85,20 @@ func EvalArgs(envr core.Env, args ...core.Value) ([]core.Value, Fatal) {
 		res[i] = evald
 	}
 	return res, Fatal{}
+}
+
+// ExpectNArgs returns a nil Fatal if got contains exactly expected values, otherwise a Fatal
+// "expected ... args, got ..." error.
+func ExpectNArgs(expected int, got []core.Value) Fatal {
+	if expected == len(got) {
+		return Fatal{}
+	}
+	return FmtExpectedNArgs(strconv.Itoa(expected), len(got))
+}
+
+// FmtExpectedNArgs format a Fatal "expected ... args, got ..." error.
+func FmtExpectedNArgs(expected string, got int) Fatal {
+	return Fatalf("expected %s args, got %d", expected, got)
 }
 
 // Unexpected format a Fatal error explaining that an unexpected type was given.
