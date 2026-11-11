@@ -17,7 +17,7 @@ type lineReader interface {
 
 type plainReader struct{ scanner *bufio.Scanner }
 
-func (pr plainReader) Close() error { return nil }
+func (plainReader) Close() error { return nil }
 func (pr plainReader) Readline() (string, error) {
 	fmt.Print("user> ")
 	if pr.scanner.Scan() {

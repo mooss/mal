@@ -210,6 +210,7 @@ func TestTokenizeSymbols(t *testing.T) {
 		{name: "keywords", input: "nil true false defn", want: []Token{{Type: TOKEN_SYMBOL, Value: "nil"}, {Type: TOKEN_SYMBOL, Value: "true"}, {Type: TOKEN_SYMBOL, Value: "false"}, {Type: TOKEN_SYMBOL, Value: "defn"}}, wantErr: false},
 		{name: "digit minus", input: "1-", want: []Token{}, wantErr: true},
 		{name: "digits plus digits", input: "12+34", want: []Token{}, wantErr: true},
+		{name: "ampersand", input: "&", want: []Token{{Type: TOKEN_SYMBOL, Value: "&"}}, wantErr: false},
 	}
 
 	for _, tt := range tests {
@@ -297,7 +298,6 @@ func TestTokenizeInvalid(t *testing.T) {
 		{name: "hash", input: "#", want: nil, wantErr: true},
 		{name: "dollar", input: "$", want: nil, wantErr: true},
 		{name: "percent", input: "%", want: nil, wantErr: true},
-		{name: "ampersand", input: "&", want: nil, wantErr: true},
 		{name: "pipe", input: "|", want: nil, wantErr: true},
 		{name: "backslash", input: `\`, want: nil, wantErr: true},
 		{name: "caret", input: "^", want: nil, wantErr: true},
