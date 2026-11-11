@@ -87,6 +87,7 @@ func prn(args ...core.Value) core.Value {
 		}
 		fmt.Print(arg.String())
 	}
+	fmt.Print("\n")
 
 	return typ.Nil{}
 }
