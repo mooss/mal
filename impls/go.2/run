@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-go run $(dirname $0)/src/${STEP:-stepA_mal} "${@}"
+MHARP_NO_READLINE=true go run $(dirname $0)/src/${STEP:-stepA_mal} "${@}"
