@@ -2,6 +2,7 @@ package envs
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/typ"
@@ -41,18 +42,16 @@ func lambda(envr core.Env, paramlist core.Value, body core.Value) core.Value {
 		return err
 	}
 
-	closure := func(args ...core.Value) core.Value {
-		if err := typ.ExpectNArgs(len(symlist), args); err.NotNil() { // The arity must match.
-			return err
-		}
-
-		bindings := core.Bindings{}
-		for i, sym := range symlist {
-			bindings[string(sym)] = args[i] // Create bindings local to the lambda.
-		}
-		return body.Eval(envr.Nest(bindings))
+	amperpos := slices.Index(symlist, typ.Symbol("&"))
+	if amperpos < 0 {
+		return typ.Function(mkFixedClosure(envr, symlist, body))
 	}
-	return typ.Function(closure)
+	if amperpos != len(symlist)-2 {
+		return typ.Fatalf("invalid & in lambda params, must be right before the last symbol")
+	}
+
+	rest := string(symlist[amperpos+1])
+	return typ.Function(mkVariadicClosure(envr, symlist[:amperpos], rest, body))
 }
 
 // letStar creates a temporary environment containing the given bindings and evaluates form in this
@@ -145,4 +144,43 @@ func asListOrVec(elements core.Value) ([]core.Value, typ.Fatal) {
 		return nil, typ.Expected(fmt.Sprintf("%s or %s", core.LIST, core.VECTOR_FORM), elements)
 	}
 	return bindlist, typ.Fatal{}
+}
+
+func mkFixedClosure(
+	envr core.Env, symlist []typ.Symbol, body core.Value,
+) func(args ...core.Value) core.Value {
+	return func(args ...core.Value) core.Value {
+		if err := typ.ExpectNArgs(len(symlist), args); err.NotNil() {
+			return err
+		}
+
+		bindings := core.Bindings{}
+		for i, sym := range symlist {
+			bindings[string(sym)] = args[i]
+		}
+		return body.Eval(envr.Nest(bindings))
+	}
+}
+
+func mkVariadicClosure(
+	envr core.Env, symlist []typ.Symbol, restKey string, body core.Value,
+) func(args ...core.Value) core.Value {
+	return func(args ...core.Value) core.Value {
+		if err := typ.ExpectAtLeastNArgs(len(symlist), args); err.NotNil() {
+			return err
+		}
+
+		bindings := core.Bindings{}
+		for i, sym := range symlist {
+			bindings[string(sym)] = args[i]
+		}
+
+		rest := make(typ.List, len(args)-len(symlist))
+		for i, val := range args[len(symlist):] {
+			rest[i] = val
+		}
+		bindings[restKey] = rest
+
+		return body.Eval(envr.Nest(bindings))
+	}
 }

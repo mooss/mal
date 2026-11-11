@@ -1,6 +1,7 @@
 package typ
 
 import (
+	"fmt"
 	"iter"
 	"slices"
 	"strconv"
@@ -80,6 +81,15 @@ func EvalArgs(envr core.Env, args ...core.Value) ([]core.Value, Fatal) {
 		res[i] = evald
 	}
 	return res, Fatal{}
+}
+
+// ExpectAtLeastNArgs returns a nil Fatal if got contains at least expected values, otherwise a
+// Fatal "expected ... args, got ..." error.
+func ExpectAtLeastNArgs(expected int, got []core.Value) Fatal {
+	if len(got) >= expected {
+		return Fatal{}
+	}
+	return FmtExpectedNArgs(fmt.Sprintf("at least %d", expected), len(got))
 }
 
 // ExpectNArgs returns a nil Fatal if got contains exactly expected values, otherwise a Fatal
