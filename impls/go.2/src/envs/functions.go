@@ -97,8 +97,13 @@ func prStr(args ...core.Value) core.Value {
 }
 
 func rawString(val core.Value) string {
-	if str, isStr := val.(typ.String); isStr {
-		return string(str)
+	switch value := val.(type) {
+	case typ.String:
+		return string(value)
+	case typ.List:
+		return "(" + strings.Join(fun.Map(rawString, value), " ") + ")"
+	case typ.Vector:
+		return "[" + strings.Join(fun.Map(rawString, value), " ") + "]"
 	}
 	return val.String()
 }
