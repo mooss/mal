@@ -418,7 +418,7 @@ func TestIfCondFatalSkipsBranches(t *testing.T) {
 }
 
 func TestIfBranchFatalAndArity(t *testing.T) {
-	outer := envs.MalSpecial.Nest(core.Bindings{"good": typ.Symbol("good-val")})
+	outer := envs.MalDefault.Nest(core.Bindings{"good": typ.Symbol("good-val")})
 	for _, input := range []string{
 		"(if true missing good)",
 		"(if false good missing)",
@@ -430,7 +430,6 @@ func TestIfBranchFatalAndArity(t *testing.T) {
 		}
 	}
 	for _, input := range []string{
-		"(if true good)",
 		"(if true good good good)",
 		"(if)",
 	} {
