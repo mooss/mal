@@ -150,7 +150,7 @@ func TestQuoteMustEval(t *testing.T) {
 
 	// Quote type itself: String, Type and Eval return raw value.
 	q := typ.Quote{Value: typ.Integer(1)}
-	assertRepr[typ.Quote](t, q, "'1")
+	assertRepr[typ.Quote](t, q, "(quote 1)")
 	assertEval(t, envr, q, typ.Integer(1))
 }
 

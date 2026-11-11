@@ -72,7 +72,7 @@ func (q Quote) Equal(other core.Value) bool {
 }
 
 func (q Quote) Eval(core.Env) core.Value { return q.Value }
-func (q Quote) String() string           { return "'" + q.Value.String() }
+func (q Quote) String() string           { return "(quote " + q.Value.String() + ")" }
 func (Quote) Type() core.TypeName        { return core.QUOTE }
 
 // String is a Mal string value.
