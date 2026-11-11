@@ -8,16 +8,20 @@ import (
 )
 
 var Math core.Env = core.Bindings{
-	"+":     reduce(plus[_int]),
-	"-":     typ.Function(minusInt),
-	"*":     reduce(times[_int]),
-	"/":     typ.Function(divInt),
+	// Numeric operations.
+	"+": reduce(plus[_int]),
+	"-": typ.Function(minusInt),
+	"*": reduce(times[_int]),
+	"/": typ.Function(divInt),
+	// Numeric comparison.
+	"<":  typ.II(lt[_int]),
+	"<=": typ.II(leq[_int]),
+	">":  typ.II(gt[_int]),
+	">=": typ.II(geq[_int]),
+	// Logic.
 	"true":  typ.True,
 	"false": typ.False,
-	"<":     typ.II(lt[_int]),
-	"<=":    typ.II(leq[_int]),
-	">":     typ.II(gt[_int]),
-	">=":    typ.II(geq[_int]),
+	"not":   typ.I(not),
 }.AsEnv()
 
 func reduce[T core.Value](fn func(T, T) T) typ.Function {
@@ -69,3 +73,25 @@ func lt[T numbers](l, t T) typ.Bool  { return l < t }
 func leq[T numbers](l, t T) typ.Bool { return l <= t }
 func gt[T numbers](l, t T) typ.Bool  { return l > t }
 func geq[T numbers](l, t T) typ.Bool { return l >= t }
+
+func truthful(arg core.Value) (bool, typ.Fatal) {
+	realised := true
+	switch typed := arg.(type) {
+	case typ.Fatal:
+		return false, typed
+	case typ.Nil:
+		realised = false
+	case typ.Bool:
+		realised = bool(typed)
+	default:
+	}
+	return realised, typ.Fatal{}
+}
+
+func not(arg core.Value) core.Value {
+	isTrue, err := truthful(arg)
+	if err.NotNil() {
+		return err
+	}
+	return typ.Bool(!isTrue)
+}

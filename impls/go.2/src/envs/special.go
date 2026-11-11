@@ -107,15 +107,9 @@ func specDo(envr core.Env, args ...core.Value) core.Value {
 // Only nil and false are falsy.
 func specIfElse(envr core.Env, cond core.Value, cons core.Value, alt core.Value) core.Value {
 	condeval := cond.Eval(envr)
-	realised := true // Whether the condition was realised.
-	switch typed := condeval.(type) {
-	case typ.Fatal:
-		return condeval
-	case typ.Nil:
-		realised = false
-	case typ.Bool:
-		realised = bool(typed)
-	default:
+	realised, err := truthful(condeval)
+	if err.NotNil() {
+		return err
 	}
 
 	if realised {

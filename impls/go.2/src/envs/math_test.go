@@ -261,3 +261,201 @@ func TestDeepNestedCombinations(t *testing.T) {
 		}
 	}
 }
+
+func TestNumericComparisons(t *testing.T) {
+	tests := []struct {
+		input string
+		want  typ.Bool
+	}{
+		// Less than.
+		{"(< 1 2)", true},
+		{"(< 2 1)", false},
+		{"(< 1 1)", false},
+		{"(< 0 0)", false},
+		{"(< -5 0)", true},
+		{"(< 0 -5)", false},
+		{"(< -10 -5)", true},
+		{"(< -5 -10)", false},
+		// Less than or equal.
+		{"(<= 1 2)", true},
+		{"(<= 2 1)", false},
+		{"(<= 1 1)", true},
+		{"(<= 0 0)", true},
+		{"(<= -5 -5)", true},
+		{"(<= -5 0)", true},
+		{"(<= 0 -5)", false},
+		// Greater than.
+		{"(> 2 1)", true},
+		{"(> 1 2)", false},
+		{"(> 1 1)", false},
+		{"(> 0 0)", false},
+		{"(> 0 -5)", true},
+		{"(> -5 0)", false},
+		{"(> -5 -10)", true},
+		{"(> -10 -5)", false},
+		// Greater than or equal.
+		{"(>= 2 1)", true},
+		{"(>= 1 2)", false},
+		{"(>= 1 1)", true},
+		{"(>= 0 0)", true},
+		{"(>= -5 -5)", true},
+		{"(>= 0 -5)", true},
+		{"(>= -5 0)", false},
+		// Nested arithmetic.
+		{"(< (+ 1 2) (* 2 2))", true},
+		{"(> (* 3 3) (+ 4 4))", true},
+		{"(<= (- 5 5) 0)", true},
+		{"(>= (/ 10 2) 5)", true},
+		{"(< (- 0 5) 0)", true},
+		{"(> (- 0 5) 0)", false},
+		{"(<= (+ 1 2 3) (* 2 3))", true},
+		{"(>= (* 2 3) (+ 1 2 3))", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := tut.MustEval(envs.Math, tt.input)
+			if got != core.Value(tt.want) {
+				t.Fatalf("MustEval(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNumericComparisonErrors(t *testing.T) {
+	inputs := []string{
+		// Wrong arity.
+		`(<)`,
+		`(<=)`,
+		`(>)`,
+		`(>=)`,
+		`(< 1)`,
+		`(<= 1)`,
+		`(> 1)`,
+		`(>= 1)`,
+		`(< 1 2 3)`,
+		`(<= 1 2 3)`,
+		`(> 1 2 3)`,
+		`(>= 1 2 3)`,
+		// Wrong types.
+		`(< "a" 1)`,
+		`(< 1 "a")`,
+		`(< "a" "b")`,
+		`(<= "a" 1)`,
+		`(<= 1 "a")`,
+		`(> "a" 1)`,
+		`(> 1 "a")`,
+		`(>= "a" 1)`,
+		`(>= 1 "a")`,
+		// Fatal propagation from nested failing calls.
+		`(< 1 (+))`,
+		`(< (+ "a" 1) 2)`,
+		`(<= 1 (/ 1))`,
+		`(> (+ "a" 1) 2)`,
+		`(>= 1 (+ 1 (/ 1)))`,
+		`(< (/ 100 5 "hi") 10)`,
+	}
+
+	for _, input := range inputs {
+		got := tut.MustEval(envs.Math, input)
+		if !ut.Is[typ.Fatal](got) {
+			t.Fatalf("MustEval(%q) = %#v, want %T", input, got, typ.Fatal{})
+		}
+	}
+}
+
+func TestLogicLiterals(t *testing.T) {
+	// true and false evaluate to themselves.
+	for _, tc := range []struct {
+		input string
+		want  typ.Bool
+	}{
+		{"true", true},
+		{"false", false},
+	} {
+		got := tut.MustEval(envs.Math, tc.input)
+		if got != core.Value(tc.want) {
+			t.Fatalf("MustEval(%q) = %v, want %v", tc.input, got, tc.want)
+		}
+	}
+
+	// Symbol lookup returns expected types.
+	for _, sym := range []string{"<", "<=", ">", ">="} {
+		got := typ.Symbol(sym).Eval(envs.Math)
+		if !ut.Is[typ.Function](got) {
+			t.Fatalf("Eval(%q) = %#v, want %T", sym, got, typ.Function(nil))
+		}
+	}
+	got := typ.Symbol("not").Eval(envs.Math)
+	if !ut.Is[typ.Function](got) {
+		t.Fatalf("Eval(%q) = %#v, want %T", "not", got, typ.Function(nil))
+	}
+	for _, sym := range []string{"true", "false"} {
+		got := typ.Symbol(sym).Eval(envs.Math)
+		if !ut.Is[typ.Bool](got) {
+			t.Fatalf("Eval(%q) = %#v, want %T", sym, got, typ.Bool(false))
+		}
+	}
+}
+
+func TestNotFunction(t *testing.T) {
+	tests := []struct {
+		input string
+		want  typ.Bool
+	}{
+		{"(not true)", false},
+		{"(not false)", true},
+		{"(not nil)", true},
+		// Everything except false and nil is truthy.
+		{"(not 0)", false},
+		{"(not 1)", false},
+		{"(not -5)", false},
+		{`(not "hi")`, false},
+		{`(not "")`, false},
+		{"(not ())", false},
+		// Comparisons return bools.
+		{"(not (< 1 2))", false},
+		{"(not (< 2 1))", true},
+		{"(not (> 2 1))", false},
+		{"(not (> 1 2))", true},
+		// Double negation.
+		{"(not (not true))", true},
+		{"(not (not false))", false},
+		{"(not (not nil))", false},
+		{"(not (not 42))", true},
+		// Nested arithmetic truthiness.
+		{"(not (+ 1 2))", false},
+		{"(not (- 5 5))", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := tut.MustEval(envs.Math, tt.input)
+			if got != core.Value(tt.want) {
+				t.Fatalf("MustEval(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNotErrors(t *testing.T) {
+	inputs := []string{
+		`(not)`,
+		`(not true false)`,
+		`(not true false true)`,
+		`(not nil nil)`,
+		// Fatal propagation.
+		`(not (+ "a" 1))`,
+		`(not (/ 1))`,
+		`(not (+))`,
+		`(not (< "a" 1))`,
+		`(not (not (+ "a" 1)))`,
+	}
+
+	for _, input := range inputs {
+		got := tut.MustEval(envs.Math, input)
+		if !ut.Is[typ.Fatal](got) {
+			t.Fatalf("MustEval(%q) = %#v, want %T", input, got, typ.Fatal{})
+		}
+	}
+}
