@@ -22,6 +22,10 @@ func _mapflat[From comparable, To any](fun func(From) To, source map[From]From) 
 /////////////////////
 // Type assertions //
 
+func as0Arg(args []core.Value) (err Fatal) {
+	return ExpectNArgs(0, args)
+}
+
 func as1Arg[A core.Value](args []core.Value) (a A, err Fatal) {
 	if err = ExpectNArgs(1, args); err.NotNil() {
 		return

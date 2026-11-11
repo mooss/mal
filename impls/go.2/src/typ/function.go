@@ -17,17 +17,6 @@ func (Function) Type() core.TypeName          { return core.FUNCTION }
 ////////////////////////
 // Conversion helpers //
 
-func II[A, B, R core.Value](fun func(A, B) R) Function {
-	return func(args ...core.Value) core.Value {
-		a, b, err := as2Args[A, B](args)
-		if err.NotNil() {
-			return err
-		}
-
-		return fun(a, b)
-	}
-}
-
 func I[A, R core.Value](fun func(A) R) Function {
 	return func(args ...core.Value) core.Value {
 		a, err := as1Arg[A](args)
@@ -36,5 +25,16 @@ func I[A, R core.Value](fun func(A) R) Function {
 		}
 
 		return fun(a)
+	}
+}
+
+func II[A, B, R core.Value](fun func(A, B) R) Function {
+	return func(args ...core.Value) core.Value {
+		a, b, err := as2Args[A, B](args)
+		if err.NotNil() {
+			return err
+		}
+
+		return fun(a, b)
 	}
 }

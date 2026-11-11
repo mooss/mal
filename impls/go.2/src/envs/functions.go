@@ -10,7 +10,7 @@ import (
 	"github.com/mooss/mal/src/ut"
 )
 
-var MalFunctions core.Env = core.Bindings{
+var MalFun core.Env = core.Bindings{
 	"list":   typ.Function(list),
 	"list?":  typ.I(isList),
 	"empty?": typ.I(isEmpty),

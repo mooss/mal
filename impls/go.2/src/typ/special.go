@@ -11,6 +11,15 @@ func (spe Special) Eval(core.Env) core.Value { return spe }
 func (Special) String() string               { return "<internal special form>" }
 func (Special) Type() core.TypeName          { return core.SPECIAL }
 
+func Sp0[R core.Value](fun func(core.Env) R) Special {
+	return func(env core.Env, args ...core.Value) core.Value {
+		if err := as0Arg(args); err.NotNil() {
+			return err
+		}
+		return fun(env)
+	}
+}
+
 func SpII[A, B, R core.Value](fun func(core.Env, A, B) R) Special {
 	return func(env core.Env, args ...core.Value) core.Value {
 		a, b, err := as2Args[A, B](args)

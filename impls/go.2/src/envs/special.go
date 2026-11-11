@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/lazy"
 	"github.com/mooss/mal/src/typ"
 	"github.com/mooss/mal/src/ut"
 )
@@ -15,6 +16,11 @@ var MalSpecial core.Env = core.Bindings{
 	"let*": typ.SpII(letStar),
 	"do":   typ.Special(specDo),
 	"if":   typ.Special(specIf),
+}.AsEnv()
+
+// ExtraSpecial contains special forms that are not a part of Mal.
+var ExtraSpecial core.Env = core.Bindings{
+	"env": typ.Sp0(env),
 }.AsEnv()
 
 //////////////////////////////////
@@ -129,6 +135,19 @@ func specIf(envr core.Env, args ...core.Value) core.Value {
 	default:
 		return typ.FmtExpectedNArgs("2 or 3", len(args))
 	}
+}
+
+/////////////////////////
+// Extra special forms //
+
+func env(envr core.Env) typ.Vector {
+	mkassoc := func(key string, value core.Value) core.Value {
+		return typ.Vector{typ.String(key), value}
+	}
+	return lazy.CollectHint(
+		lazy.Map2(mkassoc, envr.IterAssocs()),
+		envr.NAssocs(),
+	)
 }
 
 /////////////////
