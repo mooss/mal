@@ -31,6 +31,8 @@ func defBang(envr core.Env, key typ.Symbol, value core.Value) core.Value {
 	return evald
 }
 
+// lambda builds a closure capturing the current environment, with fixed or variadic parameters.
+// A `&` symbol before the last parameter marks it as capturing the remaining arguments.
 func lambda(envr core.Env, paramlist core.Value, body core.Value) core.Value {
 	bindlist, err := asListOrVec(paramlist) // Assert params is a list or vector.
 	if err.NotNil() {
@@ -84,6 +86,7 @@ func letStar(envr core.Env, bindings core.Value, form core.Value) core.Value {
 	return form.Eval(letenv)
 }
 
+// specDo evaluates each argument in order and returns the value of the last one.
 func specDo(envr core.Env, args ...core.Value) core.Value {
 	if len(args) == 0 {
 		return typ.Nil{}
@@ -99,6 +102,9 @@ func specDo(envr core.Env, args ...core.Value) core.Value {
 	return res
 }
 
+// specIfElse evaluates the condition and returns the evaluation of `cons` if it is truthy,
+// otherwise the evaluation of `alt`.
+// Only nil and false are falsy.
 func specIfElse(envr core.Env, cond core.Value, cons core.Value, alt core.Value) core.Value {
 	condeval := cond.Eval(envr)
 	realised := true // Whether the condition was realised.
@@ -119,6 +125,7 @@ func specIfElse(envr core.Env, cond core.Value, cons core.Value, alt core.Value)
 	return alt.Eval(envr)
 }
 
+// specIf is the `if` special form, accepting a condition with 1 or 2 branches.
 func specIf(envr core.Env, args ...core.Value) core.Value {
 	switch len(args) {
 	case 2:
@@ -133,6 +140,7 @@ func specIf(envr core.Env, args ...core.Value) core.Value {
 /////////////////
 // Local utils //
 
+// asListOrVec converts a list or vector form to a slice of values, or returns a fatal error.
 func asListOrVec(elements core.Value) ([]core.Value, typ.Fatal) {
 	var bindlist []core.Value
 	switch typed := elements.(type) {
@@ -146,6 +154,7 @@ func asListOrVec(elements core.Value) ([]core.Value, typ.Fatal) {
 	return bindlist, typ.Fatal{}
 }
 
+// mkFixedClosure returns a closure binding exactly len(symlist) arguments to the given symbols.
 func mkFixedClosure(
 	envr core.Env, symlist []typ.Symbol, body core.Value,
 ) func(args ...core.Value) core.Value {
@@ -162,6 +171,8 @@ func mkFixedClosure(
 	}
 }
 
+// mkVariadicClosure returns a closure binding at least len(symlist) arguments, with the remaining
+// arguments collected in a list bound to restKey.
 func mkVariadicClosure(
 	envr core.Env, symlist []typ.Symbol, restKey string, body core.Value,
 ) func(args ...core.Value) core.Value {
