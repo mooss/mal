@@ -76,7 +76,7 @@ func as3Args[A, B, C core.Value](args []core.Value) (a A, b B, c C, err Fatal) {
 // validKey returns true when the given value can be used for a map key.
 func validKey(value core.Value) bool {
 	switch value.(type) {
-	case Integer, Nil, String, Symbol:
+	case Integer, Keyword, Nil, String, Symbol:
 		return true
 	}
 	return false

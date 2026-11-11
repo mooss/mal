@@ -98,3 +98,11 @@ func (s Symbol) Eval(envr core.Env) core.Value {
 
 func (s Symbol) String() string    { return string(s) }
 func (Symbol) Type() core.TypeName { return core.SYMBOL }
+
+// Keyword is a Mal keyword value, written with a leading colon.
+type Keyword string
+
+func (k Keyword) Equal(other core.Value) bool { return TrivialEq(k, other) }
+func (k Keyword) Eval(core.Env) core.Value    { return k }
+func (k Keyword) String() string              { return ":" + string(k) }
+func (Keyword) Type() core.TypeName           { return core.TypeName("keyword") }

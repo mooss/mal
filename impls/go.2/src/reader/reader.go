@@ -191,6 +191,9 @@ func (*Reader) readSymbol(token lexer.Token) (core.Value, error) {
 	if token.Value == "nil" {
 		return typ.Nil{}, nil
 	}
+	if token.Value[0] == ':' {
+		return typ.Keyword(token.Value[1:]), nil
+	}
 	return typ.Symbol(token.Value), nil
 }
 
