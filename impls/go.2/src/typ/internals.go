@@ -94,7 +94,13 @@ func mapEq(left Map, right core.Value) bool {
 	return ok && maps.EqualFunc(left, r, core.Value.Equal)
 }
 
-func sliceEq[E any, S ~[]E](left S, right core.Value, eq func(E, E) bool) bool {
-	r, ok := right.(S)
-	return ok && slices.EqualFunc(left, r, eq)
+func sliceEq[S ~[]core.Value](left S, right core.Value, eq func(core.Value, core.Value) bool) bool {
+	switch tr := right.(type) {
+	case List:
+		return slices.EqualFunc(left, tr, eq)
+	case Vector:
+		return slices.EqualFunc(left, tr, eq)
+	default:
+		return false
+	}
 }

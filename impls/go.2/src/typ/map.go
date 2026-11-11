@@ -2,6 +2,7 @@ package typ
 
 import (
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/mooss/mal/src/core"
@@ -63,7 +64,10 @@ func (m MapForm) Eval(envr core.Env) core.Value {
 	return res
 }
 
-func (m MapForm) Equal(other core.Value) bool { return sliceEq(m, other, assocEq) }
+func (m MapForm) Equal(other core.Value) bool {
+	otherm, ok := other.(MapForm)
+	return ok && slices.EqualFunc(m, otherm, assocEq)
+}
 
 // Flatten flattens the map form back into a sequence of alternating keys and values.
 func (m MapForm) Flatten() []core.Value {
