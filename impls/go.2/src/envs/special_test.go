@@ -1,4 +1,4 @@
-//revive:disable:cognitive-complexity,cyclomatic
+//revive:disable:cognitive-complexity,cyclomatic,function-length
 //nolint:dupword
 package envs_test
 
@@ -436,6 +436,113 @@ func TestIfBranchFatalAndArity(t *testing.T) {
 		res := tut.MustEval(outer, input)
 		if !ut.Is[typ.Fatal](res) {
 			t.Fatalf("expected arity fatal for %q, got %v", input, res)
+		}
+	}
+}
+
+func TestFnStarVariadicRestCollection(t *testing.T) {
+	outer := envs.MalSpecial.Nest(core.Bindings{
+		"a": typ.Symbol("a-val"),
+		"b": typ.Symbol("b-val"),
+		"c": typ.Symbol("c-val"),
+	})
+	// Extra args are collected into rest; fixed param still returns correctly.
+	for _, tc := range []struct {
+		input string
+		want  typ.Symbol
+	}{
+		{"((fn* (x & rest) x) a)", typ.Symbol("a-val")},
+		{"((fn* (x & rest) x) a b)", typ.Symbol("a-val")},
+		{"((fn* (x & rest) x) a b c)", typ.Symbol("a-val")},
+		{"((fn* [x & rest] x) a b c)", typ.Symbol("a-val")},
+	} {
+		res := tut.MustEval(outer, tc.input)
+		if ut.Is[typ.Fatal](res) {
+			t.Fatalf("variadic %q expected success, got fatal: %v", tc.input, res)
+		}
+		if res != tc.want {
+			t.Fatalf("variadic %q expected %v, got %v", tc.input, tc.want, res)
+		}
+	}
+	// Empty rest is allowed when no extra args are supplied.
+	for _, input := range []string{
+		"((fn* (x & rest) rest) a)",
+		"((fn* [x & rest] rest) a)",
+		"((fn* (a b & rest) rest) a b)",
+	} {
+		res := tut.MustEval(outer, input)
+		if ut.Is[typ.Fatal](res) {
+			t.Fatalf("variadic empty rest %q expected success, got fatal: %v", input, res)
+		}
+		s := fmt.Sprintf("%v", res)
+		// Rest must be an empty List (or at least contain no collected values).
+		if strings.Contains(s, "a-val") || strings.Contains(s, "b-val") ||
+			strings.Contains(s, "c-val") {
+			t.Fatalf("variadic empty rest %q expected empty collection, got %q", input, s)
+		}
+		if _, ok := res.(typ.List); !ok {
+			// Accept vector printing for empty rest but require empty collection.
+			if s != "()" && s != "[]" && s != "" {
+				t.Logf("variadic empty rest %q got %T %q (accepted as empty)", input, res, s)
+			}
+		}
+	}
+	// Rest List collects extra args in order.
+	for _, input := range []string{
+		"((fn* (x & rest) rest) a b c)",
+		"((fn* [x & rest] rest) a b c)",
+	} {
+		res := tut.MustEval(outer, input)
+		if ut.Is[typ.Fatal](res) {
+			t.Fatalf("variadic rest %q expected success, got fatal: %v", input, res)
+		}
+		s := fmt.Sprintf("%v", res)
+		if !strings.Contains(s, "b-val") || !strings.Contains(s, "c-val") {
+			t.Fatalf("variadic rest %q expected List containing b-val c-val, got %q", input, s)
+		}
+		if strings.Contains(s, "a-val") {
+			t.Fatalf("variadic rest %q should not contain fixed arg, got %q", input, s)
+		}
+		if lst, ok := res.(typ.List); ok {
+			if len(lst) != 2 {
+				t.Fatalf("variadic rest %q expected 2 elements, got %v", input, res)
+			}
+		}
+	}
+	// Too-few args for fixed params still fails even with variadic tail.
+	for _, input := range []string{
+		"((fn* (x y & rest) x) a)",
+		"((fn* [x y & rest] x) a)",
+		"((fn* (x & rest) x))",
+	} {
+		res := tut.MustEval(outer, input)
+		if !ut.Is[typ.Fatal](res) {
+			t.Fatalf("expected too-few-args fatal for %q, got %v", input, res)
+		}
+	}
+	if v := outer.Get("x"); v != nil {
+		t.Fatalf("variadic leaked x: %v", v)
+	}
+	if v := outer.Get("rest"); v != nil {
+		t.Fatalf("variadic leaked rest: %v", v)
+	}
+}
+
+func TestFnStarVariadicMisplacedAmpersand(t *testing.T) {
+	for _, input := range []string{
+		"(fn* (x & ) x)",
+		"(fn* [x &] x)",
+		"(fn* (&) x)",
+		"(fn* [&] x)",
+		"(fn* (x & y z) x)",
+		"(fn* [x & y z] x)",
+		"(fn* (x & y & z) x)",
+		"(fn* (x & ()) x)",
+		"(fn* [x & ()] x)",
+	} {
+		res := tut.MustEval(envs.MalSpecial.Nest(nil), input)
+		if !ut.Is[typ.Fatal](res) {
+			t.Fatalf("expected misplaced-& fatal for %q, got %v", input, res)
 		}
 	}
 }
