@@ -28,6 +28,9 @@ type Fatal struct{ error }
 // Fatalf creates a Fatal error with a formatted message.
 func Fatalf(msg string, args ...any) Fatal { return Fatal{error: fmt.Errorf(msg, args...)} }
 
+// NewFatal creates a fatal error wrapping the given source error.
+func NewFatal(source error) Fatal { return Fatal{source} }
+
 // Equal returns true if both are nil errors.
 func (f Fatal) Equal(other core.Value) bool {
 	o, ok := other.(Fatal)
@@ -46,6 +49,7 @@ func (f Fatal) Qualify(prefix string) Fatal {
 
 func (f Fatal) String() string    { return fmt.Sprintf("(fatal %q)", f.Error()) }
 func (Fatal) Type() core.TypeName { return core.FATAL }
+func (f Fatal) Unbox() error      { return f.error }
 
 // Integer is a 64-bit signed integer value.
 type Integer int64

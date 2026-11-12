@@ -12,6 +12,7 @@ import (
 
 var MalSpecial core.Env = core.Bindings{
 	"def!": typ.SpII(defBang),
+	"eval": typ.SpI(eval),
 	"fn*":  typ.SpII(lambda),
 	"let*": typ.SpII(letStar),
 	"do":   typ.Special(specDo),
@@ -20,7 +21,7 @@ var MalSpecial core.Env = core.Bindings{
 
 // ExtraSpecial contains special forms that are not a part of Mal.
 var ExtraSpecial core.Env = core.Bindings{
-	"env": typ.Sp0(env),
+	"env": typ.SpZ(env),
 }.AsEnv()
 
 //////////////////////////////////
@@ -36,6 +37,9 @@ func defBang(envr core.Env, key typ.Symbol, value core.Value) core.Value {
 	envr.Set(string(key), evald)
 	return evald
 }
+
+// eval evaluates data as a Mal program.
+func eval(envr core.Env, data core.Value) core.Value { return typ.Resolve(envr, data.Eval(envr)) }
 
 // lambda builds a closure capturing the current environment, with fixed or variadic parameters.
 // A `&` symbol before the last parameter marks it as capturing the remaining arguments.

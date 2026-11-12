@@ -2,25 +2,33 @@ package envs
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/fun"
+	"github.com/mooss/mal/src/reader"
 	"github.com/mooss/mal/src/typ"
 	"github.com/mooss/mal/src/ut"
 )
 
 var MalFun core.Env = core.Bindings{
+	// Containers.
 	"list":   typ.Function(list),
 	"list?":  typ.I(isList),
 	"empty?": typ.I(isEmpty),
 	"count":  typ.I(count),
-	"=":      typ.II(equal),
 
+	// Strings.
 	"pr-str":  typ.Function(prStr),
 	"println": typ.Function(prnln),
 	"prn":     typ.Function(prn),
 	"str":     typ.Function(str),
+
+	// Other.
+	"=":           typ.II(equal),
+	"read-string": typ.I(readString),
+	"slurp":       typ.I(slurp),
 }.AsEnv()
 
 ////////////////
@@ -46,9 +54,7 @@ func isEmpty(arg core.Value) core.Value {
 	return typ.Bool(size == 0)
 }
 
-func isList(arg core.Value) typ.Bool {
-	return typ.Bool(ut.Is[typ.List](arg))
-}
+func isList(arg core.Value) typ.Bool { return typ.Bool(ut.Is[typ.List](arg)) }
 
 func length(container core.Value) (res int, err typ.Fatal) {
 	switch typed := container.(type) {
@@ -110,4 +116,25 @@ func rawString(val core.Value) string {
 
 func str(args ...core.Value) core.Value {
 	return typ.String(strings.Join(fun.Map(rawString, args), ""))
+}
+
+///////////
+// Other //
+
+func readString(source typ.String) core.Value {
+	res, err := reader.ParseOne(string(source))
+	if err != nil {
+		return typ.NewFatal(err)
+	}
+
+	return res
+}
+
+func slurp(path typ.String) core.Value {
+	res, err := os.ReadFile(string(path))
+	if err != nil {
+		return typ.NewFatal(err)
+	}
+
+	return typ.String(res)
 }
