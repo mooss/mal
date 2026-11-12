@@ -7,7 +7,6 @@ import (
 	"github.com/mooss/mal/src/ut"
 )
 
-//revive:disable:cognitive-complexity
 func main() {
 	rep := func(input string) (string, error) {
 		parsed, err := reader.ParseOne(input)

@@ -6,33 +6,35 @@ type TypeName string
 
 //revive:disable:var-naming
 const (
-	// BOOL is the name of the boolean type.
+	// BOOL tags boolean value.
 	BOOL TypeName = "bool"
-	// FATAL is the name of the fatal error type.
+	// FATAL tags fatal error aborting evaluation.
 	FATAL TypeName = "fatal"
-	// FUNCTION is the name of the function type.
+	// FUNCTION tags callable function value.
 	FUNCTION TypeName = "function"
-	// INTEGER is the name of the integer type.
+	// INTEGER tags integer number.
 	INTEGER TypeName = "integer"
-	// LIST is the name of the list type.
+	// LIST tags list of values.
 	LIST TypeName = "list"
-	// MAP is the name of the map type.
+	// MAP tags map of keys to values.
 	MAP TypeName = "map"
-	// MAP_FORM is the name of the unevaluated map type.
+	// MAP_FORM tags unevaluated map awaiting evaluation.
 	MAP_FORM TypeName = "map-form"
-	// NIL is the name of the nil type.
+	// NIL tags nil value representing absence.
 	NIL TypeName = "nil"
-	// QUOTE is the name of the quote type.
+	// QUOTE tags quoted form preventing evaluation.
 	QUOTE TypeName = "quote"
-	// SPECIAL is the name of the special form type.
+	// SPECIAL tags special form evaluator.
 	SPECIAL TypeName = "special"
-	// STRING is the name of the string type.
+	// STRING tags string of characters.
 	STRING TypeName = "string"
-	// SYMBOL is the name of the symbol type.
+	// SYMBOL tags symbolic identifier.
 	SYMBOL TypeName = "symbol"
-	// VECTOR is the name of the vector type.
+	// TAILCALL tags deferred computation for tail call optimization.
+	TAILCALL TypeName = "tail-call"
+	// VECTOR tags vector of values.
 	VECTOR TypeName = "vector"
-	// VECTOR_FORM is the name of the unevaluated vector type.
+	// VECTOR_FORM tags unevaluated vector awaiting evaluation.
 	VECTOR_FORM TypeName = "vector-form"
 )
 

@@ -46,7 +46,7 @@ func NewMapForm(vals ...core.Value) (MapForm, error) {
 func (m MapForm) Eval(envr core.Env) core.Value {
 	res := make(Map, len(m))
 	for _, assoc := range m {
-		key := assoc.Key.Eval(envr)
+		key := Resolve(envr, assoc.Key)
 		if ut.Is[Fatal](key) {
 			return key
 		}
@@ -54,7 +54,7 @@ func (m MapForm) Eval(envr core.Env) core.Value {
 			return Fatalf("invalid key type in map literal: %s", key.Type())
 		}
 
-		value := assoc.Value.Eval(envr)
+		value := Resolve(envr, assoc.Value)
 		if ut.Is[Fatal](value) {
 			return value
 		}

@@ -18,7 +18,7 @@ func (lst List) Eval(envr core.Env) core.Value {
 	}
 
 	// Apply phase.
-	op := lst[0].Eval(envr)
+	op := Resolve(envr, lst[0])
 	switch op := op.(type) {
 	case Function:
 		return evalFun(envr, op, lst[1:])

@@ -8,7 +8,6 @@ import (
 	"github.com/mooss/mal/src/ut"
 )
 
-//revive:disable:cognitive-complexity
 func main() {
 	environment := core.CatEnv(envs.Math, envs.MalSpecial)
 	rep := func(input string) (string, error) {

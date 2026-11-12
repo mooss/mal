@@ -28,7 +28,7 @@ var ExtraSpecial core.Env = core.Bindings{
 
 // defBang introduces a new binding in an environment.
 func defBang(envr core.Env, key typ.Symbol, value core.Value) core.Value {
-	evald := value.Eval(envr)
+	evald := typ.Resolve(envr, value)
 	if ut.Is[typ.Fatal](evald) {
 		return evald
 	}
@@ -81,7 +81,7 @@ func letStar(envr core.Env, bindings core.Value, form core.Value) core.Value {
 			return err.Qualify("invalid key in let bindings")
 		}
 
-		value := bindlist[i+1].Eval(letenv)
+		value := typ.Resolve(letenv, bindlist[i+1])
 		if ut.Is[typ.Fatal](value) {
 			return value
 		}
@@ -89,7 +89,7 @@ func letStar(envr core.Env, bindings core.Value, form core.Value) core.Value {
 		letenv.Set(string(key), value)
 	}
 
-	return form.Eval(letenv)
+	return typ.Tail(letenv, form)
 }
 
 // specDo evaluates each argument in order and returns the value of the last one.
@@ -98,31 +98,31 @@ func specDo(envr core.Env, args ...core.Value) core.Value {
 		return typ.Nil{}
 	}
 
-	var res core.Value
-	for _, arg := range args {
-		res = arg.Eval(envr)
+	for _, arg := range args[:len(args)-1] {
+		res := typ.Resolve(envr, arg)
 		if ut.Is[typ.Fatal](res) {
 			return res
 		}
 	}
-	return res
+
+	return typ.Tail(envr, args[len(args)-1])
 }
 
 // specIfElse evaluates the condition and returns the evaluation of `cons` if it is truthy,
 // otherwise the evaluation of `alt`.
 // Only nil and false are falsy.
 func specIfElse(envr core.Env, cond core.Value, cons core.Value, alt core.Value) core.Value {
-	condeval := cond.Eval(envr)
+	condeval := typ.Resolve(envr, cond)
 	realised, err := truthful(condeval)
 	if err.NotNil() {
 		return err
 	}
 
 	if realised {
-		return cons.Eval(envr)
+		return typ.Tail(envr, cons)
 	}
 
-	return alt.Eval(envr)
+	return typ.Tail(envr, alt)
 }
 
 // specIf is the `if` special form, accepting a condition with 1 or 2 branches.
@@ -180,7 +180,7 @@ func mkFixedClosure(
 		for i, sym := range symlist {
 			bindings[string(sym)] = args[i]
 		}
-		return body.Eval(envr.Nest(bindings))
+		return typ.Tail(envr.Nest(bindings), body)
 	}
 }
 
@@ -205,6 +205,6 @@ func mkVariadicClosure(
 		}
 		bindings[restKey] = rest
 
-		return body.Eval(envr.Nest(bindings))
+		return typ.Tail(envr.Nest(bindings), body)
 	}
 }

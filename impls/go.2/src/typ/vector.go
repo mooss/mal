@@ -16,7 +16,7 @@ func (v VectorForm) Equal(other core.Value) bool { return sliceEq(v, other, core
 func (v VectorForm) Eval(envr core.Env) core.Value {
 	res := make(Vector, len(v))
 	for i, el := range v {
-		value := el.Eval(envr)
+		value := Resolve(envr, el)
 		if ut.Is[Fatal](value) {
 			return value
 		}

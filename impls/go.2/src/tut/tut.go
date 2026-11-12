@@ -4,6 +4,7 @@ package tut
 import (
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/reader"
+	"github.com/mooss/mal/src/typ"
 )
 
 func MustEval(envr core.Env, input string) core.Value {
@@ -12,5 +13,5 @@ func MustEval(envr core.Env, input string) core.Value {
 		panic(err)
 	}
 
-	return program.Eval(envr)
+	return typ.Resolve(envr, program)
 }

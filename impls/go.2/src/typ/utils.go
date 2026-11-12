@@ -74,7 +74,7 @@ func AsSlice[T core.Value](values ...core.Value) ([]T, Fatal) {
 func EvalArgs(envr core.Env, args ...core.Value) ([]core.Value, Fatal) {
 	res := make([]core.Value, len(args))
 	for i, arg := range args {
-		evald := arg.Eval(envr)
+		evald := Resolve(envr, arg)
 		if err, isFatal := evald.(Fatal); isFatal {
 			return nil, err
 		}
