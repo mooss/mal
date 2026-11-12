@@ -12,6 +12,7 @@ import (
 	"github.com/mooss/mal/src/ut"
 )
 
+// MalFun holds the built-in Mal functions.
 var MalFun core.Env = core.Bindings{
 	// Containers.
 	"list":   typ.Function(list),
@@ -34,6 +35,7 @@ var MalFun core.Env = core.Bindings{
 ////////////////
 // Containers //
 
+// count returns the number of elements in the given container.
 func count(arg core.Value) core.Value {
 	res, err := length(arg)
 	if err.NotNil() {
@@ -42,10 +44,10 @@ func count(arg core.Value) core.Value {
 	return typ.Integer(res)
 }
 
-func equal(left, right core.Value) typ.Bool {
-	return typ.Bool(left.Equal(right))
-}
+// equal returns true when two values are equal.
+func equal(left, right core.Value) typ.Bool { return typ.Bool(left.Equal(right)) }
 
+// isEmpty returns true when the given container has no elements.
 func isEmpty(arg core.Value) core.Value {
 	size, err := length(arg)
 	if err.NotNil() {
@@ -54,8 +56,11 @@ func isEmpty(arg core.Value) core.Value {
 	return typ.Bool(size == 0)
 }
 
+// isList returns true when arg is a list.
 func isList(arg core.Value) typ.Bool { return typ.Bool(ut.Is[typ.List](arg)) }
 
+// length returns the number of elements in the given container, or an error if the value is not a
+// container.
 func length(container core.Value) (res int, err typ.Fatal) {
 	switch typed := container.(type) {
 	case typ.Nil:
@@ -76,16 +81,21 @@ func length(container core.Value) (res int, err typ.Fatal) {
 	return
 }
 
+// list creates a new list from the given arguments.
 func list(args ...core.Value) core.Value { return typ.List(args) }
 
 /////////////////////
 // Print functions //
 
+// prnln prints the raw representations of the arguments separated by spaces and followed by a
+// newline.
 func prnln(args ...core.Value) core.Value {
 	fmt.Println(strings.Join(fun.Map(rawString, args), " "))
 	return typ.Nil{}
 }
 
+// prn prints the string representations of the arguments separated by spaces, followed by a
+// newline.
 func prn(args ...core.Value) core.Value {
 	for i, arg := range args {
 		if i > 0 {
@@ -98,10 +108,12 @@ func prn(args ...core.Value) core.Value {
 	return typ.Nil{}
 }
 
+// prStr returns the string representations of the arguments joined by spaces.
 func prStr(args ...core.Value) core.Value {
 	return typ.String(strings.Join(fun.Map(core.Value.String, args), " "))
 }
 
+// rawString returns the raw (unescaped) string representation of a value.
 func rawString(val core.Value) string {
 	switch value := val.(type) {
 	case typ.String:
@@ -114,6 +126,7 @@ func rawString(val core.Value) string {
 	return val.String()
 }
 
+// str concatenates the raw representations of the arguments into a single string.
 func str(args ...core.Value) core.Value {
 	return typ.String(strings.Join(fun.Map(rawString, args), ""))
 }
@@ -121,6 +134,7 @@ func str(args ...core.Value) core.Value {
 ///////////
 // Other //
 
+// readString parses the first form of the given source string and returns it.
 func readString(source typ.String) core.Value {
 	res, err := reader.ParseOne(string(source))
 	if err != nil {
@@ -130,6 +144,7 @@ func readString(source typ.String) core.Value {
 	return res
 }
 
+// slurp reads the whole file at the given path and returns its contents as a string.
 func slurp(path typ.String) core.Value {
 	res, err := os.ReadFile(string(path))
 	if err != nil {
