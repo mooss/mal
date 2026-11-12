@@ -5,6 +5,7 @@ import (
 	"github.com/mooss/mal/src/envs"
 	"github.com/mooss/mal/src/reader"
 	"github.com/mooss/mal/src/repl"
+	"github.com/mooss/mal/src/typ"
 	"github.com/mooss/mal/src/ut"
 )
 
@@ -16,7 +17,7 @@ func main() {
 			return "", err
 		}
 
-		return parsed.Eval(environment).String(), nil
+		return typ.Resolve(environment, parsed).String(), nil
 	}
 	ut.Must(repl.Run(rep))
 }
