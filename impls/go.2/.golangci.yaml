@@ -12,6 +12,7 @@ linters:
     - nilerr
     - gocritic
     - misspell
+
   settings:
     revive:
       enable-all-rules: true
@@ -54,6 +55,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
+
 formatters:
   enable:
     - gofmt
