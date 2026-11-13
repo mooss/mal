@@ -34,3 +34,6 @@ func MapForm(pairs ...core.Value) typ.MapForm {
 	}
 	return f
 }
+
+// Values gather several values into a slice.
+func Values(args ...core.Value) []core.Value { return args }

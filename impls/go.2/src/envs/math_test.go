@@ -6,194 +6,106 @@ import (
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/envs"
 	"github.com/mooss/mal/src/tut"
+	"github.com/mooss/mal/src/tut/assert"
 	"github.com/mooss/mal/src/typ"
-	"github.com/mooss/mal/src/ut"
 )
 
 func TestEvalIntegerReturnsItself(t *testing.T) {
-	got := typ.Integer(42).Eval(envs.Math)
-	if got != core.Value(typ.Integer(42)) {
-		t.Fatalf("Eval(42) = %v, want 42", got)
-	}
+	assert.MalEqual(t, typ.Integer(42).Eval(envs.Math), tut.Num(42))
 }
 
 func TestEvalEmptyListReturnsItself(t *testing.T) {
-	got := typ.List{}.Eval(envs.Math)
-	lst, ok := got.(typ.List)
-	if !ok {
-		t.Fatalf("Eval(empty list) type = %T, want %T", got, typ.List{})
-	}
-	if len(lst) != 0 {
-		t.Fatalf("Eval(empty list) = %v, want empty list", lst)
-	}
+	got := assert.Is[typ.List](t, tut.Lst().Eval(envs.Math))
+	assert.Equal(t, len(got), 0)
 }
 
 func TestEvalSymbolLookup(t *testing.T) {
 	for _, sym := range []string{"+", "-", "*", "/"} {
-		got := typ.Symbol(sym).Eval(envs.Math)
-		if !ut.Is[typ.Function](got) {
-			t.Fatalf("Eval(%q) = %#v, want %T", sym, got, typ.Function(nil))
-		}
+		assert.Is[typ.Function](t, tut.Sym(sym).Eval(envs.Math))
 	}
 }
 
 func TestEvalUnknownSymbolReturnsError(t *testing.T) {
-	got := typ.Symbol("nope").Eval(envs.Math)
-	if !ut.Is[typ.Fatal](got) {
-		t.Fatalf("Eval(unknown symbol) = %#v, want %T", got, typ.Fatal{})
-	}
+	assert.Fatal(t, tut.Sym("nope").Eval(envs.Math))
 }
 
 func TestEvalUsesGivenEnv(t *testing.T) {
 	custom := core.NewEnv()
-	custom.Set("foo", typ.Function(func(...core.Value) core.Value { return typ.Integer(99) }))
+	custom.Set("foo", typ.Function(func(...core.Value) core.Value { return tut.Num(99) }))
 
-	got := typ.Symbol("foo").Eval(custom)
-	if !ut.Is[typ.Function](got) {
-		t.Fatalf("Eval(foo) with custom env = %#v, want %T", got, typ.Function(nil))
-	}
-
-	got = typ.Symbol("+").Eval(custom)
-	if !ut.Is[typ.Fatal](got) {
-		t.Fatalf("Eval(+) with custom env = %#v, want %T", got, typ.Fatal{})
-	}
-
-	got = typ.List{typ.Symbol("foo"), typ.Integer(1), typ.Integer(2)}.Eval(custom)
-	if got != core.Value(typ.Integer(99)) {
-		t.Fatalf("Eval((foo 1 2)) = %v, want 99", got)
-	}
+	assert.Is[typ.Function](t, tut.Sym("foo").Eval(custom))
+	assert.Fatal(t, tut.Sym("+").Eval(custom))
+	assert.MalEqual(t, tut.Lst(tut.Sym("foo"), tut.Num(1), tut.Num(2)).Eval(custom), tut.Num(99))
 }
 
 func TestEvalArithmetic(t *testing.T) {
-	tests := []struct {
-		name string
-		op   string
-		a, b typ.Integer
-		want typ.Integer
-	}{
-		{"add", "+", 1, 2, 3},
-		{"subtract", "-", 5, 3, 2},
-		{"multiply", "*", 4, 3, 12},
-		{"divide", "/", 8, 2, 4},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ast := typ.List{typ.Symbol(tt.op), tt.a, tt.b}
-			got := ast.Eval(envs.Math)
-			if got != core.Value(tt.want) {
-				t.Fatalf("Eval((%s %d %d)) = %v, want %d", tt.op, tt.a, tt.b, got, tt.want)
-			}
-		})
-	}
+	tut.RunSimple(t, []tut.SimpleCase[typ.Integer]{
+		{Name: "add", Prog: "(+ 1 2)", Want: 3},
+		{Name: "subtract", Prog: "(- 5 3)", Want: 2},
+		{Name: "multiply", Prog: "(* 4 3)", Want: 12},
+		{Name: "divide", Prog: "(/ 8 2)", Want: 4},
+	}, func(t *testing.T, c tut.SimpleCase[typ.Integer]) {
+		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	})
 }
 
 func TestEvalNestedArithmetic(t *testing.T) {
 	// (+ (* 2 3) (- 10 4)) == 12
-	ast := typ.List{
-		typ.Symbol("+"),
-		typ.List{typ.Symbol("*"), typ.Integer(2), typ.Integer(3)},
-		typ.List{typ.Symbol("-"), typ.Integer(10), typ.Integer(4)},
-	}
-	got := ast.Eval(envs.Math)
-	if got != core.Value(typ.Integer(12)) {
-		t.Fatalf("Eval nested = %v, want 12", got)
-	}
+	assert.Eval(t, envs.Math, "(+ (* 2 3) (- 10 4))", tut.Num(12))
 }
 
 func TestVariadicZeroArgsReturnsFatal(t *testing.T) {
-	for _, op := range []string{"+", "-", "*", "/"} {
-		input := "(" + op + ")"
-		got := tut.MustEval(envs.Math, input)
-		if !ut.Is[typ.Fatal](got) {
-			t.Fatalf("MustEval(%q) = %#v, want %T", input, got, typ.Fatal{})
-		}
-	}
+	assert.EvalFatal(t, envs.Math, "(+)", "(-)", "(*)", "(/)")
 }
 
 func TestVariadicOneArg(t *testing.T) {
-	// + and * with one arg return identity.
-	for _, tc := range []struct {
-		input string
-		want  typ.Integer
-	}{
-		{"(+ 42)", 42},
-		{"(+ -7)", -7},
-		{"(+ 0)", 0},
-		{"(* 42)", 42},
-		{"(* -7)", -7},
-		{"(* 0)", 0},
-	} {
-		got := tut.MustEval(envs.Math, tc.input)
-		if got != core.Value(tc.want) {
-			t.Fatalf("MustEval(%q) = %v, want %d", tc.input, got, tc.want)
-		}
-	}
-
-	// - with one arg negates.
-	for _, tc := range []struct {
-		input string
-		want  typ.Integer
-	}{
-		{"(- 5)", -5},
-		{"(- -5)", 5},
-		{"(- 0)", 0},
-	} {
-		got := tut.MustEval(envs.Math, tc.input)
-		if got != core.Value(tc.want) {
-			t.Fatalf("MustEval(%q) = %v, want %d", tc.input, got, tc.want)
-		}
-	}
+	// + and * with one arg return identity, - negates.
+	tut.RunSimple(t, []tut.SimpleCase[typ.Integer]{
+		{Name: "plus 42", Prog: "(+ 42)", Want: 42},
+		{Name: "plus minus", Prog: "(+ -7)", Want: -7},
+		{Name: "plus zero", Prog: "(+ 0)", Want: 0},
+		{Name: "mult 42", Prog: "(* 42)", Want: 42},
+		{Name: "mult minus", Prog: "(* -7)", Want: -7},
+		{Name: "mult zero", Prog: "(* 0)", Want: 0},
+		{Name: "minus 5", Prog: "(- 5)", Want: -5},
+		//nolint:dupword
+		{Name: "minus minus", Prog: "(- -5)", Want: 5},
+		{Name: "minus zero", Prog: "(- 0)", Want: 0},
+	}, func(t *testing.T, c tut.SimpleCase[typ.Integer]) {
+		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	})
 
 	// / with one arg is an arity error.
-	for _, input := range []string{"(/ 42)", "(/ -7)", "(/ 0)"} {
-		got := tut.MustEval(envs.Math, input)
-		if !ut.Is[typ.Fatal](got) {
-			t.Fatalf("MustEval(%q) = %#v, want %T", input, got, typ.Fatal{})
-		}
-	}
+	assert.EvalFatal(t, envs.Math, "(/ 42)", "(/ -7)", "(/ 0)")
 }
 
 func TestVariadicManyArgsLeftFold(t *testing.T) {
-	tests := []struct {
-		input string
-		want  typ.Integer
-	}{
-		// + variadic.
-		{"(+ 1 2 3)", 6},
-		{"(+ 1 2 3 4)", 10},
-		{"(+ 1 2 3 4 5)", 15},
-		{"(+ -1 2 -3 4)", 2},
-		// * variadic.
-		{"(* 2 3 4)", 24},
-		{"(* 2 3 4 5)", 120},
-		{"(* 1 2 3 4 5)", 120},
-		{"(* -2 3 4)", -24},
-		// - left fold: (- a b c) == ((a - b) - c).
-		{"(- 10 3 2)", 5},
-		{"(- 20 5 3 2)", 10},
-		{"(- 30 10 5 3 2)", 10},
-		{"(- 100 20 30)", 50},
-		{"(- 0 5 3)", -8},
-		// / left fold: (/ a b c) == ((a / b) / c).
-		{"(/ 100 5 2)", 10},
-		{"(/ 120 6 2)", 10},
-		{"(/ 120 3 2 2)", 10},
-		{"(/ 1000 10 5 2 2)", 5},
-		{"(/ 64 2 2 2)", 8},
-	}
-
-	for _, tt := range tests {
-		got := tut.MustEval(envs.Math, tt.input)
-		if got != core.Value(tt.want) {
-			t.Fatalf("MustEval(%q) = %v, want %d", tt.input, got, tt.want)
-		}
-	}
+	tut.RunSimple(t, []tut.SimpleCase[typ.Integer]{
+		{Name: "(+ 1 2 3)", Prog: "(+ 1 2 3)", Want: 6},
+		{Name: "(+ 1 2 3 4)", Prog: "(+ 1 2 3 4)", Want: 10},
+		{Name: "(+ 1 2 3 4 5)", Prog: "(+ 1 2 3 4 5)", Want: 15},
+		{Name: "(+ -1 2 -3 4)", Prog: "(+ -1 2 -3 4)", Want: 2},
+		{Name: "(* 2 3 4)", Prog: "(* 2 3 4)", Want: 24},
+		{Name: "(* 2 3 4 5)", Prog: "(* 2 3 4 5)", Want: 120},
+		{Name: "(* 1 2 3 4 5)", Prog: "(* 1 2 3 4 5)", Want: 120},
+		{Name: "(* -2 3 4)", Prog: "(* -2 3 4)", Want: -24},
+		{Name: "(- 10 3 2)", Prog: "(- 10 3 2)", Want: 5},
+		{Name: "(- 20 5 3 2)", Prog: "(- 20 5 3 2)", Want: 10},
+		{Name: "(- 30 10 5 3 2)", Prog: "(- 30 10 5 3 2)", Want: 10},
+		{Name: "(- 100 20 30)", Prog: "(- 100 20 30)", Want: 50},
+		{Name: "(- 0 5 3)", Prog: "(- 0 5 3)", Want: -8},
+		{Name: "(/ 100 5 2)", Prog: "(/ 100 5 2)", Want: 10},
+		{Name: "(/ 120 6 2)", Prog: "(/ 120 6 2)", Want: 10},
+		{Name: "(/ 120 3 2 2)", Prog: "(/ 120 3 2 2)", Want: 10},
+		{Name: "(/ 1000 10 5 2 2)", Prog: "(/ 1000 10 5 2 2)", Want: 5},
+		{Name: "(/ 64 2 2 2)", Prog: "(/ 64 2 2 2)", Want: 8},
+	}, func(t *testing.T, c tut.SimpleCase[typ.Integer]) {
+		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	})
 }
 
 func TestMixedIntStringFatalReturnsFatal(t *testing.T) {
-	inputs := []string{
-		// Int mixed with string.
+	assert.EvalFatal(t, envs.Math,
 		`(+ 1 "hi")`,
 		`(+ "hi" 1)`,
 		`(+ "a" "b")`,
@@ -211,7 +123,6 @@ func TestMixedIntStringFatalReturnsFatal(t *testing.T) {
 		`(/ "hi" 8)`,
 		`(/ 100 5 "hi")`,
 		`(/ 100 5 2 "hi")`,
-		// Int mixed with Fatal from nested failing calls.
 		`(+ 1 (/ 1))`,
 		`(+ 1 (+))`,
 		`(+ 1 (-))`,
@@ -225,106 +136,80 @@ func TestMixedIntStringFatalReturnsFatal(t *testing.T) {
 		`(/ 10 (/) 2)`,
 		`(+ (+ "a" 1) 2)`,
 		`(* (- "a" 1) 2)`,
-	}
-
-	for _, input := range inputs {
-		got := tut.MustEval(envs.Math, input)
-		if !ut.Is[typ.Fatal](got) {
-			t.Fatalf("MustEval(%q) = %#v, want %T", input, got, typ.Fatal{})
-		}
-	}
+	)
 }
 
 func TestDeepNestedCombinations(t *testing.T) {
-	tests := []struct {
-		input string
-		want  typ.Integer
-	}{
-		{"(+ (* 2 3) (- 10 4))", 12},
-		{"(+ (* 2 3) (- 10 4) (/ 20 4))", 17},
-		{"(* (+ 1 2) (+ 3 4))", 21},
-		{"(* (+ 1 2 3) (- 10 (- 5 2)))", 42},
-		{"(- (* (+ 1 2 3) 4) (/ 20 2))", 14},
-		{"(/ (* 2 3 5) (+ 2 3))", 6},
-		{"(- (+ 10 20) (* 2 3))", 24},
-		{"(+ (* (- 10 3) (/ 12 4)) (- (/ 100 5 2) (+ 1 2 3)))", 25},
-		{"(* (- (/ 100 2) 10) (+ (- 5 2) (/ 9 3)))", 240},
-		{"(/ (- (* 10 10) 20) (+ 2 2 2 2))", 10},
-		{"(+ (- (* (/ 64 2) 2) 12) (* (+ 1 1 1) (- 10 5)))", 67},
-		{"(* (+ (/ 20 2) (- 8 3)) (- (/ 30 3) (+ 1 2)))", 105},
-	}
-
-	for _, tt := range tests {
-		got := tut.MustEval(envs.Math, tt.input)
-		if got != core.Value(tt.want) {
-			t.Fatalf("MustEval(%q) = %v, want %d", tt.input, got, tt.want)
-		}
-	}
+	tut.RunSimple(t, []tut.SimpleCase[typ.Integer]{
+		{Name: "(+ (* 2 3) (- 10 4))", Prog: "(+ (* 2 3) (- 10 4))", Want: 12},
+		{Name: "(+ (* 2 3) (- 10 4) (/ 20 4))", Prog: "(+ (* 2 3) (- 10 4) (/ 20 4))", Want: 17},
+		{Name: "(* (+ 1 2) (+ 3 4))", Prog: "(* (+ 1 2) (+ 3 4))", Want: 21},
+		{Name: "(* (+ 1 2 3) (- 10 (- 5 2)))", Prog: "(* (+ 1 2 3) (- 10 (- 5 2)))", Want: 42},
+		{Name: "(- (* (+ 1 2 3) 4) (/ 20 2))", Prog: "(- (* (+ 1 2 3) 4) (/ 20 2))", Want: 14},
+		{Name: "(/ (* 2 3 5) (+ 2 3))", Prog: "(/ (* 2 3 5) (+ 2 3))", Want: 6},
+		{Name: "(- (+ 10 20) (* 2 3))", Prog: "(- (+ 10 20) (* 2 3))", Want: 24},
+		{Name: "(+ (* (- 10 3) (/ 12 4)) (- (/ 100 5 2) (+ 1 2 3)))",
+			Prog: "(+ (* (- 10 3) (/ 12 4)) (- (/ 100 5 2) (+ 1 2 3)))", Want: 25},
+		{Name: "(* (- (/ 100 2) 10) (+ (- 5 2) (/ 9 3)))",
+			Prog: "(* (- (/ 100 2) 10) (+ (- 5 2) (/ 9 3)))", Want: 240},
+		{Name: "(/ (- (* 10 10) 20) (+ 2 2 2 2))",
+			Prog: "(/ (- (* 10 10) 20) (+ 2 2 2 2))", Want: 10},
+		{Name: "(+ (- (* (/ 64 2) 2) 12) (* (+ 1 1 1) (- 10 5)))",
+			Prog: "(+ (- (* (/ 64 2) 2) 12) (* (+ 1 1 1) (- 10 5)))", Want: 67},
+		{Name: "(* (+ (/ 20 2) (- 8 3)) (- (/ 30 3) (+ 1 2)))",
+			Prog: "(* (+ (/ 20 2) (- 8 3)) (- (/ 30 3) (+ 1 2)))", Want: 105},
+	}, func(t *testing.T, c tut.SimpleCase[typ.Integer]) {
+		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	})
 }
 
 func TestNumericComparisons(t *testing.T) {
-	tests := []struct {
-		input string
-		want  typ.Bool
-	}{
-		// Less than.
-		{"(< 1 2)", true},
-		{"(< 2 1)", false},
-		{"(< 1 1)", false},
-		{"(< 0 0)", false},
-		{"(< -5 0)", true},
-		{"(< 0 -5)", false},
-		{"(< -10 -5)", true},
-		{"(< -5 -10)", false},
-		// Less than or equal.
-		{"(<= 1 2)", true},
-		{"(<= 2 1)", false},
-		{"(<= 1 1)", true},
-		{"(<= 0 0)", true},
-		{"(<= -5 -5)", true},
-		{"(<= -5 0)", true},
-		{"(<= 0 -5)", false},
-		// Greater than.
-		{"(> 2 1)", true},
-		{"(> 1 2)", false},
-		{"(> 1 1)", false},
-		{"(> 0 0)", false},
-		{"(> 0 -5)", true},
-		{"(> -5 0)", false},
-		{"(> -5 -10)", true},
-		{"(> -10 -5)", false},
-		// Greater than or equal.
-		{"(>= 2 1)", true},
-		{"(>= 1 2)", false},
-		{"(>= 1 1)", true},
-		{"(>= 0 0)", true},
-		{"(>= -5 -5)", true},
-		{"(>= 0 -5)", true},
-		{"(>= -5 0)", false},
-		// Nested arithmetic.
-		{"(< (+ 1 2) (* 2 2))", true},
-		{"(> (* 3 3) (+ 4 4))", true},
-		{"(<= (- 5 5) 0)", true},
-		{"(>= (/ 10 2) 5)", true},
-		{"(< (- 0 5) 0)", true},
-		{"(> (- 0 5) 0)", false},
-		{"(<= (+ 1 2 3) (* 2 3))", true},
-		{"(>= (* 2 3) (+ 1 2 3))", true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := tut.MustEval(envs.Math, tt.input)
-			if got != core.Value(tt.want) {
-				t.Fatalf("MustEval(%q) = %v, want %v", tt.input, got, tt.want)
-			}
-		})
-	}
+	tut.RunSimple(t, []tut.SimpleCase[typ.Bool]{
+		{Name: "(< 1 2)", Prog: "(< 1 2)", Want: true},
+		{Name: "(< 2 1)", Prog: "(< 2 1)", Want: false},
+		{Name: "(< 1 1)", Prog: "(< 1 1)", Want: false},
+		{Name: "(< 0 0)", Prog: "(< 0 0)", Want: false},
+		{Name: "(< -5 0)", Prog: "(< -5 0)", Want: true},
+		{Name: "(< 0 -5)", Prog: "(< 0 -5)", Want: false},
+		{Name: "(< -10 -5)", Prog: "(< -10 -5)", Want: true},
+		{Name: "(< -5 -10)", Prog: "(< -5 -10)", Want: false},
+		{Name: "(<= 1 2)", Prog: "(<= 1 2)", Want: true},
+		{Name: "(<= 2 1)", Prog: "(<= 2 1)", Want: false},
+		{Name: "(<= 1 1)", Prog: "(<= 1 1)", Want: true},
+		{Name: "(<= 0 0)", Prog: "(<= 0 0)", Want: true},
+		{Name: "(<= -5 -5)", Prog: "(<= -5 -5)", Want: true},
+		{Name: "(<= -5 0)", Prog: "(<= -5 0)", Want: true},
+		{Name: "(<= 0 -5)", Prog: "(<= 0 -5)", Want: false},
+		{Name: "(> 2 1)", Prog: "(> 2 1)", Want: true},
+		{Name: "(> 1 2)", Prog: "(> 1 2)", Want: false},
+		{Name: "(> 1 1)", Prog: "(> 1 1)", Want: false},
+		{Name: "(> 0 0)", Prog: "(> 0 0)", Want: false},
+		{Name: "(> 0 -5)", Prog: "(> 0 -5)", Want: true},
+		{Name: "(> -5 0)", Prog: "(> -5 0)", Want: false},
+		{Name: "(> -5 -10)", Prog: "(> -5 -10)", Want: true},
+		{Name: "(> -10 -5)", Prog: "(> -10 -5)", Want: false},
+		{Name: "(>= 2 1)", Prog: "(>= 2 1)", Want: true},
+		{Name: "(>= 1 2)", Prog: "(>= 1 2)", Want: false},
+		{Name: "(>= 1 1)", Prog: "(>= 1 1)", Want: true},
+		{Name: "(>= 0 0)", Prog: "(>= 0 0)", Want: true},
+		{Name: "(>= -5 -5)", Prog: "(>= -5 -5)", Want: true},
+		{Name: "(>= 0 -5)", Prog: "(>= 0 -5)", Want: true},
+		{Name: "(>= -5 0)", Prog: "(>= -5 0)", Want: false},
+		{Name: "(< (+ 1 2) (* 2 2))", Prog: "(< (+ 1 2) (* 2 2))", Want: true},
+		{Name: "(> (* 3 3) (+ 4 4))", Prog: "(> (* 3 3) (+ 4 4))", Want: true},
+		{Name: "(<= (- 5 5) 0)", Prog: "(<= (- 5 5) 0)", Want: true},
+		{Name: "(>= (/ 10 2) 5)", Prog: "(>= (/ 10 2) 5)", Want: true},
+		{Name: "(< (- 0 5) 0)", Prog: "(< (- 0 5) 0)", Want: true},
+		{Name: "(> (- 0 5) 0)", Prog: "(> (- 0 5) 0)", Want: false},
+		{Name: "(<= (+ 1 2 3) (* 2 3))", Prog: "(<= (+ 1 2 3) (* 2 3))", Want: true},
+		{Name: "(>= (* 2 3) (+ 1 2 3))", Prog: "(>= (* 2 3) (+ 1 2 3))", Want: true},
+	}, func(t *testing.T, c tut.SimpleCase[typ.Bool]) {
+		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	})
 }
 
 func TestNumericComparisonErrors(t *testing.T) {
-	inputs := []string{
-		// Wrong arity.
+	assert.EvalFatal(t, envs.Math,
 		`(<)`,
 		`(<=)`,
 		`(>)`,
@@ -354,108 +239,64 @@ func TestNumericComparisonErrors(t *testing.T) {
 		`(> (+ "a" 1) 2)`,
 		`(>= 1 (+ 1 (/ 1)))`,
 		`(< (/ 100 5 "hi") 10)`,
-	}
-
-	for _, input := range inputs {
-		got := tut.MustEval(envs.Math, input)
-		if !ut.Is[typ.Fatal](got) {
-			t.Fatalf("MustEval(%q) = %#v, want %T", input, got, typ.Fatal{})
-		}
-	}
+	)
 }
 
 func TestLogicLiterals(t *testing.T) {
 	// true and false evaluate to themselves.
-	for _, tc := range []struct {
-		input string
-		want  typ.Bool
-	}{
-		{"true", true},
-		{"false", false},
-	} {
-		got := tut.MustEval(envs.Math, tc.input)
-		if got != core.Value(tc.want) {
-			t.Fatalf("MustEval(%q) = %v, want %v", tc.input, got, tc.want)
-		}
-	}
+	tut.RunSimple(t, []tut.SimpleCase[typ.Bool]{
+		{Name: "true", Prog: "true", Want: true},
+		{Name: "false", Prog: "false", Want: false},
+	}, func(t *testing.T, c tut.SimpleCase[typ.Bool]) {
+		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	})
 
 	// Symbol lookup returns expected types.
 	for _, sym := range []string{"<", "<=", ">", ">="} {
-		got := typ.Symbol(sym).Eval(envs.Math)
-		if !ut.Is[typ.Function](got) {
-			t.Fatalf("Eval(%q) = %#v, want %T", sym, got, typ.Function(nil))
-		}
+		assert.Is[typ.Function](t, tut.Sym(sym).Eval(envs.Math))
 	}
-	got := typ.Symbol("not").Eval(envs.Math)
-	if !ut.Is[typ.Function](got) {
-		t.Fatalf("Eval(%q) = %#v, want %T", "not", got, typ.Function(nil))
-	}
+	assert.Is[typ.Function](t, tut.Sym("not").Eval(envs.Math))
 	for _, sym := range []string{"true", "false"} {
-		got := typ.Symbol(sym).Eval(envs.Math)
-		if !ut.Is[typ.Bool](got) {
-			t.Fatalf("Eval(%q) = %#v, want %T", sym, got, typ.Bool(false))
-		}
+		assert.Is[typ.Bool](t, tut.Sym(sym).Eval(envs.Math))
 	}
 }
 
 func TestNotFunction(t *testing.T) {
-	tests := []struct {
-		input string
-		want  typ.Bool
-	}{
-		{"(not true)", false},
-		{"(not false)", true},
-		{"(not nil)", true},
-		// Everything except false and nil is truthy.
-		{"(not 0)", false},
-		{"(not 1)", false},
-		{"(not -5)", false},
-		{`(not "hi")`, false},
-		{`(not "")`, false},
-		{"(not ())", false},
-		// Comparisons return bools.
-		{"(not (< 1 2))", false},
-		{"(not (< 2 1))", true},
-		{"(not (> 2 1))", false},
-		{"(not (> 1 2))", true},
-		// Double negation.
-		{"(not (not true))", true},
-		{"(not (not false))", false},
-		{"(not (not nil))", false},
-		{"(not (not 42))", true},
-		// Nested arithmetic truthiness.
-		{"(not (+ 1 2))", false},
-		{"(not (- 5 5))", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := tut.MustEval(envs.Math, tt.input)
-			if got != core.Value(tt.want) {
-				t.Fatalf("MustEval(%q) = %v, want %v", tt.input, got, tt.want)
-			}
-		})
-	}
+	tut.RunSimple(t, []tut.SimpleCase[typ.Bool]{
+		{Name: "(not true)", Prog: "(not true)", Want: false},
+		{Name: "(not false)", Prog: "(not false)", Want: true},
+		{Name: "(not nil)", Prog: "(not nil)", Want: true},
+		{Name: "(not 0)", Prog: "(not 0)", Want: false},
+		{Name: "(not 1)", Prog: "(not 1)", Want: false},
+		{Name: "(not -5)", Prog: "(not -5)", Want: false},
+		{Name: `(not "hi")`, Prog: `(not "hi")`, Want: false},
+		{Name: `(not "")`, Prog: `(not "")`, Want: false},
+		{Name: "(not ())", Prog: "(not ())", Want: false},
+		{Name: "(not (< 1 2))", Prog: "(not (< 1 2))", Want: false},
+		{Name: "(not (< 2 1))", Prog: "(not (< 2 1))", Want: true},
+		{Name: "(not (> 2 1))", Prog: "(not (> 2 1))", Want: false},
+		{Name: "(not (> 1 2))", Prog: "(not (> 1 2))", Want: true},
+		{Name: "(not (not true))", Prog: "(not (not true))", Want: true},
+		{Name: "(not (not false))", Prog: "(not (not false))", Want: false},
+		{Name: "(not (not nil))", Prog: "(not (not nil))", Want: false},
+		{Name: "(not (not 42))", Prog: "(not (not 42))", Want: true},
+		{Name: "(not (+ 1 2))", Prog: "(not (+ 1 2))", Want: false},
+		{Name: "(not (- 5 5))", Prog: "(not (- 5 5))", Want: false},
+	}, func(t *testing.T, c tut.SimpleCase[typ.Bool]) {
+		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	})
 }
 
 func TestNotErrors(t *testing.T) {
-	inputs := []string{
+	assert.EvalFatal(t, envs.Math,
 		`(not)`,
 		`(not true false)`,
 		`(not true false true)`,
 		`(not nil nil)`,
-		// Fatal propagation.
 		`(not (+ "a" 1))`,
 		`(not (/ 1))`,
 		`(not (+))`,
 		`(not (< "a" 1))`,
 		`(not (not (+ "a" 1)))`,
-	}
-
-	for _, input := range inputs {
-		got := tut.MustEval(envs.Math, input)
-		if !ut.Is[typ.Fatal](got) {
-			t.Fatalf("MustEval(%q) = %#v, want %T", input, got, typ.Fatal{})
-		}
-	}
+	)
 }

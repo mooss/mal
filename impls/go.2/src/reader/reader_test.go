@@ -20,7 +20,7 @@ var (
 	mapf  = tut.MapForm
 	qot   = tut.Quote
 	nul   = tut.Nil
-	valst = func(args ...core.Value) []core.Value { return args }
+	valst = tut.Values
 )
 
 func runSingleCases(t *testing.T, cases []tut.Case[core.Value]) {

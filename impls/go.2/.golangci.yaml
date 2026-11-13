@@ -14,6 +14,9 @@ linters:
     - misspell
 
   settings:
+    errcheck:
+      exclude-functions:
+        - github.com/mooss/mal/src/tut/assert.Fatal
     revive:
       enable-all-rules: true
       rules:
