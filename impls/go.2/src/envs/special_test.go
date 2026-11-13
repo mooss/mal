@@ -35,7 +35,7 @@ func TestLetStarNonSymbolKeyQualifyPrefix(t *testing.T) {
 func TestLetStarFatalValueForwardingWithoutSet(t *testing.T) {
 	for _, input := range []string{"(let* (ok missing) ok)", "(let* [ok missing] ok)"} {
 		outer := envs.MalSpecial.Nest(core.Bindings{"good": tut.Sym("good-val")})
-		tut.AssertFatal(t, outer, input)
+		tut.AssertAllFatal(t, outer, input)
 		tut.AssertMissing(t, outer, "ok")
 		tut.AssertGet(t, outer, "good", tut.Sym("good-val"))
 	}
@@ -49,7 +49,7 @@ func TestDefBangEvalThenSetAndReturn(t *testing.T) {
 
 func TestDefBangFatalNonSet(t *testing.T) {
 	env := envs.MalSpecial.Nest(nil)
-	tut.AssertFatal(t, env, "(def! k missing)")
+	tut.AssertAllFatal(t, env, "(def! k missing)")
 	tut.AssertMissing(t, env, "k")
 }
 
@@ -82,7 +82,7 @@ func TestFnStarClosureCapturesDefiningEnv(t *testing.T) {
 		"d": tut.Sym("d-val"),
 		"s": tut.Sym("shadow-val"),
 	})
-	tut.RequireOK(t, tut.MustEval(outer, "(def! f (fn* (x) a))"))
+	tut.AssertOk(t, tut.MustEval(outer, "(def! f (fn* (x) a))"))
 	tut.AssertEval(t, outer, "(let* (a s) (f d))", tut.Sym("outer-a-val"))
 }
 
@@ -101,7 +101,7 @@ func TestFnStarCallArityMismatch(t *testing.T) {
 		"b": tut.Sym("b-val"),
 		"c": tut.Sym("c-val"),
 	})
-	tut.AssertFatal(t, outer,
+	tut.AssertAllFatal(t, outer,
 		"((fn* (x) x))",
 		"((fn* (x) x) a b)",
 		"((fn* (x y) x) a)",
@@ -112,7 +112,7 @@ func TestFnStarCallArityMismatch(t *testing.T) {
 }
 
 func TestFnStarInvalidParamsAndFormArity(t *testing.T) {
-	tut.AssertFatal(t, envs.MalSpecial.Nest(nil),
+	tut.AssertAllFatal(t, envs.MalSpecial.Nest(nil),
 		"(fn* x x)",
 		"(fn* a a)",
 		"(fn* (()) x)",
@@ -127,11 +127,11 @@ func TestFnStarInvalidParamsAndFormArity(t *testing.T) {
 
 func TestFnStarDefIntegrationAndBodyFatal(t *testing.T) {
 	env := envs.MalSpecial.Nest(core.Bindings{"a": tut.Sym("a-val")})
-	tut.RequireOK(t, tut.MustEval(env, "(def! ident (fn* (x) x))"))
+	tut.AssertOk(t, tut.MustEval(env, "(def! ident (fn* (x) x))"))
 	tut.AssertEval(t, env, "(ident a)", tut.Sym("a-val"))
-	tut.RequireOK(t, tut.MustEval(env, "(def! ident2 (fn* [x] x))"))
+	tut.AssertOk(t, tut.MustEval(env, "(def! ident2 (fn* [x] x))"))
 	tut.AssertEval(t, env, "(ident2 a)", tut.Sym("a-val"))
-	tut.AssertFatal(t, env, "((fn* (x) missing) a)")
+	tut.AssertAllFatal(t, env, "((fn* (x) missing) a)")
 }
 
 func TestDoReturnsLastAndSequencesEffects(t *testing.T) {
@@ -152,12 +152,12 @@ func TestDoReturnsLastAndSequencesEffects(t *testing.T) {
 
 func TestDoFatalShortCircuit(t *testing.T) {
 	outer := envs.MalSpecial.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	tut.AssertFatal(t, outer, "(do good missing good)")
-	tut.AssertFatal(t, outer, "(do missing (def! leaked good))")
+	tut.AssertAllFatal(t, outer, "(do good missing good)")
+	tut.AssertAllFatal(t, outer, "(do missing (def! leaked good))")
 	tut.AssertMissing(t, outer, "leaked")
 
 	env := envs.MalSpecial.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	tut.AssertFatal(t, env, "(do (def! x good) missing (def! y good))")
+	tut.AssertAllFatal(t, env, "(do (def! x good) missing (def! y good))")
 	tut.AssertGet(t, env, "x", tut.Sym("good-val"))
 	tut.AssertMissing(t, env, "y")
 }
@@ -197,16 +197,16 @@ func TestIfOnlyTakenBranchEvaluated(t *testing.T) {
 
 func TestIfCondFatalSkipsBranches(t *testing.T) {
 	outer := envs.MalSpecial.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	tut.AssertFatal(t, outer, "(if missing good good)")
+	tut.AssertAllFatal(t, outer, "(if missing good good)")
 
 	env := envs.MalSpecial.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	tut.AssertFatal(t, env, "(if missing (def! x good) (def! y good))")
+	tut.AssertAllFatal(t, env, "(if missing (def! x good) (def! y good))")
 	tut.AssertMissing(t, env, "x", "y")
 }
 
 func TestIfBranchFatalAndArity(t *testing.T) {
 	outer := envs.MalDefault.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	tut.AssertFatal(t, outer,
+	tut.AssertAllFatal(t, outer,
 		"(if true missing good)",
 		"(if false good missing)",
 		"(if nil good missing)",
@@ -235,7 +235,7 @@ func TestFnStarVariadicRestCollection(t *testing.T) {
 	tut.AssertEval(t, outer, "((fn* [x & rest] rest) a b c)",
 		tut.Lst(tut.Sym("b-val"), tut.Sym("c-val")))
 
-	tut.AssertFatal(t, outer,
+	tut.AssertAllFatal(t, outer,
 		"((fn* (x y & rest) x) a)",
 		"((fn* [x y & rest] x) a)",
 		"((fn* (x & rest) x))",
@@ -244,7 +244,7 @@ func TestFnStarVariadicRestCollection(t *testing.T) {
 }
 
 func TestFnStarVariadicMisplacedAmpersand(t *testing.T) {
-	tut.AssertFatal(t, envs.MalSpecial.Nest(nil),
+	tut.AssertAllFatal(t, envs.MalSpecial.Nest(nil),
 		"(fn* (x & ) x)",
 		"(fn* [x &] x)",
 		"(fn* (&) x)",

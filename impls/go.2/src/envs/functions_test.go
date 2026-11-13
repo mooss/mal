@@ -127,7 +127,7 @@ func TestEqualOp(t *testing.T) {
 
 	t.Run("arity", func(t *testing.T) {
 		//nolint:dupword
-		tut.AssertFatal(t, envs.MalFun, `(=)`, `(= 1)`, `(= 1 2 3)`, `(= nil nil nil)`)
+		tut.AssertAllFatal(t, envs.MalFun, `(=)`, `(= 1)`, `(= 1 2 3)`, `(= nil nil nil)`)
 	})
 }
 
@@ -146,11 +146,12 @@ func TestCount(t *testing.T) {
 	})
 
 	t.Run("non-containers return Fatal", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(count 1)`, `(count 0)`, `(count true)`, `(count false)`)
+		tut.AssertAllFatal(t, envs.MalFun,
+			`(count 1)`, `(count 0)`, `(count true)`, `(count false)`)
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(count)`, `(count [1] [2])`, `(count nil nil)`)
+		tut.AssertAllFatal(t, envs.MalFun, `(count)`, `(count [1] [2])`, `(count nil nil)`)
 	})
 }
 
@@ -170,12 +171,12 @@ func TestEmptyQ(t *testing.T) {
 	})
 
 	t.Run("non-containers return Fatal", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun,
+		tut.AssertAllFatal(t, envs.MalFun,
 			`(empty? 1)`, `(empty? 0)`, `(empty? true)`, `(empty? false)`)
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(empty?)`, `(empty? [] [])`, `(empty? nil nil)`)
+		tut.AssertAllFatal(t, envs.MalFun, `(empty?)`, `(empty? [] [])`, `(empty? nil nil)`)
 	})
 }
 
@@ -217,7 +218,7 @@ func TestIsList(t *testing.T) {
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(list?)`, `(list? (list) (list))`)
+		tut.AssertAllFatal(t, envs.MalFun, `(list?)`, `(list? (list) (list))`)
 	})
 }
 
@@ -235,7 +236,7 @@ func TestReadString(t *testing.T) {
 	})
 
 	t.Run("multi-form empty or invalid return Fatal", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun,
+		tut.AssertAllFatal(t, envs.MalFun,
 			`(read-string "1 2")`,
 			`(read-string "")`,
 			`(read-string "   ")`,
@@ -245,7 +246,7 @@ func TestReadString(t *testing.T) {
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(read-string)`, `(read-string "1" "2")`)
+		tut.AssertAllFatal(t, envs.MalFun, `(read-string)`, `(read-string "1" "2")`)
 	})
 }
 
@@ -266,11 +267,11 @@ func TestSlurp(t *testing.T) {
 		dir := t.TempDir()
 		missing := filepath.Join(dir, "does-not-exist.txt")
 		input := fmt.Sprintf(`(slurp %q)`, missing)
-		tut.AssertFatal(t, envs.MalFun, input)
+		tut.AssertAllFatal(t, envs.MalFun, input)
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(slurp)`, fmt.Sprintf(`(slurp %q %q)`, "a", "b"))
+		tut.AssertAllFatal(t, envs.MalFun, `(slurp)`, fmt.Sprintf(`(slurp %q %q)`, "a", "b"))
 	})
 }
 
@@ -307,7 +308,7 @@ func TestAtomCreation(t *testing.T) {
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(atom)`, `(atom 1 2)`, `(atom nil nil)`)
+		tut.AssertAllFatal(t, envs.MalFun, `(atom)`, `(atom 1 2)`, `(atom nil nil)`)
 	})
 }
 
@@ -335,7 +336,7 @@ func TestAtomQ(t *testing.T) {
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(atom?)`, `(atom? (atom 1) (atom 2))`)
+		tut.AssertAllFatal(t, envs.MalFun, `(atom?)`, `(atom? (atom 1) (atom 2))`)
 	})
 }
 
@@ -370,14 +371,14 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("non-atoms return Fatal", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun,
+		tut.AssertAllFatal(t, envs.MalFun,
 			`(deref 1)`, `(deref "hi")`, `(deref true)`, `(deref nil)`,
 			`(deref (list 1))`, `(deref [1 2])`, `(deref {})`,
 		)
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(deref)`, `(deref (atom 1) (atom 2))`)
+		tut.AssertAllFatal(t, envs.MalFun, `(deref)`, `(deref (atom 1) (atom 2))`)
 	})
 }
 
@@ -413,14 +414,14 @@ func TestResetOp(t *testing.T) {
 	})
 
 	t.Run("non-atoms return Fatal", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun,
+		tut.AssertAllFatal(t, envs.MalFun,
 			`(reset! 1 2)`, `(reset! "hi" 2)`, `(reset! nil 2)`,
 			`(reset! (list 1) 2)`, `(reset! [1 2] 2)`, `(reset! {} 2)`,
 		)
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(reset!)`, `(reset! (atom 1))`, `(reset! (atom 1) 2 3)`)
+		tut.AssertAllFatal(t, envs.MalFun, `(reset!)`, `(reset! (atom 1))`, `(reset! (atom 1) 2 3)`)
 	})
 }
 
@@ -449,18 +450,18 @@ func TestSwapOp(t *testing.T) {
 	})
 
 	t.Run("too few args return Fatal", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun, `(swap!)`, `(swap! (atom 1))`)
+		tut.AssertAllFatal(t, envs.MalFun, `(swap!)`, `(swap! (atom 1))`)
 	})
 
 	t.Run("non-atom first arg returns Fatal", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun,
+		tut.AssertAllFatal(t, envs.MalFun,
 			`(swap! 1 list)`, `(swap! "hi" list)`, `(swap! nil list)`,
 			`(swap! (list 1) list)`, `(swap! [1 2] list)`,
 		)
 	})
 
 	t.Run("non-function second arg returns Fatal", func(t *testing.T) {
-		tut.AssertFatal(t, envs.MalFun,
+		tut.AssertAllFatal(t, envs.MalFun,
 			`(swap! (atom 1) 1)`, `(swap! (atom 1) "hi")`,
 			`(swap! (atom 1) nil)`, `(swap! (atom 1) [1 2])`,
 			`(swap! (atom 1) 1 2)`,

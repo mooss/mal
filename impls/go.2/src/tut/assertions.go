@@ -24,8 +24,8 @@ func IsFatal(v core.Value) bool {
 	return false
 }
 
-// RequireAs asserts v has type T and returns it.
-func RequireAs[T core.Value](t *testing.T, v core.Value) T {
+// Is asserts v has type T and returns it.
+func Is[T core.Value](t *testing.T, v core.Value) T {
 	t.Helper()
 	got, ok := v.(T)
 	if !ok {
@@ -35,8 +35,8 @@ func RequireAs[T core.Value](t *testing.T, v core.Value) T {
 	return got
 }
 
-// RequireFatal fails unless v is Fatal and returns it.
-func RequireFatal(t *testing.T, v core.Value) typ.Fatal {
+// AssertFatal fails unless v is Fatal and returns it.
+func AssertFatal(t *testing.T, v core.Value) typ.Fatal {
 	t.Helper()
 	if f, ok := v.(typ.Fatal); ok {
 		return f
@@ -51,8 +51,8 @@ func RequireFatal(t *testing.T, v core.Value) typ.Fatal {
 	return zero
 }
 
-// RequireOK fails if v is Fatal and returns v.
-func RequireOK(t *testing.T, v core.Value) core.Value {
+// AssertOk fails if v is Fatal and returns v.
+func AssertOk(t *testing.T, v core.Value) core.Value {
 	t.Helper()
 	if IsFatal(v) {
 		t.Fatalf("got Fatal %v, want success", v)
@@ -151,17 +151,17 @@ func AssertMissing(t *testing.T, env core.Env, keys ...string) {
 // AssertEval evaluates input and checks strict equality with want.
 func AssertEval(t *testing.T, env core.Env, input string, want core.Value) {
 	t.Helper()
-	got := RequireOK(t, MustEval(env, input))
+	got := AssertOk(t, MustEval(env, input))
 	if !MalEqual(got, want) {
 		t.Fatalf("MustEval(%q) = %v, want %v", input, got, want)
 	}
 }
 
-// AssertFatal checks that each input evaluates to Fatal.
-func AssertFatal(t *testing.T, env core.Env, inputs ...string) {
+// AssertAllFatal checks that each input evaluates to Fatal.
+func AssertAllFatal(t *testing.T, env core.Env, inputs ...string) {
 	t.Helper()
 	for _, in := range inputs {
-		_ = RequireFatal(t, MustEval(env, in))
+		_ = AssertFatal(t, MustEval(env, in))
 	}
 }
 
@@ -169,8 +169,8 @@ func AssertFatal(t *testing.T, env core.Env, inputs ...string) {
 // The environment is cloned when evaluating to protect against side effects.
 func AssertEquivalent(t *testing.T, env core.Env, input, wantSrc string) {
 	t.Helper()
-	got := RequireOK(t, MustEval(core.CatEnv(env), input))
-	want := RequireOK(t, MustEval(core.CatEnv(env), wantSrc))
+	got := AssertOk(t, MustEval(core.CatEnv(env), input))
+	want := AssertOk(t, MustEval(core.CatEnv(env), wantSrc))
 	if !got.Equal(want) {
 		t.Fatalf("MustEval(%q) = %v, want %v from %q", input, got, want, wantSrc)
 	}
@@ -186,7 +186,7 @@ func AssertPrint(t *testing.T, env core.Env, input, wantOutput string) {
 // AssertFatalContains checks that input evaluates to Fatal containing sub.
 func AssertFatalContains(t *testing.T, env core.Env, input, sub string) typ.Fatal {
 	t.Helper()
-	f := RequireFatal(t, MustEval(env, input))
+	f := AssertFatal(t, MustEval(env, input))
 	AssertContains(t, f.String(), sub)
 	return f
 }

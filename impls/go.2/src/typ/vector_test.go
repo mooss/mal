@@ -14,11 +14,11 @@ func TestVectorEvalEvaluatesElementsInOrder(t *testing.T) {
 		"second": tut.Num(20),
 		"third":  tut.Num(30),
 	}.AsEnv()
-	got := tut.RequireOK(t, tut.Vec(
+	got := tut.AssertOk(t, tut.Vec(
 		tut.Sym("first"), tut.Sym("second"), tut.Sym("third"),
 	).Eval(envr))
 
-	vec := tut.RequireAs[typ.Vector](t, got)
+	vec := tut.Is[typ.Vector](t, got)
 	tut.AssertEqual(t, len(vec), 3)
 	tut.AssertString(t, got, "[10 20 30]")
 }
@@ -37,6 +37,6 @@ func TestVectorEvalPropagatesFirstFatalAndStops(t *testing.T) {
 		tut.Probe{ID: "probe", Log: &log, Ret: tut.Num(1)},
 	).Eval(envr)
 
-	tut.AssertString(t, tut.RequireFatal(t, got), firstFatal.String())
+	tut.AssertString(t, tut.AssertFatal(t, got), firstFatal.String())
 	tut.AssertEqual(t, len(log), 0)
 }
