@@ -16,115 +16,116 @@ import (
 )
 
 func TestStr(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[string]{
-		{Name: "no args", Prog: `(str)`, Want: ""},
-		{Name: "single string", Prog: `(str "foo")`, Want: "foo"},
-		{Name: "two strings concatenated without separator", Prog: `(str "foo" "bar")`,
+	tut.Run(t, []tut.Case[string]{
+		{Name: "no args", Input: `(str)`, Want: ""},
+		{Name: "single string", Input: `(str "foo")`, Want: "foo"},
+		{Name: "two strings concatenated without separator", Input: `(str "foo" "bar")`,
 			Want: "foobar"},
-		{Name: "strings with spaces", Prog: `(str "hello" " " "world")`, Want: "hello world"},
-		{Name: "empty string", Prog: `(str "")`, Want: ""},
-		{Name: "empty plus string", Prog: `(str "" "a")`, Want: "a"},
-		{Name: "single integer", Prog: `(str 42)`, Want: "42"},
-		{Name: "integers concatenated without separator", Prog: `(str 1 2 3)`, Want: "123"},
-		{Name: "string and integer", Prog: `(str "a" 1)`, Want: "a1"},
-		{Name: "integer and string", Prog: `(str 1 "a")`, Want: "1a"},
-		{Name: "multiple mixed", Prog: `(str "a" 1 "b" 2)`, Want: "a1b2"},
-		{Name: "negative integer", Prog: `(str -7)`, Want: "-7"},
-		{Name: "zero", Prog: `(str 0)`, Want: "0"},
-	}, func(t *testing.T, c tut.SimpleCase[string]) {
+		{Name: "strings with spaces", Input: `(str "hello" " " "world")`, Want: "hello world"},
+		{Name: "empty string", Input: `(str "")`, Want: ""},
+		{Name: "empty plus string", Input: `(str "" "a")`, Want: "a"},
+		{Name: "single integer", Input: `(str 42)`, Want: "42"},
+		{Name: "integers concatenated without separator", Input: `(str 1 2 3)`, Want: "123"},
+		{Name: "string and integer", Input: `(str "a" 1)`, Want: "a1"},
+		{Name: "integer and string", Input: `(str 1 "a")`, Want: "1a"},
+		{Name: "multiple mixed", Input: `(str "a" 1 "b" 2)`, Want: "a1b2"},
+		{Name: "negative integer", Input: `(str -7)`, Want: "-7"},
+		{Name: "zero", Input: `(str 0)`, Want: "0"},
+	}, func(t *testing.T, c tut.Case[string]) {
 		t.Helper()
-		assert.Eval(t, envs.MalFun, c.Prog, tut.Str(c.Want))
+		assert.Eval(t, envs.MalFun, c.Input, tut.Str(c.Want))
 	})
 }
 
 func TestPrStr(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[string]{
-		{Name: "no args", Prog: `(pr-str)`, Want: ""},
-		{Name: "single integer", Prog: `(pr-str 42)`, Want: "42"},
-		{Name: "integers joined with space", Prog: `(pr-str 1 2 3)`, Want: "1 2 3"},
-		{Name: "single string is readable", Prog: `(pr-str "hi")`, Want: `"hi"`},
-		{Name: "strings joined with space and readable", Prog: `(pr-str "a" "b")`, Want: `"a" "b"`},
-		{Name: "string and integer", Prog: `(pr-str "a" 1)`, Want: `"a" 1`},
-		{Name: "integer and string", Prog: `(pr-str 1 "a")`, Want: `1 "a"`},
-		{Name: "mixed", Prog: `(pr-str "a" 1 "b" 2)`, Want: `"a" 1 "b" 2`},
-		{Name: "empty string is quoted", Prog: `(pr-str "")`, Want: `""`},
-		{Name: "negative integer", Prog: `(pr-str -7)`, Want: "-7"},
-	}, func(t *testing.T, c tut.SimpleCase[string]) {
+	tut.Run(t, []tut.Case[string]{
+		{Name: "no args", Input: `(pr-str)`, Want: ""},
+		{Name: "single integer", Input: `(pr-str 42)`, Want: "42"},
+		{Name: "integers joined with space", Input: `(pr-str 1 2 3)`, Want: "1 2 3"},
+		{Name: "single string is readable", Input: `(pr-str "hi")`, Want: `"hi"`},
+		{Name: "strings joined with space and readable",
+			Input: `(pr-str "a" "b")`, Want: `"a" "b"`},
+		{Name: "string and integer", Input: `(pr-str "a" 1)`, Want: `"a" 1`},
+		{Name: "integer and string", Input: `(pr-str 1 "a")`, Want: `1 "a"`},
+		{Name: "mixed", Input: `(pr-str "a" 1 "b" 2)`, Want: `"a" 1 "b" 2`},
+		{Name: "empty string is quoted", Input: `(pr-str "")`, Want: `""`},
+		{Name: "negative integer", Input: `(pr-str -7)`, Want: "-7"},
+	}, func(t *testing.T, c tut.Case[string]) {
 		t.Helper()
-		assert.Eval(t, envs.MalFun, c.Prog, tut.Str(c.Want))
+		assert.Eval(t, envs.MalFun, c.Input, tut.Str(c.Want))
 	})
 }
 
 func TestPrn(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[string]{
-		{Name: "no args prints newline", Prog: `(prn)`, Want: "\n"},
-		{Name: "single integer", Prog: `(prn 1)`, Want: "1\n"},
-		{Name: "integers joined with space", Prog: `(prn 1 2 3)`, Want: "1 2 3\n"},
-		{Name: "single string is readable", Prog: `(prn "hi")`, Want: "\"hi\"\n"},
-		{Name: "strings are readable", Prog: `(prn "a" "b")`, Want: "\"a\" \"b\"\n"},
-		{Name: "string and integer", Prog: `(prn "a" 1)`, Want: "\"a\" 1\n"},
-		{Name: "integer and string", Prog: `(prn 1 "a")`, Want: "1 \"a\"\n"},
-	}, func(t *testing.T, c tut.SimpleCase[string]) {
+	tut.Run(t, []tut.Case[string]{
+		{Name: "no args prints newline", Input: `(prn)`, Want: "\n"},
+		{Name: "single integer", Input: `(prn 1)`, Want: "1\n"},
+		{Name: "integers joined with space", Input: `(prn 1 2 3)`, Want: "1 2 3\n"},
+		{Name: "single string is readable", Input: `(prn "hi")`, Want: "\"hi\"\n"},
+		{Name: "strings are readable", Input: `(prn "a" "b")`, Want: "\"a\" \"b\"\n"},
+		{Name: "string and integer", Input: `(prn "a" 1)`, Want: "\"a\" 1\n"},
+		{Name: "integer and string", Input: `(prn 1 "a")`, Want: "1 \"a\"\n"},
+	}, func(t *testing.T, c tut.Case[string]) {
 		t.Helper()
-		assert.Print(t, envs.MalFun, c.Prog, c.Want)
+		assert.Print(t, envs.MalFun, c.Input, c.Want)
 	})
 }
 
 func TestPrintln(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[string]{
-		{Name: "no args prints newline", Prog: `(println)`, Want: "\n"},
-		{Name: "single integer", Prog: `(println 1)`, Want: "1\n"},
-		{Name: "integers joined with space", Prog: `(println 1 2 3)`, Want: "1 2 3\n"},
-		{Name: "single string is raw", Prog: `(println "hi")`, Want: "hi\n"},
-		{Name: "strings are raw and joined with space", Prog: `(println "a" "b")`, Want: "a b\n"},
-		{Name: "string and integer raw", Prog: `(println "a" 1)`, Want: "a 1\n"},
-		{Name: "integer and string raw", Prog: `(println 1 "a")`, Want: "1 a\n"},
-		{Name: "sentence", Prog: `(println "hello" "world")`, Want: "hello world\n"},
-	}, func(t *testing.T, c tut.SimpleCase[string]) {
+	tut.Run(t, []tut.Case[string]{
+		{Name: "no args prints newline", Input: `(println)`, Want: "\n"},
+		{Name: "single integer", Input: `(println 1)`, Want: "1\n"},
+		{Name: "integers joined with space", Input: `(println 1 2 3)`, Want: "1 2 3\n"},
+		{Name: "single string is raw", Input: `(println "hi")`, Want: "hi\n"},
+		{Name: "strings are raw and joined with space", Input: `(println "a" "b")`, Want: "a b\n"},
+		{Name: "string and integer raw", Input: `(println "a" 1)`, Want: "a 1\n"},
+		{Name: "integer and string raw", Input: `(println 1 "a")`, Want: "1 a\n"},
+		{Name: "sentence", Input: `(println "hello" "world")`, Want: "hello world\n"},
+	}, func(t *testing.T, c tut.Case[string]) {
 		t.Helper()
-		assert.Print(t, envs.MalFun, c.Prog, c.Want)
+		assert.Print(t, envs.MalFun, c.Input, c.Want)
 	})
 }
 
 func TestEqualOp(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[bool]{
-		{Name: "int same value", Prog: `(= 1 1)`, Want: true},
-		{Name: "int different value", Prog: `(= 1 2)`, Want: false},
-		{Name: "negative int same", Prog: `(= -7 -7)`, Want: true},
-		{Name: "string same value", Prog: `(= "foo" "foo")`, Want: true},
-		{Name: "string different value", Prog: `(= "foo" "bar")`, Want: false},
-		{Name: "empty string equal", Prog: `(= "" "")`, Want: true},
-		{Name: "bool true equal", Prog: `(= true true)`, Want: true},
-		{Name: "bool false equal", Prog: `(= false false)`, Want: true},
-		{Name: "bool true vs false", Prog: `(= true false)`, Want: false},
-		{Name: "nil equal", Prog: `(= nil nil)`, Want: true},
-		{Name: "empty list equal", Prog: `(= (list) (list))`, Want: true},
-		{Name: "list same values", Prog: `(= (list 1 2) (list 1 2))`, Want: true},
-		{Name: "list different values", Prog: `(= (list 1 2) (list 1 3))`, Want: false},
-		{Name: "list different length", Prog: `(= (list 1) (list 1 2))`, Want: false},
-		{Name: "empty vector equal", Prog: `(= [] [])`, Want: true},
-		{Name: "vector same values", Prog: `(= [1 2] [1 2])`, Want: true},
-		{Name: "vector different values", Prog: `(= [1 2] [1 3])`, Want: false},
-		{Name: "empty map equal", Prog: `(= {} {})`, Want: true},
-		{Name: "map same values", Prog: `(= {"a" 1} {"a" 1})`, Want: true},
-		{Name: "map different values", Prog: `(= {"a" 1} {"a" 2})`, Want: false},
-		{Name: "cross int vs string", Prog: `(= 1 "1")`, Want: false},
-		{Name: "cross int vs bool", Prog: `(= 1 true)`, Want: false},
-		{Name: "cross int vs nil", Prog: `(= 0 nil)`, Want: false},
-		{Name: "cross string vs bool", Prog: `(= "true" true)`, Want: false},
-		{Name: "cross string vs nil", Prog: `(= "" nil)`, Want: false},
-		{Name: "cross bool vs nil true", Prog: `(= true nil)`, Want: false},
-		{Name: "cross bool vs nil false", Prog: `(= false nil)`, Want: false},
-		{Name: "cross list vs vector", Prog: `(= (list 1 2) [1 2])`, Want: true},
-		{Name: "cross list vs nil", Prog: `(= (list 1) nil)`, Want: false},
-		{Name: "cross vector vs map", Prog: `(= [1] {"a" 1})`, Want: false},
-		{Name: "cross vector vs nil", Prog: `(= [] nil)`, Want: false},
-		{Name: "cross map vs nil", Prog: `(= {} nil)`, Want: false},
-		{Name: "cross int vs list", Prog: `(= 1 (list 1))`, Want: false},
-		{Name: "cross string vs vector", Prog: `(= "a" ["a"])`, Want: false},
-	}, func(t *testing.T, c tut.SimpleCase[bool]) {
+	tut.Run(t, []tut.Case[bool]{
+		{Name: "int same value", Input: `(= 1 1)`, Want: true},
+		{Name: "int different value", Input: `(= 1 2)`, Want: false},
+		{Name: "negative int same", Input: `(= -7 -7)`, Want: true},
+		{Name: "string same value", Input: `(= "foo" "foo")`, Want: true},
+		{Name: "string different value", Input: `(= "foo" "bar")`, Want: false},
+		{Name: "empty string equal", Input: `(= "" "")`, Want: true},
+		{Name: "bool true equal", Input: `(= true true)`, Want: true},
+		{Name: "bool false equal", Input: `(= false false)`, Want: true},
+		{Name: "bool true vs false", Input: `(= true false)`, Want: false},
+		{Name: "nil equal", Input: `(= nil nil)`, Want: true},
+		{Name: "empty list equal", Input: `(= (list) (list))`, Want: true},
+		{Name: "list same values", Input: `(= (list 1 2) (list 1 2))`, Want: true},
+		{Name: "list different values", Input: `(= (list 1 2) (list 1 3))`, Want: false},
+		{Name: "list different length", Input: `(= (list 1) (list 1 2))`, Want: false},
+		{Name: "empty vector equal", Input: `(= [] [])`, Want: true},
+		{Name: "vector same values", Input: `(= [1 2] [1 2])`, Want: true},
+		{Name: "vector different values", Input: `(= [1 2] [1 3])`, Want: false},
+		{Name: "empty map equal", Input: `(= {} {})`, Want: true},
+		{Name: "map same values", Input: `(= {"a" 1} {"a" 1})`, Want: true},
+		{Name: "map different values", Input: `(= {"a" 1} {"a" 2})`, Want: false},
+		{Name: "cross int vs string", Input: `(= 1 "1")`, Want: false},
+		{Name: "cross int vs bool", Input: `(= 1 true)`, Want: false},
+		{Name: "cross int vs nil", Input: `(= 0 nil)`, Want: false},
+		{Name: "cross string vs bool", Input: `(= "true" true)`, Want: false},
+		{Name: "cross string vs nil", Input: `(= "" nil)`, Want: false},
+		{Name: "cross bool vs nil true", Input: `(= true nil)`, Want: false},
+		{Name: "cross bool vs nil false", Input: `(= false nil)`, Want: false},
+		{Name: "cross list vs vector", Input: `(= (list 1 2) [1 2])`, Want: true},
+		{Name: "cross list vs nil", Input: `(= (list 1) nil)`, Want: false},
+		{Name: "cross vector vs map", Input: `(= [1] {"a" 1})`, Want: false},
+		{Name: "cross vector vs nil", Input: `(= [] nil)`, Want: false},
+		{Name: "cross map vs nil", Input: `(= {} nil)`, Want: false},
+		{Name: "cross int vs list", Input: `(= 1 (list 1))`, Want: false},
+		{Name: "cross string vs vector", Input: `(= "a" ["a"])`, Want: false},
+	}, func(t *testing.T, c tut.Case[bool]) {
 		t.Helper()
-		assert.Eval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
+		assert.Eval(t, envs.MalDefault, c.Input, typ.Bool(c.Want))
 	})
 
 	t.Run("arity", func(t *testing.T) {
@@ -134,17 +135,17 @@ func TestEqualOp(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[int]{
-		{Name: "nil as zero", Prog: `(count nil)`, Want: 0},
-		{Name: "empty list", Prog: `(count (list))`, Want: 0},
-		{Name: "multi-element list", Prog: `(count (list 1 2 3))`, Want: 3},
-		{Name: "empty vector", Prog: `(count [])`, Want: 0},
-		{Name: "non-empty vector", Prog: `(count [1 2])`, Want: 2},
-		{Name: "empty map", Prog: `(count {})`, Want: 0},
-		{Name: "non-empty map", Prog: `(count {"a" 1 "b" 2})`, Want: 2},
-	}, func(t *testing.T, c tut.SimpleCase[int]) {
+	tut.Run(t, []tut.Case[int]{
+		{Name: "nil as zero", Input: `(count nil)`, Want: 0},
+		{Name: "empty list", Input: `(count (list))`, Want: 0},
+		{Name: "multi-element list", Input: `(count (list 1 2 3))`, Want: 3},
+		{Name: "empty vector", Input: `(count [])`, Want: 0},
+		{Name: "non-empty vector", Input: `(count [1 2])`, Want: 2},
+		{Name: "empty map", Input: `(count {})`, Want: 0},
+		{Name: "non-empty map", Input: `(count {"a" 1 "b" 2})`, Want: 2},
+	}, func(t *testing.T, c tut.Case[int]) {
 		t.Helper()
-		assert.Eval(t, envs.MalFun, c.Prog, tut.Num(int64(c.Want)))
+		assert.Eval(t, envs.MalFun, c.Input, tut.Num(int64(c.Want)))
 	})
 
 	t.Run("non-containers return Fatal", func(t *testing.T) {
@@ -158,18 +159,18 @@ func TestCount(t *testing.T) {
 }
 
 func TestEmptyQ(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[bool]{
-		{Name: "nil is empty", Prog: `(empty? nil)`, Want: true},
-		{Name: "empty list", Prog: `(empty? (list))`, Want: true},
-		{Name: "non-empty list", Prog: `(empty? (list 1))`, Want: false},
-		{Name: "multi-element list", Prog: `(empty? (list 1 2 3))`, Want: false},
-		{Name: "empty vector", Prog: `(empty? [])`, Want: true},
-		{Name: "non-empty vector", Prog: `(empty? [1])`, Want: false},
-		{Name: "empty map", Prog: `(empty? {})`, Want: true},
-		{Name: "non-empty map", Prog: `(empty? {"a" 1})`, Want: false},
-	}, func(t *testing.T, c tut.SimpleCase[bool]) {
+	tut.Run(t, []tut.Case[bool]{
+		{Name: "nil is empty", Input: `(empty? nil)`, Want: true},
+		{Name: "empty list", Input: `(empty? (list))`, Want: true},
+		{Name: "non-empty list", Input: `(empty? (list 1))`, Want: false},
+		{Name: "multi-element list", Input: `(empty? (list 1 2 3))`, Want: false},
+		{Name: "empty vector", Input: `(empty? [])`, Want: true},
+		{Name: "non-empty vector", Input: `(empty? [1])`, Want: false},
+		{Name: "empty map", Input: `(empty? {})`, Want: true},
+		{Name: "non-empty map", Input: `(empty? {"a" 1})`, Want: false},
+	}, func(t *testing.T, c tut.Case[bool]) {
 		t.Helper()
-		assert.Eval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
+		assert.Eval(t, envs.MalDefault, c.Input, typ.Bool(c.Want))
 	})
 
 	t.Run("non-containers return Fatal", func(t *testing.T) {
@@ -204,19 +205,19 @@ func TestListConstruction(t *testing.T) {
 }
 
 func TestIsList(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[bool]{
-		{Name: "empty list true", Prog: `(list? (list))`, Want: true},
-		{Name: "multi-element list true", Prog: `(list? (list 1 2 3))`, Want: true},
-		{Name: "vector false", Prog: `(list? [1 2])`, Want: false},
-		{Name: "empty vector false", Prog: `(list? [])`, Want: false},
-		{Name: "nil false", Prog: `(list? nil)`, Want: false},
-		{Name: "scalar int false", Prog: `(list? 1)`, Want: false},
-		{Name: "scalar string false", Prog: `(list? "hi")`, Want: false},
-		{Name: "scalar bool false", Prog: `(list? true)`, Want: false},
-		{Name: "map false", Prog: `(list? {})`, Want: false},
-	}, func(t *testing.T, c tut.SimpleCase[bool]) {
+	tut.Run(t, []tut.Case[bool]{
+		{Name: "empty list true", Input: `(list? (list))`, Want: true},
+		{Name: "multi-element list true", Input: `(list? (list 1 2 3))`, Want: true},
+		{Name: "vector false", Input: `(list? [1 2])`, Want: false},
+		{Name: "empty vector false", Input: `(list? [])`, Want: false},
+		{Name: "nil false", Input: `(list? nil)`, Want: false},
+		{Name: "scalar int false", Input: `(list? 1)`, Want: false},
+		{Name: "scalar string false", Input: `(list? "hi")`, Want: false},
+		{Name: "scalar bool false", Input: `(list? true)`, Want: false},
+		{Name: "map false", Input: `(list? {})`, Want: false},
+	}, func(t *testing.T, c tut.Case[bool]) {
 		t.Helper()
-		assert.Eval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
+		assert.Eval(t, envs.MalDefault, c.Input, typ.Bool(c.Want))
 	})
 
 	t.Run("arity", func(t *testing.T) {
@@ -226,14 +227,14 @@ func TestIsList(t *testing.T) {
 
 func TestReadString(t *testing.T) {
 	t.Run("one form only", func(t *testing.T) {
-		tut.RunSimple(t, []tut.SimpleCase[string]{
-			{Name: "integer", Prog: `(read-string "1")`, Want: `1`},
-			{Name: "string", Prog: `(read-string "\"hi\"")`, Want: `"hi"`},
-			{Name: "list form", Prog: `(read-string "(1 2)")`, Want: `(list 1 2)`},
-			{Name: "vector form", Prog: `(read-string "[1 2]")`, Want: `[1 2]`},
-		}, func(t *testing.T, c tut.SimpleCase[string]) {
+		tut.Run(t, []tut.Case[string]{
+			{Name: "integer", Input: `(read-string "1")`, Want: `1`},
+			{Name: "string", Input: `(read-string "\"hi\"")`, Want: `"hi"`},
+			{Name: "list form", Input: `(read-string "(1 2)")`, Want: `(list 1 2)`},
+			{Name: "vector form", Input: `(read-string "[1 2]")`, Want: `[1 2]`},
+		}, func(t *testing.T, c tut.Case[string]) {
 			t.Helper()
-			assert.EvalSame(t, envs.MalFun, c.Prog, c.Want)
+			assert.EvalSame(t, envs.MalFun, c.Input, c.Want)
 		})
 	})
 
@@ -279,28 +280,28 @@ func TestSlurp(t *testing.T) {
 
 func TestAtomCreation(t *testing.T) {
 	t.Run("creates atom holding value", func(t *testing.T) {
-		tut.RunSimple(t, []tut.SimpleCase[string]{
-			{Name: "int", Prog: `(atom 1)`, Want: ""},
-			{Name: "string", Prog: `(atom "hi")`, Want: ""},
-			{Name: "nil", Prog: `(atom nil)`, Want: ""},
-			{Name: "list", Prog: `(atom (list 1 2))`, Want: ""},
-		}, func(t *testing.T, c tut.SimpleCase[string]) {
+		tut.Run(t, []tut.Case[string]{
+			{Name: "int", Input: `(atom 1)`, Want: ""},
+			{Name: "string", Input: `(atom "hi")`, Want: ""},
+			{Name: "nil", Input: `(atom nil)`, Want: ""},
+			{Name: "list", Input: `(atom (list 1 2))`, Want: ""},
+		}, func(t *testing.T, c tut.Case[string]) {
 			t.Helper()
-			tut.MustEvalAs[*typ.Atom](t, envs.MalFun, c.Prog)
+			tut.MustEvalAs[*typ.Atom](t, envs.MalFun, c.Input)
 		})
 	})
 
 	t.Run("deref returns initial value", func(t *testing.T) {
-		tut.RunSimple(t, []tut.SimpleCase[string]{
-			{Name: "int", Prog: `(deref (atom 42))`, Want: `42`},
-			{Name: "string", Prog: `(deref (atom "hi"))`, Want: `"hi"`},
-			{Name: "nil", Prog: `(deref (atom nil))`, Want: `nil`},
-			{Name: "list", Prog: `(deref (atom (list 1 2)))`, Want: `(list 1 2)`},
-			{Name: "vector", Prog: `(deref (atom [1 2]))`, Want: `[1 2]`},
-			{Name: "nested atom", Prog: `(atom? (deref (atom (atom 1))))`, Want: `true`},
-		}, func(t *testing.T, c tut.SimpleCase[string]) {
+		tut.Run(t, []tut.Case[string]{
+			{Name: "int", Input: `(deref (atom 42))`, Want: `42`},
+			{Name: "string", Input: `(deref (atom "hi"))`, Want: `"hi"`},
+			{Name: "nil", Input: `(deref (atom nil))`, Want: `nil`},
+			{Name: "list", Input: `(deref (atom (list 1 2)))`, Want: `(list 1 2)`},
+			{Name: "vector", Input: `(deref (atom [1 2]))`, Want: `[1 2]`},
+			{Name: "nested atom", Input: `(atom? (deref (atom (atom 1))))`, Want: `true`},
+		}, func(t *testing.T, c tut.Case[string]) {
 			t.Helper()
-			assert.EvalSame(t, envs.MalDefault, c.Prog, c.Want)
+			assert.EvalSame(t, envs.MalDefault, c.Input, c.Want)
 		})
 	})
 
@@ -315,26 +316,26 @@ func TestAtomCreation(t *testing.T) {
 }
 
 func TestAtomQ(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[bool]{
-		{Name: "atom of int", Prog: `(atom? (atom 1))`, Want: true},
-		{Name: "atom of string", Prog: `(atom? (atom "hi"))`, Want: true},
-		{Name: "atom of nil", Prog: `(atom? (atom nil))`, Want: true},
-		{Name: "atom of list", Prog: `(atom? (atom (list 1)))`, Want: true},
-		{Name: "atom of vector", Prog: `(atom? (atom [1 2]))`, Want: true},
-		{Name: "atom of atom", Prog: `(atom? (atom (atom 1)))`, Want: true},
-		{Name: "int false", Prog: `(atom? 1)`, Want: false},
-		{Name: "string false", Prog: `(atom? "hi")`, Want: false},
-		{Name: "nil false", Prog: `(atom? nil)`, Want: false},
-		{Name: "bool false", Prog: `(atom? true)`, Want: false},
-		{Name: "list false", Prog: `(atom? (list 1 2))`, Want: false},
-		{Name: "empty list false", Prog: `(atom? (list))`, Want: false},
-		{Name: "vector false", Prog: `(atom? [1 2])`, Want: false},
-		{Name: "empty vector false", Prog: `(atom? [])`, Want: false},
-		{Name: "map false", Prog: `(atom? {})`, Want: false},
-		{Name: "deref value false", Prog: `(atom? (deref (atom 1)))`, Want: false},
-	}, func(t *testing.T, c tut.SimpleCase[bool]) {
+	tut.Run(t, []tut.Case[bool]{
+		{Name: "atom of int", Input: `(atom? (atom 1))`, Want: true},
+		{Name: "atom of string", Input: `(atom? (atom "hi"))`, Want: true},
+		{Name: "atom of nil", Input: `(atom? (atom nil))`, Want: true},
+		{Name: "atom of list", Input: `(atom? (atom (list 1)))`, Want: true},
+		{Name: "atom of vector", Input: `(atom? (atom [1 2]))`, Want: true},
+		{Name: "atom of atom", Input: `(atom? (atom (atom 1)))`, Want: true},
+		{Name: "int false", Input: `(atom? 1)`, Want: false},
+		{Name: "string false", Input: `(atom? "hi")`, Want: false},
+		{Name: "nil false", Input: `(atom? nil)`, Want: false},
+		{Name: "bool false", Input: `(atom? true)`, Want: false},
+		{Name: "list false", Input: `(atom? (list 1 2))`, Want: false},
+		{Name: "empty list false", Input: `(atom? (list))`, Want: false},
+		{Name: "vector false", Input: `(atom? [1 2])`, Want: false},
+		{Name: "empty vector false", Input: `(atom? [])`, Want: false},
+		{Name: "map false", Input: `(atom? {})`, Want: false},
+		{Name: "deref value false", Input: `(atom? (deref (atom 1)))`, Want: false},
+	}, func(t *testing.T, c tut.Case[bool]) {
 		t.Helper()
-		assert.Eval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
+		assert.Eval(t, envs.MalDefault, c.Input, typ.Bool(c.Want))
 	})
 
 	t.Run("arity", func(t *testing.T) {
@@ -344,19 +345,19 @@ func TestAtomQ(t *testing.T) {
 
 func TestDeref(t *testing.T) {
 	t.Run("returns held value", func(t *testing.T) {
-		tut.RunSimple(t, []tut.SimpleCase[string]{
-			{Name: "int", Prog: `(deref (atom 1))`, Want: `1`},
-			{Name: "negative int", Prog: `(deref (atom -7))`, Want: `-7`},
-			{Name: "string", Prog: `(deref (atom "foo"))`, Want: `"foo"`},
-			{Name: "empty string", Prog: `(deref (atom ""))`, Want: `""`},
-			{Name: "bool", Prog: `(deref (atom true))`, Want: `true`},
-			{Name: "nil", Prog: `(deref (atom nil))`, Want: `nil`},
-			{Name: "list", Prog: `(deref (atom (list 1 2)))`, Want: `(list 1 2)`},
-			{Name: "vector", Prog: `(deref (atom [1 2]))`, Want: `[1 2]`},
-			{Name: "map", Prog: `(deref (atom {"a" 1}))`, Want: `{"a" 1}`},
-		}, func(t *testing.T, c tut.SimpleCase[string]) {
+		tut.Run(t, []tut.Case[string]{
+			{Name: "int", Input: `(deref (atom 1))`, Want: `1`},
+			{Name: "negative int", Input: `(deref (atom -7))`, Want: `-7`},
+			{Name: "string", Input: `(deref (atom "foo"))`, Want: `"foo"`},
+			{Name: "empty string", Input: `(deref (atom ""))`, Want: `""`},
+			{Name: "bool", Input: `(deref (atom true))`, Want: `true`},
+			{Name: "nil", Input: `(deref (atom nil))`, Want: `nil`},
+			{Name: "list", Input: `(deref (atom (list 1 2)))`, Want: `(list 1 2)`},
+			{Name: "vector", Input: `(deref (atom [1 2]))`, Want: `[1 2]`},
+			{Name: "map", Input: `(deref (atom {"a" 1}))`, Want: `{"a" 1}`},
+		}, func(t *testing.T, c tut.Case[string]) {
 			t.Helper()
-			assert.EvalSame(t, envs.MalDefault, c.Prog, c.Want)
+			assert.EvalSame(t, envs.MalDefault, c.Input, c.Want)
 		})
 	})
 
@@ -386,17 +387,17 @@ func TestDeref(t *testing.T) {
 
 func TestResetOp(t *testing.T) {
 	t.Run("returns new value", func(t *testing.T) {
-		tut.RunSimple(t, []tut.SimpleCase[string]{
-			{Name: "int to int", Prog: `(reset! (atom 1) 2)`, Want: `2`},
-			{Name: "int to string", Prog: `(reset! (atom 1) "hi")`, Want: `"hi"`},
-			{Name: "string to int", Prog: `(reset! (atom "hi") 42)`, Want: `42`},
-			{Name: "to nil", Prog: `(reset! (atom 1) nil)`, Want: `nil`},
-			{Name: "nil to int", Prog: `(reset! (atom nil) 1)`, Want: `1`},
-			{Name: "to list", Prog: `(reset! (atom 1) (list 1 2))`, Want: `(list 1 2)`},
-			{Name: "to vector", Prog: `(reset! (atom 1) [1 2])`, Want: `[1 2]`},
-		}, func(t *testing.T, c tut.SimpleCase[string]) {
+		tut.Run(t, []tut.Case[string]{
+			{Name: "int to int", Input: `(reset! (atom 1) 2)`, Want: `2`},
+			{Name: "int to string", Input: `(reset! (atom 1) "hi")`, Want: `"hi"`},
+			{Name: "string to int", Input: `(reset! (atom "hi") 42)`, Want: `42`},
+			{Name: "to nil", Input: `(reset! (atom 1) nil)`, Want: `nil`},
+			{Name: "nil to int", Input: `(reset! (atom nil) 1)`, Want: `1`},
+			{Name: "to list", Input: `(reset! (atom 1) (list 1 2))`, Want: `(list 1 2)`},
+			{Name: "to vector", Input: `(reset! (atom 1) [1 2])`, Want: `[1 2]`},
+		}, func(t *testing.T, c tut.Case[string]) {
 			t.Helper()
-			assert.EvalSame(t, envs.MalFun, c.Prog, c.Want)
+			assert.EvalSame(t, envs.MalFun, c.Input, c.Want)
 		})
 	})
 
@@ -429,16 +430,17 @@ func TestResetOp(t *testing.T) {
 
 func TestSwapOp(t *testing.T) {
 	t.Run("returns new value", func(t *testing.T) {
-		tut.RunSimple(t, []tut.SimpleCase[string]{
-			{Name: "list no extra args", Prog: `(swap! (atom 1) list)`, Want: `(list 1)`},
-			{Name: "list with extra args", Prog: `(swap! (atom 1) list 2 3)`, Want: `(list 1 2 3)`},
-			{Name: "str no extra args", Prog: `(swap! (atom "a") str)`, Want: `"a"`},
-			{Name: "str with extra args", Prog: `(swap! (atom "a") str "b" "c")`, Want: `"abc"`},
-			{Name: "str int atom", Prog: `(swap! (atom 1) str "a")`, Want: `"1a"`},
-			{Name: "pr-str", Prog: `(swap! (atom 1) pr-str 2)`, Want: `"1 2"`},
-		}, func(t *testing.T, c tut.SimpleCase[string]) {
+		tut.Run(t, []tut.Case[string]{
+			{Name: "list no extra args", Input: `(swap! (atom 1) list)`, Want: `(list 1)`},
+			{Name: "list with extra args",
+				Input: `(swap! (atom 1) list 2 3)`, Want: `(list 1 2 3)`},
+			{Name: "str no extra args", Input: `(swap! (atom "a") str)`, Want: `"a"`},
+			{Name: "str with extra args", Input: `(swap! (atom "a") str "b" "c")`, Want: `"abc"`},
+			{Name: "str int atom", Input: `(swap! (atom 1) str "a")`, Want: `"1a"`},
+			{Name: "pr-str", Input: `(swap! (atom 1) pr-str 2)`, Want: `"1 2"`},
+		}, func(t *testing.T, c tut.Case[string]) {
 			t.Helper()
-			assert.EvalSame(t, envs.MalFun, c.Prog, c.Want)
+			assert.EvalSame(t, envs.MalFun, c.Input, c.Want)
 		})
 	})
 

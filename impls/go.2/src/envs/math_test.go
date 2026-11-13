@@ -39,13 +39,13 @@ func TestEvalUsesGivenEnv(t *testing.T) {
 }
 
 func TestEvalArithmetic(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[typ.Integer]{
-		{Name: "add", Prog: "(+ 1 2)", Want: 3},
-		{Name: "subtract", Prog: "(- 5 3)", Want: 2},
-		{Name: "multiply", Prog: "(* 4 3)", Want: 12},
-		{Name: "divide", Prog: "(/ 8 2)", Want: 4},
-	}, func(t *testing.T, c tut.SimpleCase[typ.Integer]) {
-		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	tut.Run(t, []tut.Case[typ.Integer]{
+		{Name: "add", Input: "(+ 1 2)", Want: 3},
+		{Name: "subtract", Input: "(- 5 3)", Want: 2},
+		{Name: "multiply", Input: "(* 4 3)", Want: 12},
+		{Name: "divide", Input: "(/ 8 2)", Want: 4},
+	}, func(t *testing.T, c tut.Case[typ.Integer]) {
+		assert.Eval(t, envs.Math, c.Input, c.Want)
 	})
 }
 
@@ -60,19 +60,19 @@ func TestVariadicZeroArgsReturnsFatal(t *testing.T) {
 
 func TestVariadicOneArg(t *testing.T) {
 	// + and * with one arg return identity, - negates.
-	tut.RunSimple(t, []tut.SimpleCase[typ.Integer]{
-		{Name: "plus 42", Prog: "(+ 42)", Want: 42},
-		{Name: "plus minus", Prog: "(+ -7)", Want: -7},
-		{Name: "plus zero", Prog: "(+ 0)", Want: 0},
-		{Name: "mult 42", Prog: "(* 42)", Want: 42},
-		{Name: "mult minus", Prog: "(* -7)", Want: -7},
-		{Name: "mult zero", Prog: "(* 0)", Want: 0},
-		{Name: "minus 5", Prog: "(- 5)", Want: -5},
+	tut.Run(t, []tut.Case[typ.Integer]{
+		{Name: "plus 42", Input: "(+ 42)", Want: 42},
+		{Name: "plus minus", Input: "(+ -7)", Want: -7},
+		{Name: "plus zero", Input: "(+ 0)", Want: 0},
+		{Name: "mult 42", Input: "(* 42)", Want: 42},
+		{Name: "mult minus", Input: "(* -7)", Want: -7},
+		{Name: "mult zero", Input: "(* 0)", Want: 0},
+		{Name: "minus 5", Input: "(- 5)", Want: -5},
 		//nolint:dupword
-		{Name: "minus minus", Prog: "(- -5)", Want: 5},
-		{Name: "minus zero", Prog: "(- 0)", Want: 0},
-	}, func(t *testing.T, c tut.SimpleCase[typ.Integer]) {
-		assert.Eval(t, envs.Math, c.Prog, c.Want)
+		{Name: "minus minus", Input: "(- -5)", Want: 5},
+		{Name: "minus zero", Input: "(- 0)", Want: 0},
+	}, func(t *testing.T, c tut.Case[typ.Integer]) {
+		assert.Eval(t, envs.Math, c.Input, c.Want)
 	})
 
 	// / with one arg is an arity error.
@@ -80,27 +80,27 @@ func TestVariadicOneArg(t *testing.T) {
 }
 
 func TestVariadicManyArgsLeftFold(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[typ.Integer]{
-		{Name: "(+ 1 2 3)", Prog: "(+ 1 2 3)", Want: 6},
-		{Name: "(+ 1 2 3 4)", Prog: "(+ 1 2 3 4)", Want: 10},
-		{Name: "(+ 1 2 3 4 5)", Prog: "(+ 1 2 3 4 5)", Want: 15},
-		{Name: "(+ -1 2 -3 4)", Prog: "(+ -1 2 -3 4)", Want: 2},
-		{Name: "(* 2 3 4)", Prog: "(* 2 3 4)", Want: 24},
-		{Name: "(* 2 3 4 5)", Prog: "(* 2 3 4 5)", Want: 120},
-		{Name: "(* 1 2 3 4 5)", Prog: "(* 1 2 3 4 5)", Want: 120},
-		{Name: "(* -2 3 4)", Prog: "(* -2 3 4)", Want: -24},
-		{Name: "(- 10 3 2)", Prog: "(- 10 3 2)", Want: 5},
-		{Name: "(- 20 5 3 2)", Prog: "(- 20 5 3 2)", Want: 10},
-		{Name: "(- 30 10 5 3 2)", Prog: "(- 30 10 5 3 2)", Want: 10},
-		{Name: "(- 100 20 30)", Prog: "(- 100 20 30)", Want: 50},
-		{Name: "(- 0 5 3)", Prog: "(- 0 5 3)", Want: -8},
-		{Name: "(/ 100 5 2)", Prog: "(/ 100 5 2)", Want: 10},
-		{Name: "(/ 120 6 2)", Prog: "(/ 120 6 2)", Want: 10},
-		{Name: "(/ 120 3 2 2)", Prog: "(/ 120 3 2 2)", Want: 10},
-		{Name: "(/ 1000 10 5 2 2)", Prog: "(/ 1000 10 5 2 2)", Want: 5},
-		{Name: "(/ 64 2 2 2)", Prog: "(/ 64 2 2 2)", Want: 8},
-	}, func(t *testing.T, c tut.SimpleCase[typ.Integer]) {
-		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	tut.Run(t, []tut.Case[typ.Integer]{
+		{Name: "(+ 1 2 3)", Input: "(+ 1 2 3)", Want: 6},
+		{Name: "(+ 1 2 3 4)", Input: "(+ 1 2 3 4)", Want: 10},
+		{Name: "(+ 1 2 3 4 5)", Input: "(+ 1 2 3 4 5)", Want: 15},
+		{Name: "(+ -1 2 -3 4)", Input: "(+ -1 2 -3 4)", Want: 2},
+		{Name: "(* 2 3 4)", Input: "(* 2 3 4)", Want: 24},
+		{Name: "(* 2 3 4 5)", Input: "(* 2 3 4 5)", Want: 120},
+		{Name: "(* 1 2 3 4 5)", Input: "(* 1 2 3 4 5)", Want: 120},
+		{Name: "(* -2 3 4)", Input: "(* -2 3 4)", Want: -24},
+		{Name: "(- 10 3 2)", Input: "(- 10 3 2)", Want: 5},
+		{Name: "(- 20 5 3 2)", Input: "(- 20 5 3 2)", Want: 10},
+		{Name: "(- 30 10 5 3 2)", Input: "(- 30 10 5 3 2)", Want: 10},
+		{Name: "(- 100 20 30)", Input: "(- 100 20 30)", Want: 50},
+		{Name: "(- 0 5 3)", Input: "(- 0 5 3)", Want: -8},
+		{Name: "(/ 100 5 2)", Input: "(/ 100 5 2)", Want: 10},
+		{Name: "(/ 120 6 2)", Input: "(/ 120 6 2)", Want: 10},
+		{Name: "(/ 120 3 2 2)", Input: "(/ 120 3 2 2)", Want: 10},
+		{Name: "(/ 1000 10 5 2 2)", Input: "(/ 1000 10 5 2 2)", Want: 5},
+		{Name: "(/ 64 2 2 2)", Input: "(/ 64 2 2 2)", Want: 8},
+	}, func(t *testing.T, c tut.Case[typ.Integer]) {
+		assert.Eval(t, envs.Math, c.Input, c.Want)
 	})
 }
 
@@ -140,71 +140,71 @@ func TestMixedIntStringFatalReturnsFatal(t *testing.T) {
 }
 
 func TestDeepNestedCombinations(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[typ.Integer]{
-		{Name: "(+ (* 2 3) (- 10 4))", Prog: "(+ (* 2 3) (- 10 4))", Want: 12},
-		{Name: "(+ (* 2 3) (- 10 4) (/ 20 4))", Prog: "(+ (* 2 3) (- 10 4) (/ 20 4))", Want: 17},
-		{Name: "(* (+ 1 2) (+ 3 4))", Prog: "(* (+ 1 2) (+ 3 4))", Want: 21},
-		{Name: "(* (+ 1 2 3) (- 10 (- 5 2)))", Prog: "(* (+ 1 2 3) (- 10 (- 5 2)))", Want: 42},
-		{Name: "(- (* (+ 1 2 3) 4) (/ 20 2))", Prog: "(- (* (+ 1 2 3) 4) (/ 20 2))", Want: 14},
-		{Name: "(/ (* 2 3 5) (+ 2 3))", Prog: "(/ (* 2 3 5) (+ 2 3))", Want: 6},
-		{Name: "(- (+ 10 20) (* 2 3))", Prog: "(- (+ 10 20) (* 2 3))", Want: 24},
+	tut.Run(t, []tut.Case[typ.Integer]{
+		{Name: "(+ (* 2 3) (- 10 4))", Input: "(+ (* 2 3) (- 10 4))", Want: 12},
+		{Name: "(+ (* 2 3) (- 10 4) (/ 20 4))", Input: "(+ (* 2 3) (- 10 4) (/ 20 4))", Want: 17},
+		{Name: "(* (+ 1 2) (+ 3 4))", Input: "(* (+ 1 2) (+ 3 4))", Want: 21},
+		{Name: "(* (+ 1 2 3) (- 10 (- 5 2)))", Input: "(* (+ 1 2 3) (- 10 (- 5 2)))", Want: 42},
+		{Name: "(- (* (+ 1 2 3) 4) (/ 20 2))", Input: "(- (* (+ 1 2 3) 4) (/ 20 2))", Want: 14},
+		{Name: "(/ (* 2 3 5) (+ 2 3))", Input: "(/ (* 2 3 5) (+ 2 3))", Want: 6},
+		{Name: "(- (+ 10 20) (* 2 3))", Input: "(- (+ 10 20) (* 2 3))", Want: 24},
 		{Name: "(+ (* (- 10 3) (/ 12 4)) (- (/ 100 5 2) (+ 1 2 3)))",
-			Prog: "(+ (* (- 10 3) (/ 12 4)) (- (/ 100 5 2) (+ 1 2 3)))", Want: 25},
+			Input: "(+ (* (- 10 3) (/ 12 4)) (- (/ 100 5 2) (+ 1 2 3)))", Want: 25},
 		{Name: "(* (- (/ 100 2) 10) (+ (- 5 2) (/ 9 3)))",
-			Prog: "(* (- (/ 100 2) 10) (+ (- 5 2) (/ 9 3)))", Want: 240},
+			Input: "(* (- (/ 100 2) 10) (+ (- 5 2) (/ 9 3)))", Want: 240},
 		{Name: "(/ (- (* 10 10) 20) (+ 2 2 2 2))",
-			Prog: "(/ (- (* 10 10) 20) (+ 2 2 2 2))", Want: 10},
+			Input: "(/ (- (* 10 10) 20) (+ 2 2 2 2))", Want: 10},
 		{Name: "(+ (- (* (/ 64 2) 2) 12) (* (+ 1 1 1) (- 10 5)))",
-			Prog: "(+ (- (* (/ 64 2) 2) 12) (* (+ 1 1 1) (- 10 5)))", Want: 67},
+			Input: "(+ (- (* (/ 64 2) 2) 12) (* (+ 1 1 1) (- 10 5)))", Want: 67},
 		{Name: "(* (+ (/ 20 2) (- 8 3)) (- (/ 30 3) (+ 1 2)))",
-			Prog: "(* (+ (/ 20 2) (- 8 3)) (- (/ 30 3) (+ 1 2)))", Want: 105},
-	}, func(t *testing.T, c tut.SimpleCase[typ.Integer]) {
-		assert.Eval(t, envs.Math, c.Prog, c.Want)
+			Input: "(* (+ (/ 20 2) (- 8 3)) (- (/ 30 3) (+ 1 2)))", Want: 105},
+	}, func(t *testing.T, c tut.Case[typ.Integer]) {
+		assert.Eval(t, envs.Math, c.Input, c.Want)
 	})
 }
 
 func TestNumericComparisons(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[typ.Bool]{
-		{Name: "(< 1 2)", Prog: "(< 1 2)", Want: true},
-		{Name: "(< 2 1)", Prog: "(< 2 1)", Want: false},
-		{Name: "(< 1 1)", Prog: "(< 1 1)", Want: false},
-		{Name: "(< 0 0)", Prog: "(< 0 0)", Want: false},
-		{Name: "(< -5 0)", Prog: "(< -5 0)", Want: true},
-		{Name: "(< 0 -5)", Prog: "(< 0 -5)", Want: false},
-		{Name: "(< -10 -5)", Prog: "(< -10 -5)", Want: true},
-		{Name: "(< -5 -10)", Prog: "(< -5 -10)", Want: false},
-		{Name: "(<= 1 2)", Prog: "(<= 1 2)", Want: true},
-		{Name: "(<= 2 1)", Prog: "(<= 2 1)", Want: false},
-		{Name: "(<= 1 1)", Prog: "(<= 1 1)", Want: true},
-		{Name: "(<= 0 0)", Prog: "(<= 0 0)", Want: true},
-		{Name: "(<= -5 -5)", Prog: "(<= -5 -5)", Want: true},
-		{Name: "(<= -5 0)", Prog: "(<= -5 0)", Want: true},
-		{Name: "(<= 0 -5)", Prog: "(<= 0 -5)", Want: false},
-		{Name: "(> 2 1)", Prog: "(> 2 1)", Want: true},
-		{Name: "(> 1 2)", Prog: "(> 1 2)", Want: false},
-		{Name: "(> 1 1)", Prog: "(> 1 1)", Want: false},
-		{Name: "(> 0 0)", Prog: "(> 0 0)", Want: false},
-		{Name: "(> 0 -5)", Prog: "(> 0 -5)", Want: true},
-		{Name: "(> -5 0)", Prog: "(> -5 0)", Want: false},
-		{Name: "(> -5 -10)", Prog: "(> -5 -10)", Want: true},
-		{Name: "(> -10 -5)", Prog: "(> -10 -5)", Want: false},
-		{Name: "(>= 2 1)", Prog: "(>= 2 1)", Want: true},
-		{Name: "(>= 1 2)", Prog: "(>= 1 2)", Want: false},
-		{Name: "(>= 1 1)", Prog: "(>= 1 1)", Want: true},
-		{Name: "(>= 0 0)", Prog: "(>= 0 0)", Want: true},
-		{Name: "(>= -5 -5)", Prog: "(>= -5 -5)", Want: true},
-		{Name: "(>= 0 -5)", Prog: "(>= 0 -5)", Want: true},
-		{Name: "(>= -5 0)", Prog: "(>= -5 0)", Want: false},
-		{Name: "(< (+ 1 2) (* 2 2))", Prog: "(< (+ 1 2) (* 2 2))", Want: true},
-		{Name: "(> (* 3 3) (+ 4 4))", Prog: "(> (* 3 3) (+ 4 4))", Want: true},
-		{Name: "(<= (- 5 5) 0)", Prog: "(<= (- 5 5) 0)", Want: true},
-		{Name: "(>= (/ 10 2) 5)", Prog: "(>= (/ 10 2) 5)", Want: true},
-		{Name: "(< (- 0 5) 0)", Prog: "(< (- 0 5) 0)", Want: true},
-		{Name: "(> (- 0 5) 0)", Prog: "(> (- 0 5) 0)", Want: false},
-		{Name: "(<= (+ 1 2 3) (* 2 3))", Prog: "(<= (+ 1 2 3) (* 2 3))", Want: true},
-		{Name: "(>= (* 2 3) (+ 1 2 3))", Prog: "(>= (* 2 3) (+ 1 2 3))", Want: true},
-	}, func(t *testing.T, c tut.SimpleCase[typ.Bool]) {
-		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	tut.Run(t, []tut.Case[typ.Bool]{
+		{Name: "(< 1 2)", Input: "(< 1 2)", Want: true},
+		{Name: "(< 2 1)", Input: "(< 2 1)", Want: false},
+		{Name: "(< 1 1)", Input: "(< 1 1)", Want: false},
+		{Name: "(< 0 0)", Input: "(< 0 0)", Want: false},
+		{Name: "(< -5 0)", Input: "(< -5 0)", Want: true},
+		{Name: "(< 0 -5)", Input: "(< 0 -5)", Want: false},
+		{Name: "(< -10 -5)", Input: "(< -10 -5)", Want: true},
+		{Name: "(< -5 -10)", Input: "(< -5 -10)", Want: false},
+		{Name: "(<= 1 2)", Input: "(<= 1 2)", Want: true},
+		{Name: "(<= 2 1)", Input: "(<= 2 1)", Want: false},
+		{Name: "(<= 1 1)", Input: "(<= 1 1)", Want: true},
+		{Name: "(<= 0 0)", Input: "(<= 0 0)", Want: true},
+		{Name: "(<= -5 -5)", Input: "(<= -5 -5)", Want: true},
+		{Name: "(<= -5 0)", Input: "(<= -5 0)", Want: true},
+		{Name: "(<= 0 -5)", Input: "(<= 0 -5)", Want: false},
+		{Name: "(> 2 1)", Input: "(> 2 1)", Want: true},
+		{Name: "(> 1 2)", Input: "(> 1 2)", Want: false},
+		{Name: "(> 1 1)", Input: "(> 1 1)", Want: false},
+		{Name: "(> 0 0)", Input: "(> 0 0)", Want: false},
+		{Name: "(> 0 -5)", Input: "(> 0 -5)", Want: true},
+		{Name: "(> -5 0)", Input: "(> -5 0)", Want: false},
+		{Name: "(> -5 -10)", Input: "(> -5 -10)", Want: true},
+		{Name: "(> -10 -5)", Input: "(> -10 -5)", Want: false},
+		{Name: "(>= 2 1)", Input: "(>= 2 1)", Want: true},
+		{Name: "(>= 1 2)", Input: "(>= 1 2)", Want: false},
+		{Name: "(>= 1 1)", Input: "(>= 1 1)", Want: true},
+		{Name: "(>= 0 0)", Input: "(>= 0 0)", Want: true},
+		{Name: "(>= -5 -5)", Input: "(>= -5 -5)", Want: true},
+		{Name: "(>= 0 -5)", Input: "(>= 0 -5)", Want: true},
+		{Name: "(>= -5 0)", Input: "(>= -5 0)", Want: false},
+		{Name: "(< (+ 1 2) (* 2 2))", Input: "(< (+ 1 2) (* 2 2))", Want: true},
+		{Name: "(> (* 3 3) (+ 4 4))", Input: "(> (* 3 3) (+ 4 4))", Want: true},
+		{Name: "(<= (- 5 5) 0)", Input: "(<= (- 5 5) 0)", Want: true},
+		{Name: "(>= (/ 10 2) 5)", Input: "(>= (/ 10 2) 5)", Want: true},
+		{Name: "(< (- 0 5) 0)", Input: "(< (- 0 5) 0)", Want: true},
+		{Name: "(> (- 0 5) 0)", Input: "(> (- 0 5) 0)", Want: false},
+		{Name: "(<= (+ 1 2 3) (* 2 3))", Input: "(<= (+ 1 2 3) (* 2 3))", Want: true},
+		{Name: "(>= (* 2 3) (+ 1 2 3))", Input: "(>= (* 2 3) (+ 1 2 3))", Want: true},
+	}, func(t *testing.T, c tut.Case[typ.Bool]) {
+		assert.Eval(t, envs.Math, c.Input, c.Want)
 	})
 }
 
@@ -244,11 +244,11 @@ func TestNumericComparisonErrors(t *testing.T) {
 
 func TestLogicLiterals(t *testing.T) {
 	// true and false evaluate to themselves.
-	tut.RunSimple(t, []tut.SimpleCase[typ.Bool]{
-		{Name: "true", Prog: "true", Want: true},
-		{Name: "false", Prog: "false", Want: false},
-	}, func(t *testing.T, c tut.SimpleCase[typ.Bool]) {
-		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	tut.Run(t, []tut.Case[typ.Bool]{
+		{Name: "true", Input: "true", Want: true},
+		{Name: "false", Input: "false", Want: false},
+	}, func(t *testing.T, c tut.Case[typ.Bool]) {
+		assert.Eval(t, envs.Math, c.Input, c.Want)
 	})
 
 	// Symbol lookup returns expected types.
@@ -262,28 +262,28 @@ func TestLogicLiterals(t *testing.T) {
 }
 
 func TestNotFunction(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[typ.Bool]{
-		{Name: "(not true)", Prog: "(not true)", Want: false},
-		{Name: "(not false)", Prog: "(not false)", Want: true},
-		{Name: "(not nil)", Prog: "(not nil)", Want: true},
-		{Name: "(not 0)", Prog: "(not 0)", Want: false},
-		{Name: "(not 1)", Prog: "(not 1)", Want: false},
-		{Name: "(not -5)", Prog: "(not -5)", Want: false},
-		{Name: `(not "hi")`, Prog: `(not "hi")`, Want: false},
-		{Name: `(not "")`, Prog: `(not "")`, Want: false},
-		{Name: "(not ())", Prog: "(not ())", Want: false},
-		{Name: "(not (< 1 2))", Prog: "(not (< 1 2))", Want: false},
-		{Name: "(not (< 2 1))", Prog: "(not (< 2 1))", Want: true},
-		{Name: "(not (> 2 1))", Prog: "(not (> 2 1))", Want: false},
-		{Name: "(not (> 1 2))", Prog: "(not (> 1 2))", Want: true},
-		{Name: "(not (not true))", Prog: "(not (not true))", Want: true},
-		{Name: "(not (not false))", Prog: "(not (not false))", Want: false},
-		{Name: "(not (not nil))", Prog: "(not (not nil))", Want: false},
-		{Name: "(not (not 42))", Prog: "(not (not 42))", Want: true},
-		{Name: "(not (+ 1 2))", Prog: "(not (+ 1 2))", Want: false},
-		{Name: "(not (- 5 5))", Prog: "(not (- 5 5))", Want: false},
-	}, func(t *testing.T, c tut.SimpleCase[typ.Bool]) {
-		assert.Eval(t, envs.Math, c.Prog, c.Want)
+	tut.Run(t, []tut.Case[typ.Bool]{
+		{Name: "(not true)", Input: "(not true)", Want: false},
+		{Name: "(not false)", Input: "(not false)", Want: true},
+		{Name: "(not nil)", Input: "(not nil)", Want: true},
+		{Name: "(not 0)", Input: "(not 0)", Want: false},
+		{Name: "(not 1)", Input: "(not 1)", Want: false},
+		{Name: "(not -5)", Input: "(not -5)", Want: false},
+		{Name: `(not "hi")`, Input: `(not "hi")`, Want: false},
+		{Name: `(not "")`, Input: `(not "")`, Want: false},
+		{Name: "(not ())", Input: "(not ())", Want: false},
+		{Name: "(not (< 1 2))", Input: "(not (< 1 2))", Want: false},
+		{Name: "(not (< 2 1))", Input: "(not (< 2 1))", Want: true},
+		{Name: "(not (> 2 1))", Input: "(not (> 2 1))", Want: false},
+		{Name: "(not (> 1 2))", Input: "(not (> 1 2))", Want: true},
+		{Name: "(not (not true))", Input: "(not (not true))", Want: true},
+		{Name: "(not (not false))", Input: "(not (not false))", Want: false},
+		{Name: "(not (not nil))", Input: "(not (not nil))", Want: false},
+		{Name: "(not (not 42))", Input: "(not (not 42))", Want: true},
+		{Name: "(not (+ 1 2))", Input: "(not (+ 1 2))", Want: false},
+		{Name: "(not (- 5 5))", Input: "(not (- 5 5))", Want: false},
+	}, func(t *testing.T, c tut.Case[typ.Bool]) {
+		assert.Eval(t, envs.Math, c.Input, c.Want)
 	})
 }
 

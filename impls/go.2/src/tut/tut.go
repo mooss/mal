@@ -53,24 +53,6 @@ func Run[W any](t *testing.T, cases []Case[W], fn func(*testing.T, Case[W])) {
 	}
 }
 
-// SimpleCase is a success-only table entry without error flag.
-type SimpleCase[W any] struct {
-	Name string
-	Prog string
-	Want W
-}
-
-// RunSimple executes each simple case as a subtest.
-func RunSimple[W any](t *testing.T, cases []SimpleCase[W], fn func(*testing.T, SimpleCase[W])) {
-	t.Helper()
-	for _, c := range cases {
-		t.Run(c.Name, func(t *testing.T) {
-			t.Helper()
-			fn(t, c)
-		})
-	}
-}
-
 // Capture runs fn with stdout piped and returns what was printed.
 func Capture(t *testing.T, fn func()) string {
 	t.Helper()

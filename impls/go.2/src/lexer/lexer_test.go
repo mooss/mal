@@ -119,17 +119,17 @@ func testSingleCharToken(t *testing.T, char string, typ lexer.TokenType) {
 }
 
 func TestTokenizeSingleCharTokens(t *testing.T) {
-	tut.RunSimple(t, []tut.SimpleCase[lexer.TokenType]{
-		{Name: "lparen", Prog: "(", Want: LPAREN},
-		{Name: "rparen", Prog: ")", Want: RPAREN},
-		{Name: "lbracket", Prog: "[", Want: LBRACKET},
-		{Name: "rbracket", Prog: "]", Want: RBRACKET},
-		{Name: "lbrace", Prog: "{", Want: LBRACE},
-		{Name: "rbrace", Prog: "}", Want: RBRACE},
-		{Name: "squote", Prog: "'", Want: SQUOTE},
-	}, func(t *testing.T, c tut.SimpleCase[lexer.TokenType]) {
+	tut.Run(t, []tut.Case[lexer.TokenType]{
+		{Name: "lparen", Input: "(", Want: LPAREN},
+		{Name: "rparen", Input: ")", Want: RPAREN},
+		{Name: "lbracket", Input: "[", Want: LBRACKET},
+		{Name: "rbracket", Input: "]", Want: RBRACKET},
+		{Name: "lbrace", Input: "{", Want: LBRACE},
+		{Name: "rbrace", Input: "}", Want: RBRACE},
+		{Name: "squote", Input: "'", Want: SQUOTE},
+	}, func(t *testing.T, c tut.Case[lexer.TokenType]) {
 		t.Helper()
-		testSingleCharToken(t, c.Prog, c.Want)
+		testSingleCharToken(t, c.Input, c.Want)
 	})
 }
 
