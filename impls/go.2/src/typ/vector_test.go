@@ -5,6 +5,7 @@ import (
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/tut"
+	"github.com/mooss/mal/src/tut/assert"
 	"github.com/mooss/mal/src/typ"
 )
 
@@ -14,13 +15,13 @@ func TestVectorEvalEvaluatesElementsInOrder(t *testing.T) {
 		"second": tut.Num(20),
 		"third":  tut.Num(30),
 	}.AsEnv()
-	got := tut.AssertOk(t, tut.Vec(
+	got := assert.Ok(t, tut.Vec(
 		tut.Sym("first"), tut.Sym("second"), tut.Sym("third"),
 	).Eval(envr))
 
-	vec := tut.Is[typ.Vector](t, got)
-	tut.AssertEqual(t, len(vec), 3)
-	tut.AssertString(t, got, "[10 20 30]")
+	vec := assert.Is[typ.Vector](t, got)
+	assert.Equal(t, len(vec), 3)
+	assert.StringRepr(t, got, "[10 20 30]")
 }
 
 func TestVectorEvalPropagatesFirstFatalAndStops(t *testing.T) {
@@ -37,6 +38,6 @@ func TestVectorEvalPropagatesFirstFatalAndStops(t *testing.T) {
 		tut.Probe{ID: "probe", Log: &log, Ret: tut.Num(1)},
 	).Eval(envr)
 
-	tut.AssertString(t, tut.AssertFatal(t, got), firstFatal.String())
-	tut.AssertEqual(t, len(log), 0)
+	assert.StringRepr(t, assert.Fatal(t, got), firstFatal.String())
+	assert.Equal(t, len(log), 0)
 }

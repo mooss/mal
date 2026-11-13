@@ -3,7 +3,6 @@ package tut
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -70,43 +69,6 @@ func RunSimple[W any](t *testing.T, cases []SimpleCase[W], fn func(*testing.T, S
 			fn(t, c)
 		})
 	}
-}
-
-// MalEqual reports Mal value equality with .Equal.
-// Will panic on nil values, this is intentional, Mal should never return nil values.
-func MalEqual(a, b core.Value) bool {
-	if a == nil || b == nil {
-		panic(fmt.Sprintf("MalEqual(%#v, %#v) got nil value", a, b))
-	}
-	return a.Equal(b)
-}
-
-// MalDifferent reports Mal value inequality with .Equal.
-// Will panic on nil values, this is intentional, Mal should never return nil values.
-func MalDifferent(a, b core.Value) bool {
-	if a == nil || b == nil {
-		panic(fmt.Sprintf("MalDifferent(%#v, %#v) got nil value", a, b))
-	}
-	return !a.Equal(b)
-}
-
-// EqualSlicesWith reports element-wise equality using eq.
-// It is generic over any element type and makes EqualSlices reusable.
-func EqualSlicesWith[T any](a, b []T, eq func(a, b T) bool) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if !eq(a[i], b[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-// MalEqualSlices reports element-wise MalEqual.
-func MalEqualSlices(a, b []core.Value) bool {
-	return EqualSlicesWith(a, b, MalEqual)
 }
 
 // Capture runs fn with stdout piped and returns what was printed.

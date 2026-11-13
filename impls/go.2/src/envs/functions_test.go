@@ -10,6 +10,8 @@ import (
 
 	"github.com/mooss/mal/src/envs"
 	"github.com/mooss/mal/src/tut"
+	"github.com/mooss/mal/src/tut/assert"
+	"github.com/mooss/mal/src/tut/eq"
 	"github.com/mooss/mal/src/typ"
 )
 
@@ -31,7 +33,7 @@ func TestStr(t *testing.T) {
 		{Name: "zero", Prog: `(str 0)`, Want: "0"},
 	}, func(t *testing.T, c tut.SimpleCase[string]) {
 		t.Helper()
-		tut.AssertEval(t, envs.MalFun, c.Prog, tut.Str(c.Want))
+		assert.Eval(t, envs.MalFun, c.Prog, tut.Str(c.Want))
 	})
 }
 
@@ -49,7 +51,7 @@ func TestPrStr(t *testing.T) {
 		{Name: "negative integer", Prog: `(pr-str -7)`, Want: "-7"},
 	}, func(t *testing.T, c tut.SimpleCase[string]) {
 		t.Helper()
-		tut.AssertEval(t, envs.MalFun, c.Prog, tut.Str(c.Want))
+		assert.Eval(t, envs.MalFun, c.Prog, tut.Str(c.Want))
 	})
 }
 
@@ -64,7 +66,7 @@ func TestPrn(t *testing.T) {
 		{Name: "integer and string", Prog: `(prn 1 "a")`, Want: "1 \"a\"\n"},
 	}, func(t *testing.T, c tut.SimpleCase[string]) {
 		t.Helper()
-		tut.AssertPrint(t, envs.MalFun, c.Prog, c.Want)
+		assert.Print(t, envs.MalFun, c.Prog, c.Want)
 	})
 }
 
@@ -80,7 +82,7 @@ func TestPrintln(t *testing.T) {
 		{Name: "sentence", Prog: `(println "hello" "world")`, Want: "hello world\n"},
 	}, func(t *testing.T, c tut.SimpleCase[string]) {
 		t.Helper()
-		tut.AssertPrint(t, envs.MalFun, c.Prog, c.Want)
+		assert.Print(t, envs.MalFun, c.Prog, c.Want)
 	})
 }
 
@@ -122,12 +124,12 @@ func TestEqualOp(t *testing.T) {
 		{Name: "cross string vs vector", Prog: `(= "a" ["a"])`, Want: false},
 	}, func(t *testing.T, c tut.SimpleCase[bool]) {
 		t.Helper()
-		tut.AssertEval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
+		assert.Eval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
 	})
 
 	t.Run("arity", func(t *testing.T) {
 		//nolint:dupword
-		tut.AssertAllFatal(t, envs.MalFun, `(=)`, `(= 1)`, `(= 1 2 3)`, `(= nil nil nil)`)
+		assert.EvalFatal(t, envs.MalFun, `(=)`, `(= 1)`, `(= 1 2 3)`, `(= nil nil nil)`)
 	})
 }
 
@@ -142,16 +144,16 @@ func TestCount(t *testing.T) {
 		{Name: "non-empty map", Prog: `(count {"a" 1 "b" 2})`, Want: 2},
 	}, func(t *testing.T, c tut.SimpleCase[int]) {
 		t.Helper()
-		tut.AssertEval(t, envs.MalFun, c.Prog, tut.Num(int64(c.Want)))
+		assert.Eval(t, envs.MalFun, c.Prog, tut.Num(int64(c.Want)))
 	})
 
 	t.Run("non-containers return Fatal", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun,
+		assert.EvalFatal(t, envs.MalFun,
 			`(count 1)`, `(count 0)`, `(count true)`, `(count false)`)
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun, `(count)`, `(count [1] [2])`, `(count nil nil)`)
+		assert.EvalFatal(t, envs.MalFun, `(count)`, `(count [1] [2])`, `(count nil nil)`)
 	})
 }
 
@@ -167,37 +169,37 @@ func TestEmptyQ(t *testing.T) {
 		{Name: "non-empty map", Prog: `(empty? {"a" 1})`, Want: false},
 	}, func(t *testing.T, c tut.SimpleCase[bool]) {
 		t.Helper()
-		tut.AssertEval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
+		assert.Eval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
 	})
 
 	t.Run("non-containers return Fatal", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun,
+		assert.EvalFatal(t, envs.MalFun,
 			`(empty? 1)`, `(empty? 0)`, `(empty? true)`, `(empty? false)`)
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun, `(empty?)`, `(empty? [] [])`, `(empty? nil nil)`)
+		assert.EvalFatal(t, envs.MalFun, `(empty?)`, `(empty? [] [])`, `(empty? nil nil)`)
 	})
 }
 
 func TestListConstruction(t *testing.T) {
 	t.Run("empty list", func(t *testing.T) {
 		lst := tut.MustEvalAs[typ.List](t, envs.MalFun, `(list)`)
-		tut.AssertEqual(t, len(lst), 0)
-		tut.AssertEval(t, envs.MalDefault, `(= (list) (list))`, typ.Bool(true))
+		assert.Equal(t, len(lst), 0)
+		assert.Eval(t, envs.MalDefault, `(= (list) (list))`, typ.Bool(true))
 	})
 
 	t.Run("multi-element list", func(t *testing.T) {
 		lst := tut.MustEvalAs[typ.List](t, envs.MalFun, `(list 1 2 3)`)
-		tut.AssertEqual(t, len(lst), 3)
+		assert.Equal(t, len(lst), 3)
 		for i, src := range []string{`1`, `2`, `3`} {
 			want := tut.MustEval(envs.MalFun, src)
-			if !tut.MalEqual(lst[i], want) {
+			if !eq.Mal(lst[i], want) {
 				t.Fatalf("element %d = %v, want %v", i, lst[i], want)
 			}
 		}
-		tut.AssertEval(t, envs.MalDefault, `(= (list 1 2 3) (list 1 2 3))`, typ.Bool(true))
-		tut.AssertEval(t, envs.MalDefault, `(= (list 1 2) (list 1 2 3))`, typ.Bool(false))
+		assert.Eval(t, envs.MalDefault, `(= (list 1 2 3) (list 1 2 3))`, typ.Bool(true))
+		assert.Eval(t, envs.MalDefault, `(= (list 1 2) (list 1 2 3))`, typ.Bool(false))
 	})
 }
 
@@ -214,11 +216,11 @@ func TestIsList(t *testing.T) {
 		{Name: "map false", Prog: `(list? {})`, Want: false},
 	}, func(t *testing.T, c tut.SimpleCase[bool]) {
 		t.Helper()
-		tut.AssertEval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
+		assert.Eval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun, `(list?)`, `(list? (list) (list))`)
+		assert.EvalFatal(t, envs.MalFun, `(list?)`, `(list? (list) (list))`)
 	})
 }
 
@@ -231,12 +233,12 @@ func TestReadString(t *testing.T) {
 			{Name: "vector form", Prog: `(read-string "[1 2]")`, Want: `[1 2]`},
 		}, func(t *testing.T, c tut.SimpleCase[string]) {
 			t.Helper()
-			tut.AssertEquivalent(t, envs.MalFun, c.Prog, c.Want)
+			assert.EvalSame(t, envs.MalFun, c.Prog, c.Want)
 		})
 	})
 
 	t.Run("multi-form empty or invalid return Fatal", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun,
+		assert.EvalFatal(t, envs.MalFun,
 			`(read-string "1 2")`,
 			`(read-string "")`,
 			`(read-string "   ")`,
@@ -246,7 +248,7 @@ func TestReadString(t *testing.T) {
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun, `(read-string)`, `(read-string "1" "2")`)
+		assert.EvalFatal(t, envs.MalFun, `(read-string)`, `(read-string "1" "2")`)
 	})
 }
 
@@ -260,18 +262,18 @@ func TestSlurp(t *testing.T) {
 		}
 		input := fmt.Sprintf(`(slurp %q)`, path)
 		got := tut.MustEvalAs[typ.String](t, envs.MalFun, input)
-		tut.AssertEqual(t, string(got), content)
+		assert.Equal(t, string(got), content)
 	})
 
 	t.Run("missing file returns Fatal without panic", func(t *testing.T) {
 		dir := t.TempDir()
 		missing := filepath.Join(dir, "does-not-exist.txt")
 		input := fmt.Sprintf(`(slurp %q)`, missing)
-		tut.AssertAllFatal(t, envs.MalFun, input)
+		assert.EvalFatal(t, envs.MalFun, input)
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun, `(slurp)`, fmt.Sprintf(`(slurp %q %q)`, "a", "b"))
+		assert.EvalFatal(t, envs.MalFun, `(slurp)`, fmt.Sprintf(`(slurp %q %q)`, "a", "b"))
 	})
 }
 
@@ -298,17 +300,17 @@ func TestAtomCreation(t *testing.T) {
 			{Name: "nested atom", Prog: `(atom? (deref (atom (atom 1))))`, Want: `true`},
 		}, func(t *testing.T, c tut.SimpleCase[string]) {
 			t.Helper()
-			tut.AssertEquivalent(t, envs.MalDefault, c.Prog, c.Want)
+			assert.EvalSame(t, envs.MalDefault, c.Prog, c.Want)
 		})
 	})
 
 	t.Run("is atom", func(t *testing.T) {
-		tut.AssertEval(t, envs.MalDefault, `(atom? (atom 1))`, typ.Bool(true))
-		tut.AssertEval(t, envs.MalDefault, `(atom? (atom nil))`, typ.Bool(true))
+		assert.Eval(t, envs.MalDefault, `(atom? (atom 1))`, typ.Bool(true))
+		assert.Eval(t, envs.MalDefault, `(atom? (atom nil))`, typ.Bool(true))
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun, `(atom)`, `(atom 1 2)`, `(atom nil nil)`)
+		assert.EvalFatal(t, envs.MalFun, `(atom)`, `(atom 1 2)`, `(atom nil nil)`)
 	})
 }
 
@@ -332,11 +334,11 @@ func TestAtomQ(t *testing.T) {
 		{Name: "deref value false", Prog: `(atom? (deref (atom 1)))`, Want: false},
 	}, func(t *testing.T, c tut.SimpleCase[bool]) {
 		t.Helper()
-		tut.AssertEval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
+		assert.Eval(t, envs.MalDefault, c.Prog, typ.Bool(c.Want))
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun, `(atom?)`, `(atom? (atom 1) (atom 2))`)
+		assert.EvalFatal(t, envs.MalFun, `(atom?)`, `(atom? (atom 1) (atom 2))`)
 	})
 }
 
@@ -354,31 +356,31 @@ func TestDeref(t *testing.T) {
 			{Name: "map", Prog: `(deref (atom {"a" 1}))`, Want: `{"a" 1}`},
 		}, func(t *testing.T, c tut.SimpleCase[string]) {
 			t.Helper()
-			tut.AssertEquivalent(t, envs.MalDefault, c.Prog, c.Want)
+			assert.EvalSame(t, envs.MalDefault, c.Prog, c.Want)
 		})
 	})
 
 	t.Run("sees reset value via let", func(t *testing.T) {
-		tut.AssertEval(t, envs.MalDefault,
+		assert.Eval(t, envs.MalDefault,
 			`(= (let* [a (atom 1)] (do (reset! a 2) (deref a))) 2)`,
 			typ.Bool(true))
 	})
 
 	t.Run("sees swap value via let", func(t *testing.T) {
-		tut.AssertEval(t, envs.MalDefault,
+		assert.Eval(t, envs.MalDefault,
 			`(= (let* [a (atom 1)] (do (swap! a list 2) (deref a))) (list 1 2))`,
 			typ.Bool(true))
 	})
 
 	t.Run("non-atoms return Fatal", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun,
+		assert.EvalFatal(t, envs.MalFun,
 			`(deref 1)`, `(deref "hi")`, `(deref true)`, `(deref nil)`,
 			`(deref (list 1))`, `(deref [1 2])`, `(deref {})`,
 		)
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun, `(deref)`, `(deref (atom 1) (atom 2))`)
+		assert.EvalFatal(t, envs.MalFun, `(deref)`, `(deref (atom 1) (atom 2))`)
 	})
 }
 
@@ -394,34 +396,34 @@ func TestResetOp(t *testing.T) {
 			{Name: "to vector", Prog: `(reset! (atom 1) [1 2])`, Want: `[1 2]`},
 		}, func(t *testing.T, c tut.SimpleCase[string]) {
 			t.Helper()
-			tut.AssertEquivalent(t, envs.MalFun, c.Prog, c.Want)
+			assert.EvalSame(t, envs.MalFun, c.Prog, c.Want)
 		})
 	})
 
 	t.Run("mutates atom", func(t *testing.T) {
-		tut.AssertEval(t, envs.MalDefault,
+		assert.Eval(t, envs.MalDefault,
 			`(= (let* [a (atom 1)] (do (reset! a 2) (deref a))) 2)`,
 			typ.Bool(true))
-		tut.AssertEval(t, envs.MalDefault,
+		assert.Eval(t, envs.MalDefault,
 			`(= (let* [a (atom 1)] (do (reset! a "hi") (deref a))) "hi")`,
 			typ.Bool(true))
-		tut.AssertEval(t, envs.MalDefault,
+		assert.Eval(t, envs.MalDefault,
 			`(= (let* [a (atom 1)] (do (reset! a nil) (deref a))) nil)`,
 			typ.Bool(true))
-		tut.AssertEval(t, envs.MalDefault,
+		assert.Eval(t, envs.MalDefault,
 			`(= (let* [a (atom 1)] (do (reset! a (list 1 2)) (deref a))) (list 1 2))`,
 			typ.Bool(true))
 	})
 
 	t.Run("non-atoms return Fatal", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun,
+		assert.EvalFatal(t, envs.MalFun,
 			`(reset! 1 2)`, `(reset! "hi" 2)`, `(reset! nil 2)`,
 			`(reset! (list 1) 2)`, `(reset! [1 2] 2)`, `(reset! {} 2)`,
 		)
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun, `(reset!)`, `(reset! (atom 1))`, `(reset! (atom 1) 2 3)`)
+		assert.EvalFatal(t, envs.MalFun, `(reset!)`, `(reset! (atom 1))`, `(reset! (atom 1) 2 3)`)
 	})
 }
 
@@ -436,32 +438,32 @@ func TestSwapOp(t *testing.T) {
 			{Name: "pr-str", Prog: `(swap! (atom 1) pr-str 2)`, Want: `"1 2"`},
 		}, func(t *testing.T, c tut.SimpleCase[string]) {
 			t.Helper()
-			tut.AssertEquivalent(t, envs.MalFun, c.Prog, c.Want)
+			assert.EvalSame(t, envs.MalFun, c.Prog, c.Want)
 		})
 	})
 
 	t.Run("mutates atom", func(t *testing.T) {
-		tut.AssertEval(t, envs.MalDefault,
+		assert.Eval(t, envs.MalDefault,
 			`(= (let* [a (atom 1)] (do (swap! a list 2 3) (deref a))) (list 1 2 3))`,
 			typ.Bool(true))
-		tut.AssertEval(t, envs.MalDefault,
+		assert.Eval(t, envs.MalDefault,
 			`(= (let* [a (atom "a")] (do (swap! a str "b") (deref a))) "ab")`,
 			typ.Bool(true))
 	})
 
 	t.Run("too few args return Fatal", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun, `(swap!)`, `(swap! (atom 1))`)
+		assert.EvalFatal(t, envs.MalFun, `(swap!)`, `(swap! (atom 1))`)
 	})
 
 	t.Run("non-atom first arg returns Fatal", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun,
+		assert.EvalFatal(t, envs.MalFun,
 			`(swap! 1 list)`, `(swap! "hi" list)`, `(swap! nil list)`,
 			`(swap! (list 1) list)`, `(swap! [1 2] list)`,
 		)
 	})
 
 	t.Run("non-function second arg returns Fatal", func(t *testing.T) {
-		tut.AssertAllFatal(t, envs.MalFun,
+		assert.EvalFatal(t, envs.MalFun,
 			`(swap! (atom 1) 1)`, `(swap! (atom 1) "hi")`,
 			`(swap! (atom 1) nil)`, `(swap! (atom 1) [1 2])`,
 			`(swap! (atom 1) 1 2)`,

@@ -8,6 +8,7 @@ import (
 	"github.com/mooss/mal/src/lexer"
 	"github.com/mooss/mal/src/reader"
 	"github.com/mooss/mal/src/tut"
+	"github.com/mooss/mal/src/tut/assert"
 )
 
 var (
@@ -29,11 +30,11 @@ func runSingleCases(t *testing.T, cases []tut.Case[core.Value]) {
 		r := reader.ReadStr(c.Input)
 		got, err := r.ReadForm()
 		if c.WantErr {
-			tut.AssertErr(t, err)
+			assert.Err(t, err)
 			return
 		}
-		tut.AssertNoErr(t, err)
-		tut.AssertMalEqual(t, got, c.Want)
+		assert.NoErr(t, err)
+		assert.MalEqual(t, got, c.Want)
 	})
 }
 
@@ -52,8 +53,8 @@ func runMultiCases(t *testing.T, cases []tut.Case[[]core.Value]) {
 			}
 			got = append(got, form)
 		}
-		tut.AssertEqual(t, gotErr, c.WantErr)
-		tut.AssertAllMalEqual(t, got, c.Want)
+		assert.Equal(t, gotErr, c.WantErr)
+		assert.MalEqualSlice(t, got, c.Want)
 	})
 }
 
@@ -117,11 +118,11 @@ func TestReadNil(t *testing.T) {
 		{Name: "nil in forms", Input: "(nil) [nil] nil", Want: valst(lst(nul()), vec(nul()), nul())},
 	})
 	t.Run("nil not equal other types", func(t *testing.T) {
-		tut.AssertMalDifferent(t, nul(), sym("nil"))
-		tut.AssertMalDifferent(t, nul(), lst())
-		tut.AssertMalDifferent(t, nul(), vec())
-		tut.AssertMalDifferent(t, nul(), num(0))
-		tut.AssertMalEqual(t, nul(), nul())
+		assert.MalDifferent(t, nul(), sym("nil"))
+		assert.MalDifferent(t, nul(), lst())
+		assert.MalDifferent(t, nul(), vec())
+		assert.MalDifferent(t, nul(), num(0))
+		assert.MalEqual(t, nul(), nul())
 	})
 }
 
@@ -279,31 +280,31 @@ func TestReadMultipleForms(t *testing.T) {
 func TestReaderCursor(t *testing.T) {
 	t.Run("empty done rest", func(t *testing.T) {
 		r := reader.ReadStr("")
-		tut.AssertEqual(t, r.Done(), true)
-		tut.AssertEqual(t, len(r.Rest()), 0)
+		assert.Equal(t, r.Done(), true)
+		assert.Equal(t, len(r.Rest()), 0)
 		_, err := r.ReadForm()
-		tut.AssertErr(t, err)
+		assert.Err(t, err)
 	})
 
 	t.Run("peek next rest done", func(t *testing.T) {
 		r := reader.ReadStr("1 foo")
-		tut.AssertEqual(t, r.Done(), false)
+		assert.Equal(t, r.Done(), false)
 		peeked := r.Peek()
-		tut.AssertEqual(t, peeked.Type, lexer.TOKEN_INT)
-		tut.AssertEqual(t, peeked.Value, "1")
-		tut.AssertEqual(t, len(r.Rest()), 2)
+		assert.Equal(t, peeked.Type, lexer.TOKEN_INT)
+		assert.Equal(t, peeked.Value, "1")
+		assert.Equal(t, len(r.Rest()), 2)
 		next := r.Next()
-		tut.AssertEqual(t, next.Type, lexer.TOKEN_INT)
-		tut.AssertEqual(t, next.Value, "1")
+		assert.Equal(t, next.Type, lexer.TOKEN_INT)
+		assert.Equal(t, next.Value, "1")
 		peeked = r.Peek()
-		tut.AssertEqual(t, peeked.Type, lexer.TOKEN_SYMBOL)
-		tut.AssertEqual(t, peeked.Value, "foo")
+		assert.Equal(t, peeked.Type, lexer.TOKEN_SYMBOL)
+		assert.Equal(t, peeked.Value, "foo")
 		rest := r.Rest()
-		tut.AssertEqual(t, len(rest), 1)
-		tut.AssertEqual(t, rest[0].Value, "foo")
+		assert.Equal(t, len(rest), 1)
+		assert.Equal(t, rest[0].Value, "foo")
 		next = r.Next()
-		tut.AssertEqual(t, next.Value, "foo")
-		tut.AssertEqual(t, r.Done(), true)
+		assert.Equal(t, next.Value, "foo")
+		assert.Equal(t, r.Done(), true)
 		if r.Rest() != nil {
 			t.Fatal("r.Rest is not nil")
 		}
@@ -312,15 +313,15 @@ func TestReaderCursor(t *testing.T) {
 	t.Run("readform advances", func(t *testing.T) {
 		r := reader.ReadStr("(1) 2")
 		first, err := r.ReadForm()
-		tut.AssertNoErr(t, err)
-		tut.AssertMalEqual(t, first, lst(num(1)))
-		tut.AssertEqual(t, r.Done(), false)
+		assert.NoErr(t, err)
+		assert.MalEqual(t, first, lst(num(1)))
+		assert.Equal(t, r.Done(), false)
 		rest := r.Rest()
-		tut.AssertEqual(t, len(rest), 1)
-		tut.AssertEqual(t, rest[0].Value, "2")
+		assert.Equal(t, len(rest), 1)
+		assert.Equal(t, rest[0].Value, "2")
 		second, err := r.ReadForm()
-		tut.AssertNoErr(t, err)
-		tut.AssertMalEqual(t, second, num(2))
-		tut.AssertEqual(t, r.Done(), true)
+		assert.NoErr(t, err)
+		assert.MalEqual(t, second, num(2))
+		assert.Equal(t, r.Done(), true)
 	})
 }
