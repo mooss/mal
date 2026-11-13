@@ -16,6 +16,110 @@ import (
 	"github.com/mooss/mal/src/typ"
 )
 
+type tc[T any] struct {
+	name  string
+	input string
+	want  T
+}
+
+func runTable[T any](t *testing.T, cases []tc[T], check func(t *testing.T, c tc[T])) {
+	t.Helper()
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			check(t, c)
+		})
+	}
+}
+
+func evalFun(src string) core.Value {
+	return tut.MustEval(envs.MalFun, src)
+}
+
+func evalDefault(src string) core.Value {
+	return tut.MustEval(envs.MalDefault, src)
+}
+
+func assertString(t *testing.T, c tc[string]) {
+	t.Helper()
+	got := evalFun(c.input)
+	s, ok := got.(typ.String)
+	if !ok {
+		t.Fatalf("MustEval(%q) type = %T, want %T", c.input, got, typ.String(""))
+	}
+	if string(s) != c.want {
+		t.Fatalf("MustEval(%q) = %q, want %q", c.input, string(s), c.want)
+	}
+}
+
+func assertPrint(t *testing.T, c tc[string]) {
+	t.Helper()
+	var got core.Value
+	output := captureStdout(t, func() {
+		got = evalFun(c.input)
+	})
+	if _, ok := got.(typ.Nil); !ok {
+		t.Fatalf("MustEval(%q) type = %T, want %T", c.input, got, typ.Nil{})
+	}
+	if output != c.want {
+		t.Fatalf("MustEval(%q) printed %q, want %q", c.input, output, c.want)
+	}
+}
+
+func assertBoolCheck(t *testing.T, c tc[bool]) {
+	t.Helper()
+	assertBool(t, c.input, c.want)
+}
+
+func assertCountCheck(t *testing.T, c tc[int]) {
+	t.Helper()
+	assertCountValue(t, c.input, c.want)
+}
+
+func assertFatalAll(t *testing.T, inputs []string) {
+	t.Helper()
+	for _, input := range inputs {
+		assertFatal(t, input)
+	}
+}
+
+func equalWith(eval func(string) core.Value) func(t *testing.T, c tc[string]) {
+	return func(t *testing.T, c tc[string]) {
+		t.Helper()
+		got := eval(c.input)
+		if isFatalValue(got) {
+			t.Fatalf("MustEval(%q) = Fatal %v, want %q", c.input, got, c.want)
+		}
+		want := eval(c.want)
+		if !got.Equal(want) {
+			t.Fatalf("MustEval(%q) = %v, want %v", c.input, got, want)
+		}
+	}
+}
+
+func assertAtom(t *testing.T, c tc[string]) {
+	t.Helper()
+	got := evalFun(c.input)
+	if isFatalValue(got) {
+		t.Fatalf("MustEval(%q) = Fatal %v, want atom", c.input, got)
+	}
+	if _, ok := got.(*typ.Atom); !ok {
+		t.Fatalf("MustEval(%q) type = %T, want *typ.Atom", c.input, got)
+	}
+}
+
+func assertListLen(t *testing.T, input string, wantLen int) typ.List {
+	t.Helper()
+	got := evalFun(input)
+	lst, ok := got.(typ.List)
+	if !ok {
+		t.Fatalf("MustEval(%q) type = %T, want %T", input, got, typ.List{})
+	}
+	if len(lst) != wantLen {
+		t.Fatalf("MustEval(%q) length = %d, want %d", input, len(lst), wantLen)
+	}
+	return lst
+}
+
 func captureStdout(t *testing.T, fn func()) string {
 	t.Helper()
 
@@ -44,11 +148,7 @@ func captureStdout(t *testing.T, fn func()) string {
 }
 
 func TestStr(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  string
-	}{
+	runTable(t, []tc[string]{
 		{"no args", `(str)`, ""},
 		{"single string", `(str "foo")`, "foo"},
 		{"two strings concatenated without separator", `(str "foo" "bar")`, "foobar"},
@@ -62,28 +162,11 @@ func TestStr(t *testing.T) {
 		{"multiple mixed", `(str "a" 1 "b" 2)`, "a1b2"},
 		{"negative integer", `(str -7)`, "-7"},
 		{"zero", `(str 0)`, "0"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := tut.MustEval(envs.MalFun, tt.input)
-			s, ok := got.(typ.String)
-			if !ok {
-				t.Fatalf("MustEval(%q) type = %T, want %T", tt.input, got, typ.String(""))
-			}
-			if string(s) != tt.want {
-				t.Fatalf("MustEval(%q) = %q, want %q", tt.input, string(s), tt.want)
-			}
-		})
-	}
+	}, assertString)
 }
 
 func TestPrStr(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  string
-	}{
+	runTable(t, []tc[string]{
 		{"no args", `(pr-str)`, ""},
 		{"single integer", `(pr-str 42)`, "42"},
 		{"integers joined with space", `(pr-str 1 2 3)`, "1 2 3"},
@@ -94,28 +177,11 @@ func TestPrStr(t *testing.T) {
 		{"mixed", `(pr-str "a" 1 "b" 2)`, `"a" 1 "b" 2`},
 		{"empty string is quoted", `(pr-str "")`, `""`},
 		{"negative integer", `(pr-str -7)`, "-7"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := tut.MustEval(envs.MalFun, tt.input)
-			s, ok := got.(typ.String)
-			if !ok {
-				t.Fatalf("MustEval(%q) type = %T, want %T", tt.input, got, typ.String(""))
-			}
-			if string(s) != tt.want {
-				t.Fatalf("MustEval(%q) = %q, want %q", tt.input, string(s), tt.want)
-			}
-		})
-	}
+	}, assertString)
 }
 
 func TestPrn(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		wantPrint string
-	}{
+	runTable(t, []tc[string]{
 		{"no args prints newline", `(prn)`, "\n"},
 		{"single integer", `(prn 1)`, "1\n"},
 		{"integers joined with space", `(prn 1 2 3)`, "1 2 3\n"},
@@ -123,30 +189,11 @@ func TestPrn(t *testing.T) {
 		{"strings are readable", `(prn "a" "b")`, "\"a\" \"b\"\n"},
 		{"string and integer", `(prn "a" 1)`, "\"a\" 1\n"},
 		{"integer and string", `(prn 1 "a")`, "1 \"a\"\n"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var got core.Value
-			output := captureStdout(t, func() {
-				got = tut.MustEval(envs.MalFun, tt.input)
-			})
-			if _, ok := got.(typ.Nil); !ok {
-				t.Fatalf("MustEval(%q) type = %T, want %T", tt.input, got, typ.Nil{})
-			}
-			if output != tt.wantPrint {
-				t.Fatalf("MustEval(%q) printed %q, want %q", tt.input, output, tt.wantPrint)
-			}
-		})
-	}
+	}, assertPrint)
 }
 
 func TestPrintln(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		wantPrint string
-	}{
+	runTable(t, []tc[string]{
 		{"no args prints newline", `(println)`, "\n"},
 		{"single integer", `(println 1)`, "1\n"},
 		{"integers joined with space", `(println 1 2 3)`, "1 2 3\n"},
@@ -155,22 +202,7 @@ func TestPrintln(t *testing.T) {
 		{"string and integer raw", `(println "a" 1)`, "a 1\n"},
 		{"integer and string raw", `(println 1 "a")`, "1 a\n"},
 		{"sentence", `(println "hello" "world")`, "hello world\n"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var got core.Value
-			output := captureStdout(t, func() {
-				got = tut.MustEval(envs.MalFun, tt.input)
-			})
-			if _, ok := got.(typ.Nil); !ok {
-				t.Fatalf("MustEval(%q) type = %T, want %T", tt.input, got, typ.Nil{})
-			}
-			if output != tt.wantPrint {
-				t.Fatalf("MustEval(%q) printed %q, want %q", tt.input, output, tt.wantPrint)
-			}
-		})
-	}
+	}, assertPrint)
 }
 
 func isFatalValue(v core.Value) bool {
@@ -215,11 +247,7 @@ func assertCountValue(t *testing.T, input string, want int) {
 }
 
 func TestEqualOp(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  bool
-	}{
+	runTable(t, []tc[bool]{
 		{"int same value", `(= 1 1)`, true},
 		{"int different value", `(= 1 2)`, false},
 		{"negative int same", `(= -7 -7)`, true},
@@ -254,28 +282,16 @@ func TestEqualOp(t *testing.T) {
 		{"cross map vs nil", `(= {} nil)`, false},
 		{"cross int vs list", `(= 1 (list 1))`, false},
 		{"cross string vs vector", `(= "a" ["a"])`, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assertBool(t, tt.input, tt.want)
-		})
-	}
+	}, assertBoolCheck)
 
 	t.Run("arity", func(t *testing.T) {
 		//nolint:dupword
-		for _, input := range []string{`(=)`, `(= 1)`, `(= 1 2 3)`, `(= nil nil nil)`} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(=)`, `(= 1)`, `(= 1 2 3)`, `(= nil nil nil)`})
 	})
 }
 
 func TestCount(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  int
-	}{
+	runTable(t, []tc[int]{
 		{"nil as zero", `(count nil)`, 0},
 		{"empty list", `(count (list))`, 0},
 		{"multi-element list", `(count (list 1 2 3))`, 3},
@@ -283,33 +299,19 @@ func TestCount(t *testing.T) {
 		{"non-empty vector", `(count [1 2])`, 2},
 		{"empty map", `(count {})`, 0},
 		{"non-empty map", `(count {"a" 1 "b" 2})`, 2},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assertCountValue(t, tt.input, tt.want)
-		})
-	}
+	}, assertCountCheck)
 
 	t.Run("non-containers return Fatal", func(t *testing.T) {
-		for _, input := range []string{`(count 1)`, `(count 0)`, `(count true)`, `(count false)`} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(count 1)`, `(count 0)`, `(count true)`, `(count false)`})
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		for _, input := range []string{`(count)`, `(count [1] [2])`, `(count nil nil)`} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(count)`, `(count [1] [2])`, `(count nil nil)`})
 	})
 }
 
 func TestEmptyQ(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  bool
-	}{
+	runTable(t, []tc[bool]{
 		{"nil is empty", `(empty? nil)`, true},
 		{"empty list", `(empty? (list))`, true},
 		{"non-empty list", `(empty? (list 1))`, false},
@@ -318,53 +320,29 @@ func TestEmptyQ(t *testing.T) {
 		{"non-empty vector", `(empty? [1])`, false},
 		{"empty map", `(empty? {})`, true},
 		{"non-empty map", `(empty? {"a" 1})`, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assertBool(t, tt.input, tt.want)
-		})
-	}
+	}, assertBoolCheck)
 
 	t.Run("non-containers return Fatal", func(t *testing.T) {
-		for _, input := range []string{
+		assertFatalAll(t, []string{
 			`(empty? 1)`, `(empty? 0)`, `(empty? true)`, `(empty? false)`,
-		} {
-			assertFatal(t, input)
-		}
+		})
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		for _, input := range []string{`(empty?)`, `(empty? [] [])`, `(empty? nil nil)`} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(empty?)`, `(empty? [] [])`, `(empty? nil nil)`})
 	})
 }
 
 func TestListConstruction(t *testing.T) {
 	t.Run("empty list", func(t *testing.T) {
-		got := tut.MustEval(envs.MalFun, `(list)`)
-		lst, ok := got.(typ.List)
-		if !ok {
-			t.Fatalf("MustEval(%q) type = %T, want %T", `(list)`, got, typ.List{})
-		}
-		if len(lst) != 0 {
-			t.Fatalf("MustEval(%q) length = %d, want 0", `(list)`, len(lst))
-		}
+		assertListLen(t, `(list)`, 0)
 		assertBool(t, `(= (list) (list))`, true)
 	})
 
 	t.Run("multi-element list", func(t *testing.T) {
-		got := tut.MustEval(envs.MalFun, `(list 1 2 3)`)
-		lst, ok := got.(typ.List)
-		if !ok {
-			t.Fatalf("MustEval(%q) type = %T, want %T", `(list 1 2 3)`, got, typ.List{})
-		}
-		if len(lst) != 3 {
-			t.Fatalf("MustEval(%q) length = %d, want 3", `(list 1 2 3)`, len(lst))
-		}
+		lst := assertListLen(t, `(list 1 2 3)`, 3)
 		for i, src := range []string{`1`, `2`, `3`} {
-			want := tut.MustEval(envs.MalFun, src)
+			want := evalFun(src)
 			if !lst[i].Equal(want) {
 				t.Fatalf("element %d = %v, want %v", i, lst[i], want)
 			}
@@ -375,11 +353,7 @@ func TestListConstruction(t *testing.T) {
 }
 
 func TestIsList(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  bool
-	}{
+	runTable(t, []tc[bool]{
 		{"empty list true", `(list? (list))`, true},
 		{"multi-element list true", `(list? (list 1 2 3))`, true},
 		{"vector false", `(list? [1 2])`, false},
@@ -389,63 +363,35 @@ func TestIsList(t *testing.T) {
 		{"scalar string false", `(list? "hi")`, false},
 		{"scalar bool false", `(list? true)`, false},
 		{"map false", `(list? {})`, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assertBool(t, tt.input, tt.want)
-		})
-	}
+	}, assertBoolCheck)
 
 	t.Run("arity", func(t *testing.T) {
-		for _, input := range []string{`(list?)`, `(list? (list) (list))`} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(list?)`, `(list? (list) (list))`})
 	})
 }
 
 func TestReadString(t *testing.T) {
 	t.Run("one form only", func(t *testing.T) {
-		cases := []struct {
-			name string
-			src  string
-			want string
-		}{
+		runTable(t, []tc[string]{
 			{"integer", `(read-string "1")`, `1`},
 			{"string", `(read-string "\"hi\"")`, `"hi"`},
 			{"list form", `(read-string "(1 2)")`, `(list 1 2)`},
 			{"vector form", `(read-string "[1 2]")`, `[1 2]`},
-		}
-		for _, tt := range cases {
-			t.Run(tt.name, func(t *testing.T) {
-				got := tut.MustEval(envs.MalFun, tt.src)
-				if isFatalValue(got) {
-					t.Fatalf("MustEval(%q) = Fatal %v, want %q", tt.src, got, tt.want)
-				}
-				want := tut.MustEval(envs.MalFun, tt.want)
-				if !got.Equal(want) {
-					t.Fatalf("MustEval(%q) = %v, want %v", tt.src, got, want)
-				}
-			})
-		}
+		}, equalWith(evalFun))
 	})
 
 	t.Run("multi-form empty or invalid return Fatal", func(t *testing.T) {
-		for _, input := range []string{
+		assertFatalAll(t, []string{
 			`(read-string "1 2")`,
 			`(read-string "")`,
 			`(read-string "   ")`,
 			`(read-string "(1 2")`,
 			`(read-string "[")`,
-		} {
-			assertFatal(t, input)
-		}
+		})
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		for _, input := range []string{`(read-string)`, `(read-string "1" "2")`} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(read-string)`, `(read-string "1" "2")`})
 	})
 }
 
@@ -479,50 +425,29 @@ func TestSlurp(t *testing.T) {
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		for _, input := range []string{`(slurp)`, fmt.Sprintf(`(slurp %q %q)`, "a", "b")} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(slurp)`, fmt.Sprintf(`(slurp %q %q)`, "a", "b")})
 	})
 }
 
 func TestAtomCreation(t *testing.T) {
 	t.Run("creates atom holding value", func(t *testing.T) {
-		for _, src := range []string{`(atom 1)`, `(atom "hi")`, `(atom nil)`, `(atom (list 1 2))`} {
-			got := tut.MustEval(envs.MalFun, src)
-			if isFatalValue(got) {
-				t.Fatalf("MustEval(%q) = Fatal %v, want atom", src, got)
-			}
-			if _, ok := got.(*typ.Atom); !ok {
-				t.Fatalf("MustEval(%q) type = %T, want *typ.Atom", src, got)
-			}
-		}
+		runTable(t, []tc[string]{
+			{"int", `(atom 1)`, ""},
+			{"string", `(atom "hi")`, ""},
+			{"nil", `(atom nil)`, ""},
+			{"list", `(atom (list 1 2))`, ""},
+		}, assertAtom)
 	})
 
 	t.Run("deref returns initial value", func(t *testing.T) {
-		cases := []struct {
-			name string
-			src  string
-			want string
-		}{
+		runTable(t, []tc[string]{
 			{"int", `(deref (atom 42))`, `42`},
 			{"string", `(deref (atom "hi"))`, `"hi"`},
 			{"nil", `(deref (atom nil))`, `nil`},
 			{"list", `(deref (atom (list 1 2)))`, `(list 1 2)`},
 			{"vector", `(deref (atom [1 2]))`, `[1 2]`},
 			{"nested atom", `(atom? (deref (atom (atom 1))))`, `true`},
-		}
-		for _, tt := range cases {
-			t.Run(tt.name, func(t *testing.T) {
-				got := tut.MustEval(envs.MalDefault, tt.src)
-				if isFatalValue(got) {
-					t.Fatalf("MustEval(%q) = Fatal %v, want %q", tt.src, got, tt.want)
-				}
-				want := tut.MustEval(envs.MalDefault, tt.want)
-				if !got.Equal(want) {
-					t.Fatalf("MustEval(%q) = %v, want %v", tt.src, got, want)
-				}
-			})
-		}
+		}, equalWith(evalDefault))
 	})
 
 	t.Run("is atom", func(t *testing.T) {
@@ -531,18 +456,12 @@ func TestAtomCreation(t *testing.T) {
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		for _, input := range []string{`(atom)`, `(atom 1 2)`, `(atom nil nil)`} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(atom)`, `(atom 1 2)`, `(atom nil nil)`})
 	})
 }
 
 func TestAtomQ(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  bool
-	}{
+	runTable(t, []tc[bool]{
 		{"atom of int", `(atom? (atom 1))`, true},
 		{"atom of string", `(atom? (atom "hi"))`, true},
 		{"atom of nil", `(atom? (atom nil))`, true},
@@ -559,28 +478,16 @@ func TestAtomQ(t *testing.T) {
 		{"empty vector false", `(atom? [])`, false},
 		{"map false", `(atom? {})`, false},
 		{"deref value false", `(atom? (deref (atom 1)))`, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assertBool(t, tt.input, tt.want)
-		})
-	}
+	}, assertBoolCheck)
 
 	t.Run("arity", func(t *testing.T) {
-		for _, input := range []string{`(atom?)`, `(atom? (atom 1) (atom 2))`} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(atom?)`, `(atom? (atom 1) (atom 2))`})
 	})
 }
 
 func TestDeref(t *testing.T) {
 	t.Run("returns held value", func(t *testing.T) {
-		cases := []struct {
-			name string
-			src  string
-			want string
-		}{
+		runTable(t, []tc[string]{
 			{"int", `(deref (atom 1))`, `1`},
 			{"negative int", `(deref (atom -7))`, `-7`},
 			{"string", `(deref (atom "foo"))`, `"foo"`},
@@ -590,19 +497,7 @@ func TestDeref(t *testing.T) {
 			{"list", `(deref (atom (list 1 2)))`, `(list 1 2)`},
 			{"vector", `(deref (atom [1 2]))`, `[1 2]`},
 			{"map", `(deref (atom {"a" 1}))`, `{"a" 1}`},
-		}
-		for _, tt := range cases {
-			t.Run(tt.name, func(t *testing.T) {
-				got := tut.MustEval(envs.MalDefault, tt.src)
-				if isFatalValue(got) {
-					t.Fatalf("MustEval(%q) = Fatal %v, want %q", tt.src, got, tt.want)
-				}
-				want := tut.MustEval(envs.MalDefault, tt.want)
-				if !got.Equal(want) {
-					t.Fatalf("MustEval(%q) = %v, want %v", tt.src, got, want)
-				}
-			})
-		}
+		}, equalWith(evalDefault))
 	})
 
 	t.Run("sees reset value via let", func(t *testing.T) {
@@ -614,28 +509,20 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("non-atoms return Fatal", func(t *testing.T) {
-		for _, input := range []string{
+		assertFatalAll(t, []string{
 			`(deref 1)`, `(deref "hi")`, `(deref true)`, `(deref nil)`,
 			`(deref (list 1))`, `(deref [1 2])`, `(deref {})`,
-		} {
-			assertFatal(t, input)
-		}
+		})
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		for _, input := range []string{`(deref)`, `(deref (atom 1) (atom 2))`} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(deref)`, `(deref (atom 1) (atom 2))`})
 	})
 }
 
 func TestResetOp(t *testing.T) {
 	t.Run("returns new value", func(t *testing.T) {
-		cases := []struct {
-			name string
-			src  string
-			want string
-		}{
+		runTable(t, []tc[string]{
 			{"int to int", `(reset! (atom 1) 2)`, `2`},
 			{"int to string", `(reset! (atom 1) "hi")`, `"hi"`},
 			{"string to int", `(reset! (atom "hi") 42)`, `42`},
@@ -643,19 +530,7 @@ func TestResetOp(t *testing.T) {
 			{"nil to int", `(reset! (atom nil) 1)`, `1`},
 			{"to list", `(reset! (atom 1) (list 1 2))`, `(list 1 2)`},
 			{"to vector", `(reset! (atom 1) [1 2])`, `[1 2]`},
-		}
-		for _, tt := range cases {
-			t.Run(tt.name, func(t *testing.T) {
-				got := tut.MustEval(envs.MalFun, tt.src)
-				if isFatalValue(got) {
-					t.Fatalf("MustEval(%q) = Fatal %v, want %q", tt.src, got, tt.want)
-				}
-				want := tut.MustEval(envs.MalFun, tt.want)
-				if !got.Equal(want) {
-					t.Fatalf("MustEval(%q) = %v, want %v", tt.src, got, want)
-				}
-			})
-		}
+		}, equalWith(evalFun))
 	})
 
 	t.Run("mutates atom", func(t *testing.T) {
@@ -667,49 +542,29 @@ func TestResetOp(t *testing.T) {
 	})
 
 	t.Run("non-atoms return Fatal", func(t *testing.T) {
-		for _, input := range []string{
+		assertFatalAll(t, []string{
 			`(reset! 1 2)`, `(reset! "hi" 2)`, `(reset! nil 2)`,
 			`(reset! (list 1) 2)`, `(reset! [1 2] 2)`, `(reset! {} 2)`,
-		} {
-			assertFatal(t, input)
-		}
+		})
 	})
 
 	t.Run("arity", func(t *testing.T) {
-		for _, input := range []string{
+		assertFatalAll(t, []string{
 			`(reset!)`, `(reset! (atom 1))`, `(reset! (atom 1) 2 3)`,
-		} {
-			assertFatal(t, input)
-		}
+		})
 	})
 }
 
 func TestSwapOp(t *testing.T) {
 	t.Run("returns new value", func(t *testing.T) {
-		cases := []struct {
-			name string
-			src  string
-			want string
-		}{
+		runTable(t, []tc[string]{
 			{"list no extra args", `(swap! (atom 1) list)`, `(list 1)`},
 			{"list with extra args", `(swap! (atom 1) list 2 3)`, `(list 1 2 3)`},
 			{"str no extra args", `(swap! (atom "a") str)`, `"a"`},
 			{"str with extra args", `(swap! (atom "a") str "b" "c")`, `"abc"`},
 			{"str int atom", `(swap! (atom 1) str "a")`, `"1a"`},
 			{"pr-str", `(swap! (atom 1) pr-str 2)`, `"1 2"`},
-		}
-		for _, tt := range cases {
-			t.Run(tt.name, func(t *testing.T) {
-				got := tut.MustEval(envs.MalFun, tt.src)
-				if isFatalValue(got) {
-					t.Fatalf("MustEval(%q) = Fatal %v, want %q", tt.src, got, tt.want)
-				}
-				want := tut.MustEval(envs.MalFun, tt.want)
-				if !got.Equal(want) {
-					t.Fatalf("MustEval(%q) = %v, want %v", tt.src, got, want)
-				}
-			})
-		}
+		}, equalWith(evalFun))
 	})
 
 	t.Run("mutates atom", func(t *testing.T) {
@@ -719,27 +574,21 @@ func TestSwapOp(t *testing.T) {
 	})
 
 	t.Run("too few args return Fatal", func(t *testing.T) {
-		for _, input := range []string{`(swap!)`, `(swap! (atom 1))`} {
-			assertFatal(t, input)
-		}
+		assertFatalAll(t, []string{`(swap!)`, `(swap! (atom 1))`})
 	})
 
 	t.Run("non-atom first arg returns Fatal", func(t *testing.T) {
-		for _, input := range []string{
+		assertFatalAll(t, []string{
 			`(swap! 1 list)`, `(swap! "hi" list)`, `(swap! nil list)`,
 			`(swap! (list 1) list)`, `(swap! [1 2] list)`,
-		} {
-			assertFatal(t, input)
-		}
+		})
 	})
 
 	t.Run("non-function second arg returns Fatal", func(t *testing.T) {
-		for _, input := range []string{
+		assertFatalAll(t, []string{
 			`(swap! (atom 1) 1)`, `(swap! (atom 1) "hi")`,
 			`(swap! (atom 1) nil)`, `(swap! (atom 1) [1 2])`,
 			`(swap! (atom 1) 1 2)`,
-		} {
-			assertFatal(t, input)
-		}
+		})
 	})
 }
