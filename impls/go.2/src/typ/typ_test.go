@@ -10,18 +10,6 @@ import (
 	"github.com/mooss/mal/src/ut"
 )
 
-type evalCounter struct {
-	count *int
-}
-
-func (evalCounter) Type() core.TypeName   { return core.INTEGER }
-func (evalCounter) String() string        { return "counter" }
-func (evalCounter) Equal(core.Value) bool { return false }
-func (v evalCounter) Eval(core.Env) core.Value {
-	(*v.count)++
-	return typ.Integer(1)
-}
-
 type evalOrder struct {
 	name   string
 	result core.Value

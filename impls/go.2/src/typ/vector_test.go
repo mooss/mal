@@ -4,47 +4,39 @@ import (
 	"testing"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/tut"
 	"github.com/mooss/mal/src/typ"
 )
 
 func TestVectorEvalEvaluatesElementsInOrder(t *testing.T) {
 	envr := core.Bindings{
-		"first":  typ.Integer(10),
-		"second": typ.Integer(20),
-		"third":  typ.Integer(30),
+		"first":  tut.Num(10),
+		"second": tut.Num(20),
+		"third":  tut.Num(30),
 	}.AsEnv()
-	got := typ.VectorForm{typ.Symbol("first"), typ.Symbol("second"), typ.Symbol("third")}.Eval(envr)
+	got := tut.RequireOK(t, tut.Vec(
+		tut.Sym("first"), tut.Sym("second"), tut.Sym("third"),
+	).Eval(envr))
 
-	values, ok := got.(typ.Vector)
-	if !ok {
-		t.Fatalf("Eval() type = %T, want %T", got, typ.Vector{})
-	}
-	if len(values) != 3 {
-		t.Fatalf("Eval() length = %d, want 3", len(values))
-	}
-	if values.String() != "[10 20 30]" {
-		t.Errorf("Eval() = %s, want [10 20 30]", values.String())
-	}
+	vec := tut.RequireAs[typ.Vector](t, got)
+	tut.AssertEqual(t, len(vec), 3)
+	tut.AssertString(t, got, "[10 20 30]")
 }
+
 func TestVectorEvalPropagatesFirstFatalAndStops(t *testing.T) {
 	firstFatal := typ.Fatalf("first failure")
 	secondFatal := typ.Fatalf("second failure")
-	count := 0
+	var log []string
 	envr := core.Bindings{
 		"first":  firstFatal,
 		"second": secondFatal,
 	}.AsEnv()
-	got := typ.VectorForm{
-		typ.Symbol("first"),
-		typ.Symbol("second"),
-		evalCounter{count: &count},
-	}.Eval(envr)
+	got := tut.Vec(
+		tut.Sym("first"),
+		tut.Sym("second"),
+		tut.Probe{ID: "probe", Log: &log, Ret: tut.Num(1)},
+	).Eval(envr)
 
-	requireError(t, got)
-	if got.String() != firstFatal.String() {
-		t.Errorf("Eval() = %s, want first propagated fatal %s", got.String(), firstFatal.String())
-	}
-	if count != 0 {
-		t.Errorf("elements evaluated after fatal = %d, want 0", count)
-	}
+	tut.AssertString(t, tut.RequireFatal(t, got), firstFatal.String())
+	tut.AssertEqual(t, len(log), 0)
 }
