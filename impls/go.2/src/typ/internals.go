@@ -104,6 +104,8 @@ func sliceEq[S ~[]core.Value](left S, right core.Value, eq func(core.Value, core
 		return slices.EqualFunc(left, tr, eq)
 	case Vector:
 		return slices.EqualFunc(left, tr, eq)
+	case VectorForm:
+		return slices.EqualFunc(left, tr, eq)
 	default:
 		return false
 	}

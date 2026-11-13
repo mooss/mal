@@ -191,7 +191,7 @@ func TestListConstruction(t *testing.T) {
 		tut.AssertEqual(t, len(lst), 3)
 		for i, src := range []string{`1`, `2`, `3`} {
 			want := tut.MustEval(envs.MalFun, src)
-			if !tut.Equal(lst[i], want) {
+			if !tut.MalEqual(lst[i], want) {
 				t.Fatalf("element %d = %v, want %v", i, lst[i], want)
 			}
 		}

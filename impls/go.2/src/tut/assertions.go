@@ -2,6 +2,7 @@
 package tut
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -21,6 +22,17 @@ func IsFatal(v core.Value) bool {
 		panic("got fatal pointer")
 	}
 	return false
+}
+
+// RequireAs asserts v has type T and returns it.
+func RequireAs[T core.Value](t *testing.T, v core.Value) T {
+	t.Helper()
+	got, ok := v.(T)
+	if !ok {
+		var zero T
+		t.Fatalf("type = %T, want %T", v, zero)
+	}
+	return got
 }
 
 // RequireFatal fails unless v is Fatal and returns it.
@@ -48,11 +60,54 @@ func RequireOK(t *testing.T, v core.Value) core.Value {
 	return v
 }
 
-// AssertEqual fails if got != want.
-func AssertEqual[T comparable](t *testing.T, got, want T) {
+// AssertEqual fails if got != want according to reflect.DeepEqual.
+func AssertEqual[T any](t *testing.T, got, want T) {
 	t.Helper()
-	if got != want {
+
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
+// AssertWith fails when compare(got, want) returns false.
+func AssertWith[T any](t *testing.T, got, want T, name string, compare func(a, b T) bool) {
+	t.Helper()
+	if !compare(got, want) {
+		t.Fatalf("%s(%#v, %#v) failed", name, got, want)
+	}
+}
+
+// AssertMalEqual fails unless MalEqual(got, want).
+func AssertMalEqual(t *testing.T, got, want core.Value) {
+	t.Helper()
+	AssertWith(t, got, want, "MalEqual", MalEqual)
+}
+
+// AssertMalDifferent fails unless MalDifferent(got, want).
+func AssertMalDifferent(t *testing.T, got, want core.Value) {
+	t.Helper()
+	AssertWith(t, got, want, "MalDifferent", MalDifferent)
+}
+
+// AssertAllMalEqual fails unless MalEqualSlices(got, want).
+func AssertAllMalEqual(t *testing.T, got, want []core.Value) {
+	t.Helper()
+	AssertWith(t, got, want, "EqualSlices", MalEqualSlices)
+}
+
+// AssertNoErr fails if err != nil.
+func AssertNoErr(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// AssertErr fails if err == nil.
+func AssertErr(t *testing.T, err error) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
 }
 
@@ -78,7 +133,7 @@ func AssertString(t *testing.T, v core.Value, want string) {
 // AssertGet fails unless env.Get(key) strictly equals want.
 func AssertGet(t *testing.T, env core.Env, key string, want core.Value) {
 	t.Helper()
-	if got := env.Get(key); !Equal(got, want) {
+	if got := env.Get(key); !MalEqual(got, want) {
 		t.Fatalf("Get(%q) = %v, want %v", key, got, want)
 	}
 }
@@ -97,7 +152,7 @@ func AssertMissing(t *testing.T, env core.Env, keys ...string) {
 func AssertEval(t *testing.T, env core.Env, input string, want core.Value) {
 	t.Helper()
 	got := RequireOK(t, MustEval(env, input))
-	if !Equal(got, want) {
+	if !MalEqual(got, want) {
 		t.Fatalf("MustEval(%q) = %v, want %v", input, got, want)
 	}
 }
