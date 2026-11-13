@@ -3,13 +3,98 @@ package lexer
 
 import "testing"
 
+type tokenCase struct {
+	name    string
+	input   string
+	want    []Token
+	wantErr bool
+}
+
+type stringCase struct {
+	name       string
+	input      string
+	wantTokens []string
+	wantErr    bool
+}
+
+func tok(typ TokenType, val string) Token {
+	return Token{Type: typ, Value: val}
+}
+
+func collectTokens(input string) ([]Token, bool) {
+	seq, errFn := TokenIterator(input)
+	var got []Token
+	for t := range seq {
+		got = append(got, t)
+	}
+	return got, errFn() != nil
+}
+
+func checkTokens(t *testing.T, input string, got, want []Token, gotErr, wantErr bool) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", input, len(got), got, gotErr, len(want), want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("input %q token %d: got %+v, want %+v", input, i, got[i], want[i])
+		}
+	}
+	if gotErr != wantErr {
+		t.Errorf("input %q: gotErr %v, wantErr %v", input, gotErr, wantErr)
+	}
+}
+
+func runTokenCases(t *testing.T, tests []tokenCase) {
+	t.Helper()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, gotErr := collectTokens(tt.input)
+			checkTokens(t, tt.input, got, tt.want, gotErr, tt.wantErr)
+		})
+	}
+}
+
+func dqsTokens(vals []string) []Token {
+	if vals == nil {
+		return nil
+	}
+	got := make([]Token, len(vals))
+	for i, v := range vals {
+		got[i] = tok(TOKEN_DQS, v)
+	}
+	return got
+}
+
+func runStringCases(t *testing.T, tests []stringCase) {
+	t.Helper()
+	converted := make([]tokenCase, len(tests))
+	for i, tt := range tests {
+		converted[i] = tokenCase{name: tt.name, input: tt.input, want: dqsTokens(tt.wantTokens), wantErr: tt.wantErr}
+	}
+	runTokenCases(t, converted)
+}
+
+func singleCharCases(char string, typ TokenType) []tokenCase {
+	one := tok(typ, char)
+	symFoo := tok(TOKEN_SYMBOL, "foo")
+	symBar := tok(TOKEN_SYMBOL, "bar")
+	int123 := tok(TOKEN_INT, "123")
+	return []tokenCase{
+		{name: "single", input: char, want: []Token{one}, wantErr: false},
+		{name: "doubled", input: char + char, want: []Token{one, one}, wantErr: false},
+		{name: "spaced", input: char + " " + char, want: []Token{one, one}, wantErr: false},
+		{name: "whitespace padded", input: "  " + char + "\n\t ", want: []Token{one}, wantErr: false},
+		{name: "symbol before", input: "foo" + char, want: []Token{symFoo, one}, wantErr: false},
+		{name: "symbol after", input: char + "foo", want: []Token{one, symFoo}, wantErr: false},
+		{name: "int before", input: "123" + char, want: []Token{int123, one}, wantErr: false},
+		{name: "int after", input: char + "123", want: []Token{one, int123}, wantErr: false},
+		{name: "symbol spaced", input: "foo " + char + " bar", want: []Token{symFoo, one, symBar}, wantErr: false},
+	}
+}
+
 func TestTokenizeStrings(t *testing.T) {
-	tests := []struct {
-		name       string
-		input      string
-		wantTokens []string
-		wantErr    bool
-	}{
+	tests := []stringCase{
 		{name: "empty input", input: "", wantTokens: nil, wantErr: false},
 		{name: "empty string", input: `""`, wantTokens: []string{`""`}, wantErr: false},
 		{name: "simple", input: `"hello"`, wantTokens: []string{`"hello"`}, wantErr: false},
@@ -35,76 +120,12 @@ func TestTokenizeStrings(t *testing.T) {
 		{name: "trailing escaped backslash", input: `"foo\\"`, wantTokens: []string{`"foo\\"`}, wantErr: false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tokens, errFn := TokenIterator(tt.input)
-			var gotTokens []string
-			for tok := range tokens {
-				if tok.Type != TOKEN_DQS {
-					t.Errorf("input %q: got token type %v (%q), want %v", tt.input, tok.Type, tok.Value, TOKEN_DQS)
-				}
-				gotTokens = append(gotTokens, tok.Value)
-			}
-			gotErr := errFn() != nil
-			if len(gotTokens) != len(tt.wantTokens) {
-				t.Fatalf("input %q: got %d tokens %q (err %v), want %d tokens %q", tt.input, len(gotTokens), gotTokens, gotErr, len(tt.wantTokens), tt.wantTokens)
-			}
-			for i := range tt.wantTokens {
-				if gotTokens[i] != tt.wantTokens[i] {
-					t.Errorf("input %q token %d: got %q, want %q", tt.input, i, gotTokens[i], tt.wantTokens[i])
-				}
-			}
-			if gotErr != tt.wantErr {
-				if tt.wantErr {
-					t.Errorf("input %q tokens %q: expected error, got nil", tt.input, gotTokens)
-				} else {
-					t.Errorf("input %q tokens %q: expected no error, got error", tt.input, gotTokens)
-				}
-			}
-		})
-	}
+	runStringCases(t, tests)
 }
 
 func testSingleCharToken(t *testing.T, char string, typ TokenType) {
 	t.Helper()
-	tests := []struct {
-		name    string
-		input   string
-		want    []Token
-		wantErr bool
-	}{
-		{name: "single", input: char, want: []Token{{Type: typ, Value: char}}, wantErr: false},
-		{name: "doubled", input: char + char, want: []Token{{Type: typ, Value: char}, {Type: typ, Value: char}}, wantErr: false},
-		{name: "spaced", input: char + " " + char, want: []Token{{Type: typ, Value: char}, {Type: typ, Value: char}}, wantErr: false},
-		{name: "whitespace padded", input: "  " + char + "\n\t ", want: []Token{{Type: typ, Value: char}}, wantErr: false},
-		{name: "symbol before", input: "foo" + char, want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: typ, Value: char}}, wantErr: false},
-		{name: "symbol after", input: char + "foo", want: []Token{{Type: typ, Value: char}, {Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
-		{name: "int before", input: "123" + char, want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: typ, Value: char}}, wantErr: false},
-		{name: "int after", input: char + "123", want: []Token{{Type: typ, Value: char}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
-		{name: "symbol spaced", input: "foo " + char + " bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: typ, Value: char}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			seq, errFn := TokenIterator(tt.input)
-			var got []Token
-			for tok := range seq {
-				got = append(got, tok)
-			}
-			gotErr := errFn() != nil
-			if len(got) != len(tt.want) {
-				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
-			}
-			for i := range tt.want {
-				if got[i] != tt.want[i] {
-					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
-				}
-			}
-			if gotErr != tt.wantErr {
-				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
-			}
-		})
-	}
+	runTokenCases(t, singleCharCases(char, typ))
 }
 
 func TestTokenizeSingleCharTokens(t *testing.T) {
@@ -130,12 +151,7 @@ func TestTokenizeSingleCharTokens(t *testing.T) {
 }
 
 func TestTokenizeInts(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    []Token
-		wantErr bool
-	}{
+	tests := []tokenCase{
 		{name: "zero", input: "0", want: []Token{{Type: TOKEN_INT, Value: "0"}}, wantErr: false},
 		{name: "single digit", input: "1", want: []Token{{Type: TOKEN_INT, Value: "1"}}, wantErr: false},
 		{name: "multi digit", input: "123", want: []Token{{Type: TOKEN_INT, Value: "123"}}, wantErr: false},
@@ -151,36 +167,11 @@ func TestTokenizeInts(t *testing.T) {
 		{name: "plus digits", input: "+123", want: []Token{{Type: TOKEN_INT, Value: "+123"}}, wantErr: false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			seq, errFn := TokenIterator(tt.input)
-			var got []Token
-			for tok := range seq {
-				got = append(got, tok)
-			}
-			gotErr := errFn() != nil
-			if len(got) != len(tt.want) {
-				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
-			}
-			for i := range tt.want {
-				if got[i] != tt.want[i] {
-					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
-				}
-			}
-			if gotErr != tt.wantErr {
-				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
-			}
-		})
-	}
+	runTokenCases(t, tests)
 }
 
 func TestTokenizeSymbols(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    []Token
-		wantErr bool
-	}{
+	tests := []tokenCase{
 		{name: "single letter", input: "a", want: []Token{{Type: TOKEN_SYMBOL, Value: "a"}}, wantErr: false},
 		{name: "simple", input: "foo", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
 		{name: "uppercase", input: "ABC", want: []Token{{Type: TOKEN_SYMBOL, Value: "ABC"}}, wantErr: false},
@@ -213,36 +204,11 @@ func TestTokenizeSymbols(t *testing.T) {
 		{name: "ampersand", input: "&", want: []Token{{Type: TOKEN_SYMBOL, Value: "&"}}, wantErr: false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			seq, errFn := TokenIterator(tt.input)
-			var got []Token
-			for tok := range seq {
-				got = append(got, tok)
-			}
-			gotErr := errFn() != nil
-			if len(got) != len(tt.want) {
-				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
-			}
-			for i := range tt.want {
-				if got[i] != tt.want[i] {
-					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
-				}
-			}
-			if gotErr != tt.wantErr {
-				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
-			}
-		})
-	}
+	runTokenCases(t, tests)
 }
 
 func TestTokenizeCombinations(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    []Token
-		wantErr bool
-	}{
+	tests := []tokenCase{
 		{name: "empty input", input: "", want: nil, wantErr: false},
 		{name: "whitespace only", input: " \t\n\r ", want: nil, wantErr: false},
 		{name: "empty list", input: "()", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
@@ -271,36 +237,11 @@ func TestTokenizeCombinations(t *testing.T) {
 		{name: "escaped newline", input: "\"foo\\\nbar\"", want: []Token{{Type: TOKEN_DQS, Value: "\"foo\\\nbar\""}}, wantErr: false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			seq, errFn := TokenIterator(tt.input)
-			var got []Token
-			for tok := range seq {
-				got = append(got, tok)
-			}
-			gotErr := errFn() != nil
-			if len(got) != len(tt.want) {
-				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
-			}
-			for i := range tt.want {
-				if got[i] != tt.want[i] {
-					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
-				}
-			}
-			if gotErr != tt.wantErr {
-				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
-			}
-		})
-	}
+	runTokenCases(t, tests)
 }
 
 func TestTokenizeInvalid(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    []Token
-		wantErr bool
-	}{
+	tests := []tokenCase{
 		{name: "backtick", input: "`", want: nil, wantErr: true},
 		{name: "tilde", input: "~", want: nil, wantErr: true},
 		{name: "hash", input: "#", want: nil, wantErr: true},
@@ -317,36 +258,11 @@ func TestTokenizeInvalid(t *testing.T) {
 		{name: "trailing backslash", input: "\"foo\\", want: nil, wantErr: true},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			seq, errFn := TokenIterator(tt.input)
-			var got []Token
-			for tok := range seq {
-				got = append(got, tok)
-			}
-			gotErr := errFn() != nil
-			if len(got) != len(tt.want) {
-				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
-			}
-			for i := range tt.want {
-				if got[i] != tt.want[i] {
-					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
-				}
-			}
-			if gotErr != tt.wantErr {
-				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
-			}
-		})
-	}
+	runTokenCases(t, tests)
 }
 
 func TestTokenizeWhitespace(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    []Token
-		wantErr bool
-	}{
+	tests := []tokenCase{
 		{name: "space only", input: " ", want: nil, wantErr: false},
 		{name: "tab only", input: "\t", want: nil, wantErr: false},
 		{name: "newline only", input: "\n", want: nil, wantErr: false},
@@ -398,27 +314,7 @@ func TestTokenizeWhitespace(t *testing.T) {
 		{name: "whitespace before invalid", input: "foo , à", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: true},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			seq, errFn := TokenIterator(tt.input)
-			var got []Token
-			for tok := range seq {
-				got = append(got, tok)
-			}
-			gotErr := errFn() != nil
-			if len(got) != len(tt.want) {
-				t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", tt.input, len(got), got, gotErr, len(tt.want), tt.want)
-			}
-			for i := range tt.want {
-				if got[i] != tt.want[i] {
-					t.Errorf("input %q token %d: got %+v, want %+v", tt.input, i, got[i], tt.want[i])
-				}
-			}
-			if gotErr != tt.wantErr {
-				t.Errorf("input %q: gotErr %v, wantErr %v", tt.input, gotErr, tt.wantErr)
-			}
-		})
-	}
+	runTokenCases(t, tests)
 }
 
 func TestTokenIteratorEarlyBreak(t *testing.T) {
