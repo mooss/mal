@@ -1,336 +1,313 @@
 //revive:disable:cognitive-complexity,line-length-limit,function-length
-package lexer
+package lexer_test
 
-import "testing"
+import (
+	"testing"
 
-type tokenCase struct {
-	name    string
-	input   string
-	want    []Token
-	wantErr bool
+	"github.com/mooss/mal/src/lexer"
+	"github.com/mooss/mal/src/tut"
+	"github.com/mooss/mal/src/tut/assert"
+)
+
+const (
+	DQS      = lexer.TOKEN_DQS
+	INT      = lexer.TOKEN_INT
+	LBRACE   = lexer.TOKEN_LBRACE
+	LBRACKET = lexer.TOKEN_LBRACKET
+	LPAREN   = lexer.TOKEN_LPAREN
+	RBRACE   = lexer.TOKEN_RBRACE
+	RBRACKET = lexer.TOKEN_RBRACKET
+	RPAREN   = lexer.TOKEN_RPAREN
+	SQUOTE   = lexer.TOKEN_SQUOTE
+	SYMBOL   = lexer.TOKEN_SYMBOL
+)
+
+func tok(typ lexer.TokenType, val string) lexer.Token {
+	return lexer.Token{Type: typ, Value: val}
 }
 
-type stringCase struct {
-	name       string
-	input      string
-	wantTokens []string
-	wantErr    bool
-}
-
-func tok(typ TokenType, val string) Token {
-	return Token{Type: typ, Value: val}
-}
-
-func collectTokens(input string) ([]Token, bool) {
-	seq, errFn := TokenIterator(input)
-	var got []Token
+func collectTokens(input string) ([]lexer.Token, bool) {
+	seq, errFn := lexer.TokenIterator(input)
+	var got []lexer.Token
 	for t := range seq {
 		got = append(got, t)
 	}
 	return got, errFn() != nil
 }
 
-func checkTokens(t *testing.T, input string, got, want []Token, gotErr, wantErr bool) {
+func runTokenCases(t *testing.T, tests []tut.Case[[]lexer.Token]) {
 	t.Helper()
-	if len(got) != len(want) {
-		t.Fatalf("input %q: got %d tokens %v (err %v), want %d tokens %v", input, len(got), got, gotErr, len(want), want)
-	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Errorf("input %q token %d: got %+v, want %+v", input, i, got[i], want[i])
-		}
-	}
-	if gotErr != wantErr {
-		t.Errorf("input %q: gotErr %v, wantErr %v", input, gotErr, wantErr)
-	}
+	tut.Run(t, tests, func(t *testing.T, c tut.Case[[]lexer.Token]) {
+		t.Helper()
+		got, gotErr := collectTokens(c.Input)
+		assert.Equal(t, got, c.Want)
+		assert.Equal(t, gotErr, c.WantErr)
+	})
 }
 
-func runTokenCases(t *testing.T, tests []tokenCase) {
-	t.Helper()
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := collectTokens(tt.input)
-			checkTokens(t, tt.input, got, tt.want, gotErr, tt.wantErr)
-		})
-	}
-}
-
-func dqsTokens(vals []string) []Token {
+func dqsTokens(vals []string) []lexer.Token {
 	if vals == nil {
 		return nil
 	}
-	got := make([]Token, len(vals))
+	got := make([]lexer.Token, len(vals))
 	for i, v := range vals {
-		got[i] = tok(TOKEN_DQS, v)
+		got[i] = tok(DQS, v)
 	}
 	return got
 }
 
-func runStringCases(t *testing.T, tests []stringCase) {
+func runStringCases(t *testing.T, tests []tut.Case[[]string]) {
 	t.Helper()
-	converted := make([]tokenCase, len(tests))
+	converted := make([]tut.Case[[]lexer.Token], len(tests))
 	for i, tt := range tests {
-		converted[i] = tokenCase{name: tt.name, input: tt.input, want: dqsTokens(tt.wantTokens), wantErr: tt.wantErr}
+		converted[i] = tut.Case[[]lexer.Token]{Name: tt.Name, Input: tt.Input, Want: dqsTokens(tt.Want), WantErr: tt.WantErr}
 	}
 	runTokenCases(t, converted)
 }
 
-func singleCharCases(char string, typ TokenType) []tokenCase {
+func singleCharCases(char string, typ lexer.TokenType) []tut.Case[[]lexer.Token] {
 	one := tok(typ, char)
-	symFoo := tok(TOKEN_SYMBOL, "foo")
-	symBar := tok(TOKEN_SYMBOL, "bar")
-	int123 := tok(TOKEN_INT, "123")
-	return []tokenCase{
-		{name: "single", input: char, want: []Token{one}, wantErr: false},
-		{name: "doubled", input: char + char, want: []Token{one, one}, wantErr: false},
-		{name: "spaced", input: char + " " + char, want: []Token{one, one}, wantErr: false},
-		{name: "whitespace padded", input: "  " + char + "\n\t ", want: []Token{one}, wantErr: false},
-		{name: "symbol before", input: "foo" + char, want: []Token{symFoo, one}, wantErr: false},
-		{name: "symbol after", input: char + "foo", want: []Token{one, symFoo}, wantErr: false},
-		{name: "int before", input: "123" + char, want: []Token{int123, one}, wantErr: false},
-		{name: "int after", input: char + "123", want: []Token{one, int123}, wantErr: false},
-		{name: "symbol spaced", input: "foo " + char + " bar", want: []Token{symFoo, one, symBar}, wantErr: false},
+	symFoo := tok(SYMBOL, "foo")
+	symBar := tok(SYMBOL, "bar")
+	int123 := tok(INT, "123")
+	return []tut.Case[[]lexer.Token]{
+		{Name: "single", Input: char, Want: []lexer.Token{one}},
+		{Name: "doubled", Input: char + char, Want: []lexer.Token{one, one}},
+		{Name: "spaced", Input: char + " " + char, Want: []lexer.Token{one, one}},
+		{Name: "whitespace padded", Input: "  " + char + "\n\t ", Want: []lexer.Token{one}},
+		{Name: "symbol before", Input: "foo" + char, Want: []lexer.Token{symFoo, one}},
+		{Name: "symbol after", Input: char + "foo", Want: []lexer.Token{one, symFoo}},
+		{Name: "int before", Input: "123" + char, Want: []lexer.Token{int123, one}},
+		{Name: "int after", Input: char + "123", Want: []lexer.Token{one, int123}},
+		{Name: "symbol spaced", Input: "foo " + char + " bar", Want: []lexer.Token{symFoo, one, symBar}},
 	}
 }
 
 func TestTokenizeStrings(t *testing.T) {
-	tests := []stringCase{
-		{name: "empty input", input: "", wantTokens: nil, wantErr: false},
-		{name: "empty string", input: `""`, wantTokens: []string{`""`}, wantErr: false},
-		{name: "simple", input: `"hello"`, wantTokens: []string{`"hello"`}, wantErr: false},
-		{name: "with space", input: `"hello world"`, wantTokens: []string{`"hello world"`}, wantErr: false},
-		{name: "digits", input: `"123"`, wantTokens: []string{`"123"`}, wantErr: false},
-		{name: "unicode", input: `"héllo"`, wantTokens: []string{`"héllo"`}, wantErr: false},
-		{name: "emoji", input: `"😀"`, wantTokens: []string{`"😀"`}, wantErr: false},
-		{name: "escaped quote", input: `"a\"b"`, wantTokens: []string{`"a\"b"`}, wantErr: false},
-		{name: "escaped backslash", input: `"a\\b"`, wantTokens: []string{`"a\\b"`}, wantErr: false},
-		{name: "single escaped backslash", input: `"\\"`, wantTokens: []string{`"\\"`}, wantErr: false},
-		{name: "single escaped quote", input: `"\""`, wantTokens: []string{`"\""`}, wantErr: false},
-		{name: "backslash n escape", input: `"a\nb"`, wantTokens: []string{`"a\nb"`}, wantErr: false},
-		{name: "unterminated", input: `"hello`, wantTokens: []string{}, wantErr: true},
-		{name: "single quote", input: `"`, wantTokens: []string{}, wantErr: true},
-		{name: "ends with escaped quote", input: `"hello\"`, wantTokens: []string{}, wantErr: true},
-		{name: "raw newline no closing", input: "\"foo\n", wantTokens: []string{}, wantErr: true},
-		{name: "raw newline with closing", input: "\"a\nb\"", wantTokens: []string{"\"a\nb\""}, wantErr: false},
-		{name: "CR with closing", input: "\"a\rb\"", wantTokens: []string{"\"a\rb\""}, wantErr: false},
-		{name: "invalid utf8 with closing", input: "\"a\xffb\"", wantTokens: []string{"\"a�b\""}, wantErr: false},
-		{name: "NUL no closing", input: "\"foo\x00", wantTokens: []string{}, wantErr: true},
-		{name: "invalid no closing", input: "\"foo\xff", wantTokens: []string{}, wantErr: true},
-		{name: "two adjacent", input: `"a""b"`, wantTokens: []string{`"a"`, `"b"`}, wantErr: false},
-		{name: "trailing escaped backslash", input: `"foo\\"`, wantTokens: []string{`"foo\\"`}, wantErr: false},
+	tests := []tut.Case[[]string]{
+		{Name: "empty input", Input: ""},
+		{Name: "empty string", Input: `""`, Want: []string{`""`}},
+		{Name: "simple", Input: `"hello"`, Want: []string{`"hello"`}},
+		{Name: "with space", Input: `"hello world"`, Want: []string{`"hello world"`}},
+		{Name: "digits", Input: `"123"`, Want: []string{`"123"`}},
+		{Name: "unicode", Input: `"héllo"`, Want: []string{`"héllo"`}},
+		{Name: "emoji", Input: `"😀"`, Want: []string{`"😀"`}},
+		{Name: "escaped quote", Input: `"a\"b"`, Want: []string{`"a\"b"`}},
+		{Name: "escaped backslash", Input: `"a\\b"`, Want: []string{`"a\\b"`}},
+		{Name: "single escaped backslash", Input: `"\\"`, Want: []string{`"\\"`}},
+		{Name: "single escaped quote", Input: `"\""`, Want: []string{`"\""`}},
+		{Name: "backslash n escape", Input: `"a\nb"`, Want: []string{`"a\nb"`}},
+		{Name: "unterminated", Input: `"hello`, WantErr: true},
+		{Name: "single quote", Input: `"`, WantErr: true},
+		{Name: "ends with escaped quote", Input: `"hello\"`, WantErr: true},
+		{Name: "raw newline no closing", Input: "\"foo\n", WantErr: true},
+		{Name: "raw newline with closing", Input: "\"a\nb\"", Want: []string{"\"a\nb\""}},
+		{Name: "CR with closing", Input: "\"a\rb\"", Want: []string{"\"a\rb\""}},
+		{Name: "invalid utf8 with closing", Input: "\"a\xffb\"", Want: []string{"\"a�b\""}},
+		{Name: "NUL no closing", Input: "\"foo\x00", WantErr: true},
+		{Name: "invalid no closing", Input: "\"foo\xff", WantErr: true},
+		{Name: "two adjacent", Input: `"a""b"`, Want: []string{`"a"`, `"b"`}},
+		{Name: "trailing escaped backslash", Input: `"foo\\"`, Want: []string{`"foo\\"`}},
 	}
 
 	runStringCases(t, tests)
 }
 
-func testSingleCharToken(t *testing.T, char string, typ TokenType) {
+func testSingleCharToken(t *testing.T, char string, typ lexer.TokenType) {
 	t.Helper()
 	runTokenCases(t, singleCharCases(char, typ))
 }
 
 func TestTokenizeSingleCharTokens(t *testing.T) {
-	cases := []struct {
-		name string
-		char string
-		typ  TokenType
-	}{
-		{name: "lparen", char: "(", typ: TOKEN_LPAREN},
-		{name: "rparen", char: ")", typ: TOKEN_RPAREN},
-		{name: "lbracket", char: "[", typ: TOKEN_LBRACKET},
-		{name: "rbracket", char: "]", typ: TOKEN_RBRACKET},
-		{name: "lbrace", char: "{", typ: TOKEN_LBRACE},
-		{name: "rbrace", char: "}", typ: TOKEN_RBRACE},
-		{name: "squote", char: "'", typ: TOKEN_SQUOTE},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			testSingleCharToken(t, tc.char, tc.typ)
-		})
-	}
+	tut.RunSimple(t, []tut.SimpleCase[lexer.TokenType]{
+		{Name: "lparen", Prog: "(", Want: LPAREN},
+		{Name: "rparen", Prog: ")", Want: RPAREN},
+		{Name: "lbracket", Prog: "[", Want: LBRACKET},
+		{Name: "rbracket", Prog: "]", Want: RBRACKET},
+		{Name: "lbrace", Prog: "{", Want: LBRACE},
+		{Name: "rbrace", Prog: "}", Want: RBRACE},
+		{Name: "squote", Prog: "'", Want: SQUOTE},
+	}, func(t *testing.T, c tut.SimpleCase[lexer.TokenType]) {
+		t.Helper()
+		testSingleCharToken(t, c.Prog, c.Want)
+	})
 }
 
 func TestTokenizeInts(t *testing.T) {
-	tests := []tokenCase{
-		{name: "zero", input: "0", want: []Token{{Type: TOKEN_INT, Value: "0"}}, wantErr: false},
-		{name: "single digit", input: "1", want: []Token{{Type: TOKEN_INT, Value: "1"}}, wantErr: false},
-		{name: "multi digit", input: "123", want: []Token{{Type: TOKEN_INT, Value: "123"}}, wantErr: false},
-		{name: "leading zeros", input: "007", want: []Token{{Type: TOKEN_INT, Value: "007"}}, wantErr: false},
-		{name: "negative zero", input: "-0", want: []Token{{Type: TOKEN_INT, Value: "-0"}}, wantErr: false},
-		{name: "negative single", input: "-1", want: []Token{{Type: TOKEN_INT, Value: "-1"}}, wantErr: false},
-		{name: "negative multi", input: "-42", want: []Token{{Type: TOKEN_INT, Value: "-42"}}, wantErr: false},
-		{name: "negative long", input: "-9876543210", want: []Token{{Type: TOKEN_INT, Value: "-9876543210"}}, wantErr: false},
-		{name: "large", input: "999999999999999999999999", want: []Token{{Type: TOKEN_INT, Value: "999999999999999999999999"}}, wantErr: false},
-		{name: "multiple", input: "1 2 3", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_INT, Value: "3"}}, wantErr: false},
-		{name: "whitespace padded", input: "  42\t\n-7  ", want: []Token{{Type: TOKEN_INT, Value: "42"}, {Type: TOKEN_INT, Value: "-7"}}, wantErr: false},
-		{name: "zeros", input: "0 -0 00 -00", want: []Token{{Type: TOKEN_INT, Value: "0"}, {Type: TOKEN_INT, Value: "-0"}, {Type: TOKEN_INT, Value: "00"}, {Type: TOKEN_INT, Value: "-00"}}, wantErr: false},
-		{name: "plus digits", input: "+123", want: []Token{{Type: TOKEN_INT, Value: "+123"}}, wantErr: false},
+	tests := []tut.Case[[]lexer.Token]{
+		{Name: "zero", Input: "0", Want: []lexer.Token{{Type: INT, Value: "0"}}},
+		{Name: "single digit", Input: "1", Want: []lexer.Token{{Type: INT, Value: "1"}}},
+		{Name: "multi digit", Input: "123", Want: []lexer.Token{{Type: INT, Value: "123"}}},
+		{Name: "leading zeros", Input: "007", Want: []lexer.Token{{Type: INT, Value: "007"}}},
+		{Name: "negative zero", Input: "-0", Want: []lexer.Token{{Type: INT, Value: "-0"}}},
+		{Name: "negative single", Input: "-1", Want: []lexer.Token{{Type: INT, Value: "-1"}}},
+		{Name: "negative multi", Input: "-42", Want: []lexer.Token{{Type: INT, Value: "-42"}}},
+		{Name: "negative long", Input: "-9876543210", Want: []lexer.Token{{Type: INT, Value: "-9876543210"}}},
+		{Name: "large", Input: "999999999999999999999999", Want: []lexer.Token{{Type: INT, Value: "999999999999999999999999"}}},
+		{Name: "multiple", Input: "1 2 3", Want: []lexer.Token{{Type: INT, Value: "1"}, {Type: INT, Value: "2"}, {Type: INT, Value: "3"}}},
+		{Name: "whitespace padded", Input: "  42\t\n-7  ", Want: []lexer.Token{{Type: INT, Value: "42"}, {Type: INT, Value: "-7"}}},
+		{Name: "zeros", Input: "0 -0 00 -00", Want: []lexer.Token{{Type: INT, Value: "0"}, {Type: INT, Value: "-0"}, {Type: INT, Value: "00"}, {Type: INT, Value: "-00"}}},
+		{Name: "plus digits", Input: "+123", Want: []lexer.Token{{Type: INT, Value: "+123"}}},
 	}
 
 	runTokenCases(t, tests)
 }
 
 func TestTokenizeSymbols(t *testing.T) {
-	tests := []tokenCase{
-		{name: "single letter", input: "a", want: []Token{{Type: TOKEN_SYMBOL, Value: "a"}}, wantErr: false},
-		{name: "simple", input: "foo", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
-		{name: "uppercase", input: "ABC", want: []Token{{Type: TOKEN_SYMBOL, Value: "ABC"}}, wantErr: false},
-		{name: "mixed case digits", input: "AbC123", want: []Token{{Type: TOKEN_SYMBOL, Value: "AbC123"}}, wantErr: false},
-		{name: "plus", input: "+", want: []Token{{Type: TOKEN_SYMBOL, Value: "+"}}, wantErr: false},
-		{name: "star", input: "*", want: []Token{{Type: TOKEN_SYMBOL, Value: "*"}}, wantErr: false},
-		{name: "single minus", input: "-", want: []Token{{Type: TOKEN_SYMBOL, Value: "-"}}, wantErr: false},
-		{name: "double minus", input: "--", want: []Token{{Type: TOKEN_SYMBOL, Value: "--"}}, wantErr: false},
-		{name: "double minus digit", input: "--1", want: []Token{{Type: TOKEN_SYMBOL, Value: "--1"}}, wantErr: false},
-		{name: "minus letter", input: "-a", want: []Token{{Type: TOKEN_SYMBOL, Value: "-a"}}, wantErr: false},
-		{name: "letter minus", input: "a-", want: []Token{{Type: TOKEN_SYMBOL, Value: "a-"}}, wantErr: false},
-		{name: "dash", input: "foo-bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo-bar"}}, wantErr: false},
-		{name: "slash", input: "foo/bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo/bar"}}, wantErr: false},
-		{name: "dot", input: "foo.bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo.bar"}}, wantErr: false},
-		{name: "dots", input: "...", want: []Token{{Type: TOKEN_SYMBOL, Value: "..."}}, wantErr: false},
-		{name: "stars", input: "***", want: []Token{{Type: TOKEN_SYMBOL, Value: "***"}}, wantErr: false},
-		{name: "bang", input: "!", want: []Token{{Type: TOKEN_SYMBOL, Value: "!"}}, wantErr: false},
-		{name: "double bang", input: "!!", want: []Token{{Type: TOKEN_SYMBOL, Value: "!!"}}, wantErr: false},
-		{name: "leading bang", input: "!foo", want: []Token{{Type: TOKEN_SYMBOL, Value: "!foo"}}, wantErr: false},
-		{name: "trailing bang", input: "foo!", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo!"}}, wantErr: false},
-		{name: "middle bang", input: "foo!bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo!bar"}}, wantErr: false},
-		{name: "bang with digits", input: "!123", want: []Token{{Type: TOKEN_SYMBOL, Value: "!123"}}, wantErr: false},
-		{name: "punct run", input: "*+-./", want: []Token{{Type: TOKEN_SYMBOL, Value: "*+-./"}}, wantErr: false},
-		{name: "punct run with bang", input: "!*+-./!", want: []Token{{Type: TOKEN_SYMBOL, Value: "!*+-./!"}}, wantErr: false},
-		{name: "multiple", input: "foo bar baz", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_SYMBOL, Value: "baz"}}, wantErr: false},
-		{name: "all plain punct", input: "a/b.c*d+e-f", want: []Token{{Type: TOKEN_SYMBOL, Value: "a/b.c*d+e-f"}}, wantErr: false},
-		{name: "keywords", input: "nil true false defn", want: []Token{{Type: TOKEN_SYMBOL, Value: "nil"}, {Type: TOKEN_SYMBOL, Value: "true"}, {Type: TOKEN_SYMBOL, Value: "false"}, {Type: TOKEN_SYMBOL, Value: "defn"}}, wantErr: false},
-		{name: "digit minus", input: "1-", want: []Token{}, wantErr: true},
-		{name: "digits plus digits", input: "12+34", want: []Token{}, wantErr: true},
-		{name: "ampersand", input: "&", want: []Token{{Type: TOKEN_SYMBOL, Value: "&"}}, wantErr: false},
+	tests := []tut.Case[[]lexer.Token]{
+		{Name: "single letter", Input: "a", Want: []lexer.Token{{Type: SYMBOL, Value: "a"}}},
+		{Name: "simple", Input: "foo", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
+		{Name: "uppercase", Input: "ABC", Want: []lexer.Token{{Type: SYMBOL, Value: "ABC"}}},
+		{Name: "mixed case digits", Input: "AbC123", Want: []lexer.Token{{Type: SYMBOL, Value: "AbC123"}}},
+		{Name: "plus", Input: "+", Want: []lexer.Token{{Type: SYMBOL, Value: "+"}}},
+		{Name: "star", Input: "*", Want: []lexer.Token{{Type: SYMBOL, Value: "*"}}},
+		{Name: "single minus", Input: "-", Want: []lexer.Token{{Type: SYMBOL, Value: "-"}}},
+		{Name: "double minus", Input: "--", Want: []lexer.Token{{Type: SYMBOL, Value: "--"}}},
+		{Name: "double minus digit", Input: "--1", Want: []lexer.Token{{Type: SYMBOL, Value: "--1"}}},
+		{Name: "minus letter", Input: "-a", Want: []lexer.Token{{Type: SYMBOL, Value: "-a"}}},
+		{Name: "letter minus", Input: "a-", Want: []lexer.Token{{Type: SYMBOL, Value: "a-"}}},
+		{Name: "dash", Input: "foo-bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo-bar"}}},
+		{Name: "slash", Input: "foo/bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo/bar"}}},
+		{Name: "dot", Input: "foo.bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo.bar"}}},
+		{Name: "dots", Input: "...", Want: []lexer.Token{{Type: SYMBOL, Value: "..."}}},
+		{Name: "stars", Input: "***", Want: []lexer.Token{{Type: SYMBOL, Value: "***"}}},
+		{Name: "bang", Input: "!", Want: []lexer.Token{{Type: SYMBOL, Value: "!"}}},
+		{Name: "double bang", Input: "!!", Want: []lexer.Token{{Type: SYMBOL, Value: "!!"}}},
+		{Name: "leading bang", Input: "!foo", Want: []lexer.Token{{Type: SYMBOL, Value: "!foo"}}},
+		{Name: "trailing bang", Input: "foo!", Want: []lexer.Token{{Type: SYMBOL, Value: "foo!"}}},
+		{Name: "middle bang", Input: "foo!bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo!bar"}}},
+		{Name: "bang with digits", Input: "!123", Want: []lexer.Token{{Type: SYMBOL, Value: "!123"}}},
+		{Name: "punct run", Input: "*+-./", Want: []lexer.Token{{Type: SYMBOL, Value: "*+-./"}}},
+		{Name: "punct run with bang", Input: "!*+-./!", Want: []lexer.Token{{Type: SYMBOL, Value: "!*+-./!"}}},
+		{Name: "multiple", Input: "foo bar baz", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}, {Type: SYMBOL, Value: "baz"}}},
+		{Name: "all plain punct", Input: "a/b.c*d+e-f", Want: []lexer.Token{{Type: SYMBOL, Value: "a/b.c*d+e-f"}}},
+		{Name: "keywords", Input: "nil true false defn", Want: []lexer.Token{{Type: SYMBOL, Value: "nil"}, {Type: SYMBOL, Value: "true"}, {Type: SYMBOL, Value: "false"}, {Type: SYMBOL, Value: "defn"}}},
+		{Name: "digit minus", Input: "1-", WantErr: true},
+		{Name: "digits plus digits", Input: "12+34", WantErr: true},
+		{Name: "ampersand", Input: "&", Want: []lexer.Token{{Type: SYMBOL, Value: "&"}}},
 	}
 
 	runTokenCases(t, tests)
 }
 
 func TestTokenizeCombinations(t *testing.T) {
-	tests := []tokenCase{
-		{name: "empty input", input: "", want: nil, wantErr: false},
-		{name: "whitespace only", input: " \t\n\r ", want: nil, wantErr: false},
-		{name: "empty list", input: "()", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "symbol and int", input: "(foo 123)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "plus ints", input: "(+ 1 2)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "+"}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "def", input: "(def foo 42)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "def"}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "42"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "int then symbol", input: "123 abc", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_SYMBOL, Value: "abc"}}, wantErr: false},
-		{name: "int vs symbol dash", input: "-123 -abc +123", want: []Token{{Type: TOKEN_INT, Value: "-123"}, {Type: TOKEN_SYMBOL, Value: "-abc"}, {Type: TOKEN_INT, Value: "+123"}}, wantErr: false},
-		{name: "no spaces", input: "(foo)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "int in parens", input: "(1)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "nested ints", input: "((1 2) (3 4))", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "3"}, {Type: TOKEN_INT, Value: "4"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "string and symbol", input: `"hello" foo`, want: []Token{{Type: TOKEN_DQS, Value: `"hello"`}, {Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
-		{name: "string in list", input: `(foo "bar baz" -42)`, want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_DQS, Value: `"bar baz"`}, {Type: TOKEN_INT, Value: "-42"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "int adjacent parens", input: "1(2)", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "all kinds", input: `123 abc ( ) "hello"`, want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_SYMBOL, Value: "abc"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_DQS, Value: `"hello"`}}, wantErr: false},
-		{name: "multiline", input: "  ( \n foo\t 123 \r\n )  ", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "unterminated string", input: `"foo`, want: nil, wantErr: true},
-		{name: "valid then invalid", input: "foo : bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: ":"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+	tests := []tut.Case[[]lexer.Token]{
+		{Name: "empty input", Input: ""},
+		{Name: "whitespace only", Input: " \t\n\r "},
+		{Name: "empty list", Input: "()", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: RPAREN, Value: ")"}}},
+		{Name: "symbol and int", Input: "(foo 123)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: INT, Value: "123"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "plus ints", Input: "(+ 1 2)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "+"}, {Type: INT, Value: "1"}, {Type: INT, Value: "2"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "def", Input: "(def foo 42)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "def"}, {Type: SYMBOL, Value: "foo"}, {Type: INT, Value: "42"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "int then symbol", Input: "123 abc", Want: []lexer.Token{{Type: INT, Value: "123"}, {Type: SYMBOL, Value: "abc"}}},
+		{Name: "int vs symbol dash", Input: "-123 -abc +123", Want: []lexer.Token{{Type: INT, Value: "-123"}, {Type: SYMBOL, Value: "-abc"}, {Type: INT, Value: "+123"}}},
+		{Name: "no spaces", Input: "(foo)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "int in parens", Input: "(1)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: INT, Value: "1"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "nested ints", Input: "((1 2) (3 4))", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: LPAREN, Value: "("}, {Type: INT, Value: "1"}, {Type: INT, Value: "2"}, {Type: RPAREN, Value: ")"}, {Type: LPAREN, Value: "("}, {Type: INT, Value: "3"}, {Type: INT, Value: "4"}, {Type: RPAREN, Value: ")"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "string and symbol", Input: `"hello" foo`, Want: []lexer.Token{{Type: DQS, Value: `"hello"`}, {Type: SYMBOL, Value: "foo"}}},
+		{Name: "string in list", Input: `(foo "bar baz" -42)`, Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: DQS, Value: `"bar baz"`}, {Type: INT, Value: "-42"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "int adjacent parens", Input: "1(2)", Want: []lexer.Token{{Type: INT, Value: "1"}, {Type: LPAREN, Value: "("}, {Type: INT, Value: "2"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "all kinds", Input: `123 abc ( ) "hello"`, Want: []lexer.Token{{Type: INT, Value: "123"}, {Type: SYMBOL, Value: "abc"}, {Type: LPAREN, Value: "("}, {Type: RPAREN, Value: ")"}, {Type: DQS, Value: `"hello"`}}},
+		{Name: "multiline", Input: "  ( \n foo\t 123 \r\n )  ", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: INT, Value: "123"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "unterminated string", Input: `"foo`, WantErr: true},
+		{Name: "valid then invalid", Input: "foo : bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: ":"}, {Type: SYMBOL, Value: "bar"}}},
 
-		{name: "symbol boundary lparen", input: "foo(bar)", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "symbol boundary rparen", input: "foo)bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "int boundary lparen", input: "123(foo)", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "string adjacent symbol", input: `"foo"bar`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "string adjacent int", input: `"foo"123`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
-		{name: "string adjacent lparen", input: `"foo"(bar)`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "escaped newline", input: "\"foo\\\nbar\"", want: []Token{{Type: TOKEN_DQS, Value: "\"foo\\\nbar\""}}, wantErr: false},
+		{Name: "symbol boundary lparen", Input: "foo(bar)", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "bar"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "symbol boundary rparen", Input: "foo)bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: RPAREN, Value: ")"}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "int boundary lparen", Input: "123(foo)", Want: []lexer.Token{{Type: INT, Value: "123"}, {Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "string adjacent symbol", Input: `"foo"bar`, Want: []lexer.Token{{Type: DQS, Value: `"foo"`}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "string adjacent int", Input: `"foo"123`, Want: []lexer.Token{{Type: DQS, Value: `"foo"`}, {Type: INT, Value: "123"}}},
+		{Name: "string adjacent lparen", Input: `"foo"(bar)`, Want: []lexer.Token{{Type: DQS, Value: `"foo"`}, {Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "bar"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "escaped newline", Input: "\"foo\\\nbar\"", Want: []lexer.Token{{Type: DQS, Value: "\"foo\\\nbar\""}}},
 	}
 
 	runTokenCases(t, tests)
 }
 
 func TestTokenizeInvalid(t *testing.T) {
-	tests := []tokenCase{
-		{name: "backtick", input: "`", want: nil, wantErr: true},
-		{name: "tilde", input: "~", want: nil, wantErr: true},
-		{name: "hash", input: "#", want: nil, wantErr: true},
-		{name: "dollar", input: "$", want: nil, wantErr: true},
-		{name: "percent", input: "%", want: nil, wantErr: true},
-		{name: "pipe", input: "|", want: nil, wantErr: true},
-		{name: "backslash", input: `\`, want: nil, wantErr: true},
-		{name: "caret", input: "^", want: nil, wantErr: true},
-		{name: "underscore", input: "_", want: nil, wantErr: true},
-		{name: "int then letters", input: "123abc", want: nil, wantErr: true},
-		{name: "int then slash", input: "123/foo", want: nil, wantErr: true},
-		{name: "symbol then quote", input: `foo"bar"`, want: nil, wantErr: true},
-		{name: "int then quote", input: `123"foo"`, want: nil, wantErr: true},
-		{name: "trailing backslash", input: "\"foo\\", want: nil, wantErr: true},
+	tests := []tut.Case[[]lexer.Token]{
+		{Name: "backtick", Input: "`", WantErr: true},
+		{Name: "tilde", Input: "~", WantErr: true},
+		{Name: "hash", Input: "#", WantErr: true},
+		{Name: "dollar", Input: "$", WantErr: true},
+		{Name: "percent", Input: "%", WantErr: true},
+		{Name: "pipe", Input: "|", WantErr: true},
+		{Name: "backslash", Input: `\`, WantErr: true},
+		{Name: "caret", Input: "^", WantErr: true},
+		{Name: "underscore", Input: "_", WantErr: true},
+		{Name: "int then letters", Input: "123abc", WantErr: true},
+		{Name: "int then slash", Input: "123/foo", WantErr: true},
+		{Name: "symbol then quote", Input: `foo"bar"`, WantErr: true},
+		{Name: "int then quote", Input: `123"foo"`, WantErr: true},
+		{Name: "trailing backslash", Input: "\"foo\\", WantErr: true},
 	}
 
 	runTokenCases(t, tests)
 }
 
 func TestTokenizeWhitespace(t *testing.T) {
-	tests := []tokenCase{
-		{name: "space only", input: " ", want: nil, wantErr: false},
-		{name: "tab only", input: "\t", want: nil, wantErr: false},
-		{name: "newline only", input: "\n", want: nil, wantErr: false},
-		{name: "carriage return only", input: "\r", want: nil, wantErr: false},
-		{name: "single comma", input: ",", want: nil, wantErr: false},
-		{name: "multiple commas", input: ",,,", want: nil, wantErr: false},
-		{name: "mixed whitespace only", input: " \t\n\r", want: nil, wantErr: false},
-		{name: "mixed whitespace and commas only", input: " , ,\t\n\r, ", want: nil, wantErr: false},
-		{name: "commas with newlines only", input: ",\n,\r\n,\t,", want: nil, wantErr: false},
-		{name: "symbol padded spaces", input: "  foo  ", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
-		{name: "symbol padded tabs", input: "\tfoo\t", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
-		{name: "symbol padded newlines", input: "\nfoo\n", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
-		{name: "symbol padded carriage returns", input: "\rfoo\r", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
-		{name: "symbol padded commas", input: ",foo,", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
-		{name: "symbol padded mixed", input: " \t\n\r,foo, \r\n\t ", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
-		{name: "int padded mixed", input: " ,\t\n\r42\r\n\t, ", want: []Token{{Type: TOKEN_INT, Value: "42"}}, wantErr: false},
-		{name: "symbols space separated", input: "foo bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "symbols tab separated", input: "foo\tbar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "symbols newline separated", input: "foo\nbar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "symbols cr separated", input: "foo\rbar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "symbols comma separated", input: "foo,bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "symbols multi comma separated", input: "foo,,,bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "symbols comma space mixed", input: "foo , bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "symbols mixed whitespace separated", input: "foo \t\n\r, bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "ints space separated", input: "1 2", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}}, wantErr: false},
-		{name: "ints tab separated", input: "1\t2", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}}, wantErr: false},
-		{name: "ints newline separated", input: "1\n2", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}}, wantErr: false},
-		{name: "ints cr separated", input: "1\r2", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}}, wantErr: false},
-		{name: "ints comma separated", input: "1,2,3", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_INT, Value: "3"}}, wantErr: false},
-		{name: "ints mixed whitespace separated", input: "1 \t\n\r, 2,\t3", want: []Token{{Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_INT, Value: "3"}}, wantErr: false},
-		{name: "int comma symbol", input: "123,foo", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: false},
-		{name: "symbol comma int", input: "foo,123", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
-		{name: "list comma separated", input: "(foo,123)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "list commas and spaces", input: "(,foo,,123,,)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "parens only commas", input: "(,)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "empty parens with whitespace", input: "( \t\n\r, )", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "leading commas before list", input: ",,(foo)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "trailing commas after list", input: "(foo),,", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "comma between parens", input: "(1),(2)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "1"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_INT, Value: "2"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "crlf separated list", input: "(foo\r\nbar)", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "symbol comma lparen", input: "foo,(bar)", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "string padded whitespace", input: "  \"hello\"  ", want: []Token{{Type: TOKEN_DQS, Value: `"hello"`}}, wantErr: false},
-		{name: "string padded commas", input: ",\"hello\",", want: []Token{{Type: TOKEN_DQS, Value: `"hello"`}}, wantErr: false},
-		{name: "string padded mixed", input: " \t\n\r,\"hello\", \r\n\t ", want: []Token{{Type: TOKEN_DQS, Value: `"hello"`}}, wantErr: false},
-		{name: "string with comma inside", input: "\"a,b\"", want: []Token{{Type: TOKEN_DQS, Value: `"a,b"`}}, wantErr: false},
-		{name: "string comma symbol", input: "\"foo\",bar", want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "string space int", input: "\"foo\" 123", want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
-		{name: "multiline mixed", input: "  ( \n foo\t,123 \r\n )  ", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "whitespace before invalid", input: "foo , à", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}}, wantErr: true},
+	tests := []tut.Case[[]lexer.Token]{
+		{Name: "space only", Input: " "},
+		{Name: "tab only", Input: "\t"},
+		{Name: "newline only", Input: "\n"},
+		{Name: "carriage return only", Input: "\r"},
+		{Name: "single comma", Input: ","},
+		{Name: "multiple commas", Input: ",,,"},
+		{Name: "mixed whitespace only", Input: " \t\n\r"},
+		{Name: "mixed whitespace and commas only", Input: " , ,\t\n\r, "},
+		{Name: "commas with newlines only", Input: ",\n,\r\n,\t,"},
+		{Name: "symbol padded spaces", Input: "  foo  ", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
+		{Name: "symbol padded tabs", Input: "\tfoo\t", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
+		{Name: "symbol padded newlines", Input: "\nfoo\n", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
+		{Name: "symbol padded carriage returns", Input: "\rfoo\r", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
+		{Name: "symbol padded commas", Input: ",foo,", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
+		{Name: "symbol padded mixed", Input: " \t\n\r,foo, \r\n\t ", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
+		{Name: "int padded mixed", Input: " ,\t\n\r42\r\n\t, ", Want: []lexer.Token{{Type: INT, Value: "42"}}},
+		{Name: "symbols space separated", Input: "foo bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "symbols tab separated", Input: "foo\tbar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "symbols newline separated", Input: "foo\nbar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "symbols cr separated", Input: "foo\rbar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "symbols comma separated", Input: "foo,bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "symbols multi comma separated", Input: "foo,,,bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "symbols comma space mixed", Input: "foo , bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "symbols mixed whitespace separated", Input: "foo \t\n\r, bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "ints space separated", Input: "1 2", Want: []lexer.Token{{Type: INT, Value: "1"}, {Type: INT, Value: "2"}}},
+		{Name: "ints tab separated", Input: "1\t2", Want: []lexer.Token{{Type: INT, Value: "1"}, {Type: INT, Value: "2"}}},
+		{Name: "ints newline separated", Input: "1\n2", Want: []lexer.Token{{Type: INT, Value: "1"}, {Type: INT, Value: "2"}}},
+		{Name: "ints cr separated", Input: "1\r2", Want: []lexer.Token{{Type: INT, Value: "1"}, {Type: INT, Value: "2"}}},
+		{Name: "ints comma separated", Input: "1,2,3", Want: []lexer.Token{{Type: INT, Value: "1"}, {Type: INT, Value: "2"}, {Type: INT, Value: "3"}}},
+		{Name: "ints mixed whitespace separated", Input: "1 \t\n\r, 2,\t3", Want: []lexer.Token{{Type: INT, Value: "1"}, {Type: INT, Value: "2"}, {Type: INT, Value: "3"}}},
+		{Name: "int comma symbol", Input: "123,foo", Want: []lexer.Token{{Type: INT, Value: "123"}, {Type: SYMBOL, Value: "foo"}}},
+		{Name: "symbol comma int", Input: "foo,123", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: INT, Value: "123"}}},
+		{Name: "list comma separated", Input: "(foo,123)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: INT, Value: "123"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "list commas and spaces", Input: "(,foo,,123,,)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: INT, Value: "123"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "parens only commas", Input: "(,)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: RPAREN, Value: ")"}}},
+		{Name: "empty parens with whitespace", Input: "( \t\n\r, )", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: RPAREN, Value: ")"}}},
+		{Name: "leading commas before list", Input: ",,(foo)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "trailing commas after list", Input: "(foo),,", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "comma between parens", Input: "(1),(2)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: INT, Value: "1"}, {Type: RPAREN, Value: ")"}, {Type: LPAREN, Value: "("}, {Type: INT, Value: "2"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "crlf separated list", Input: "(foo\r\nbar)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "symbol comma lparen", Input: "foo,(bar)", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "bar"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "string padded whitespace", Input: "  \"hello\"  ", Want: []lexer.Token{{Type: DQS, Value: `"hello"`}}},
+		{Name: "string padded commas", Input: ",\"hello\",", Want: []lexer.Token{{Type: DQS, Value: `"hello"`}}},
+		{Name: "string padded mixed", Input: " \t\n\r,\"hello\", \r\n\t ", Want: []lexer.Token{{Type: DQS, Value: `"hello"`}}},
+		{Name: "string with comma inside", Input: "\"a,b\"", Want: []lexer.Token{{Type: DQS, Value: `"a,b"`}}},
+		{Name: "string comma symbol", Input: "\"foo\",bar", Want: []lexer.Token{{Type: DQS, Value: `"foo"`}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "string space int", Input: "\"foo\" 123", Want: []lexer.Token{{Type: DQS, Value: `"foo"`}, {Type: INT, Value: "123"}}},
+		{Name: "multiline mixed", Input: "  ( \n foo\t,123 \r\n )  ", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: INT, Value: "123"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "whitespace before invalid", Input: "foo , à", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}, WantErr: true},
 	}
 
 	runTokenCases(t, tests)
 }
 
 func TestTokenIteratorEarlyBreak(t *testing.T) {
-	seq, errFn := TokenIterator("(1 2 3)")
-	var got []Token
+	seq, errFn := lexer.TokenIterator("(1 2 3)")
+	var got []lexer.Token
 	for tok := range seq {
 		got = append(got, tok)
 		break
 	}
-	if len(got) != 1 {
-		t.Fatalf("expected 1 token after early break, got %d tokens %v", len(got), got)
-	}
-	if want := (Token{Type: TOKEN_LPAREN, Value: "("}); got[0] != want {
-		t.Errorf("first token: got %+v, want %+v", got[0], want)
-	}
-	if err := errFn(); err != nil {
-		t.Errorf("expected nil error after early break, got %v", err)
-	}
+	assert.Equal(t, len(got), 1)
+	assert.Equal(t, got[0], lexer.Token{Type: LPAREN, Value: "("})
+	assert.NoErr(t, errFn())
 }
