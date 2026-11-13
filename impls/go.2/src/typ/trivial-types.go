@@ -12,6 +12,15 @@ import (
 	"github.com/mooss/mal/src/ut"
 )
 
+// An atom is a reference to a value.
+// It can be manipulated with functions like `atom`, `atom?`, `deref`, `reset!` and `swap!`.
+type Atom struct{ Ref core.Value }
+
+func (a *Atom) Equal(other core.Value) bool { return TrivialEq(a, other) }
+func (a *Atom) Eval(core.Env) core.Value    { return a }
+func (a *Atom) String() string              { return "(atom " + a.Ref.String() + ")" }
+func (*Atom) Type() core.TypeName           { return core.ATOM }
+
 // Bool is a boolean.
 type Bool bool
 

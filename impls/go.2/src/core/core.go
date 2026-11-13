@@ -6,6 +6,8 @@ type TypeName string
 
 //revive:disable:var-naming
 const (
+	// ATOM tags atom, a.k.a. references.
+	ATOM TypeName = "atom"
 	// BOOL tags boolean value.
 	BOOL TypeName = "bool"
 	// FATAL tags fatal error aborting evaluation.
