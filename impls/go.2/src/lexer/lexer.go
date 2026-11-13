@@ -209,11 +209,10 @@ func lexDqs(lex *Lexer) (Token, error) {
 		case '"':
 			return lex.Success(TOKEN_DQS)
 		case '\\':
-			if glyph := lex.Next(); glyph != EOF && glyph != '\n' {
-				break // The escaped character is "normal".
+			if lex.Next() == EOF {
+				return Token{}, lex.Failure(UnbalancedDoubleQuote)
 			}
-			fallthrough
-		case EOF, '\n':
+		case EOF:
 			return Token{}, lex.Failure(UnbalancedDoubleQuote)
 		default:
 		}

@@ -26,7 +26,7 @@ func TestTokenizeStrings(t *testing.T) {
 		{name: "single quote", input: `"`, wantTokens: []string{}, wantErr: true},
 		{name: "ends with escaped quote", input: `"hello\"`, wantTokens: []string{}, wantErr: true},
 		{name: "raw newline no closing", input: "\"foo\n", wantTokens: []string{}, wantErr: true},
-		{name: "raw newline with closing", input: "\"a\nb\"", wantTokens: []string{}, wantErr: true},
+		{name: "raw newline with closing", input: "\"a\nb\"", wantTokens: []string{"\"a\nb\""}, wantErr: false},
 		{name: "CR with closing", input: "\"a\rb\"", wantTokens: []string{"\"a\rb\""}, wantErr: false},
 		{name: "invalid utf8 with closing", input: "\"a\xffb\"", wantTokens: []string{"\"a�b\""}, wantErr: false},
 		{name: "NUL no closing", input: "\"foo\x00", wantTokens: []string{}, wantErr: true},
@@ -261,6 +261,14 @@ func TestTokenizeCombinations(t *testing.T) {
 		{name: "multiline", input: "  ( \n foo\t 123 \r\n )  ", want: []Token{{Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
 		{name: "unterminated string", input: `"foo`, want: nil, wantErr: true},
 		{name: "valid then invalid", input: "foo : bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_SYMBOL, Value: ":"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+
+		{name: "symbol boundary lparen", input: "foo(bar)", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "symbol boundary rparen", input: "foo)bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "int boundary lparen", input: "123(foo)", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "string adjacent symbol", input: `"foo"bar`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
+		{name: "string adjacent int", input: `"foo"123`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
+		{name: "string adjacent lparen", input: `"foo"(bar)`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
+		{name: "escaped newline", input: "\"foo\\\nbar\"", want: []Token{{Type: TOKEN_DQS, Value: "\"foo\\\nbar\""}}, wantErr: false},
 	}
 
 	for _, tt := range tests {
@@ -306,13 +314,6 @@ func TestTokenizeInvalid(t *testing.T) {
 		{name: "int then slash", input: "123/foo", want: nil, wantErr: true},
 		{name: "symbol then quote", input: `foo"bar"`, want: nil, wantErr: true},
 		{name: "int then quote", input: `123"foo"`, want: nil, wantErr: true},
-		{name: "symbol boundary lparen", input: "foo(bar)", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "symbol boundary rparen", input: "foo)bar", want: []Token{{Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "int boundary lparen", input: "123(foo)", want: []Token{{Type: TOKEN_INT, Value: "123"}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "foo"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "string adjacent symbol", input: `"foo"bar`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_SYMBOL, Value: "bar"}}, wantErr: false},
-		{name: "string adjacent int", input: `"foo"123`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_INT, Value: "123"}}, wantErr: false},
-		{name: "string adjacent lparen", input: `"foo"(bar)`, want: []Token{{Type: TOKEN_DQS, Value: `"foo"`}, {Type: TOKEN_LPAREN, Value: "("}, {Type: TOKEN_SYMBOL, Value: "bar"}, {Type: TOKEN_RPAREN, Value: ")"}}, wantErr: false},
-		{name: "escaped newline", input: "\"foo\\\nbar\"", want: nil, wantErr: true},
 		{name: "trailing backslash", input: "\"foo\\", want: nil, wantErr: true},
 	}
 

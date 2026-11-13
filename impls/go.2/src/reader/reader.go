@@ -7,6 +7,7 @@ import (
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/lexer"
+	"github.com/mooss/mal/src/strfun"
 	"github.com/mooss/mal/src/typ"
 )
 
@@ -199,11 +200,12 @@ func (*Reader) readSymbol(token lexer.Token) (core.Value, error) {
 
 // readString constructs a string from the given input token.
 func (r *Reader) readString(token lexer.Token) (core.Value, error) {
-	str, err := strconv.Unquote(token.Value)
+	res, err := strfun.MalUnquote(token.Value)
 	if err != nil {
-		return nil, r.wrapf(err, "cannot read %q as string", token.Value)
+		return nil, r.wrap(err)
 	}
-	return typ.String(str), nil
+
+	return typ.String(res), nil
 }
 
 // readQuote quotes the next form.

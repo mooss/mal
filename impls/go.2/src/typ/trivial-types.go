@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/strfun"
 	"github.com/mooss/mal/src/ut"
 )
 
@@ -84,7 +85,7 @@ type String string
 
 func (s String) Equal(other core.Value) bool { return TrivialEq(s, other) }
 func (s String) Eval(core.Env) core.Value    { return s }
-func (s String) String() string              { return strconv.Quote(string(s)) }
+func (s String) String() string              { return strfun.MalQuote(string(s)) }
 func (String) Type() core.TypeName           { return core.STRING }
 
 // Symbol is a Mal symbol value.
