@@ -1,10 +1,13 @@
 //revive:disable:cognitive-complexity
 
-package strfun
+package strfun_test
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/mooss/mal/src/strfun"
+	"github.com/mooss/mal/src/tut"
+	"github.com/mooss/mal/src/tut/assert"
 )
 
 ///////////
@@ -12,45 +15,22 @@ import (
 
 func checkMalQuote(t *testing.T, unquoted, wantQuoted string) {
 	t.Helper()
-	got := MalQuote(unquoted)
-	if got != wantQuoted {
-		t.Errorf("MalQuote(%q) = %q, want %q", unquoted, got, wantQuoted)
-	}
-	// structural invariants shared by all quoted strings
-	if !strings.HasPrefix(got, `"`) || !strings.HasSuffix(got, `"`) || len(got) < 2 {
-		t.Errorf("MalQuote(%q) = %q: must be wrapped in double quotes", unquoted, got)
-	}
+	got := strfun.MalQuote(unquoted)
+	assert.Equal(t, got, wantQuoted)
+	assert.StringStartsWith(t, got, `"`)
+	assert.StringEndsWith(t, got, `"`)
 }
 
 func checkMalUnquote(t *testing.T, quoted, want string) {
 	t.Helper()
-	got, err := MalUnquote(quoted)
-	if err != nil {
-		t.Fatalf("MalUnquote(%q) unexpected error: %v", quoted, err)
-	}
-	if got != want {
-		t.Errorf("MalUnquote(%q) = %q, want %q", quoted, got, want)
-	}
+	got, err := strfun.MalUnquote(quoted)
+	assert.Equal(t, assert.Must(t, got, err), want)
 }
 
 func checkMalUnquoteError(t *testing.T, quoted, wantSub string) {
 	t.Helper()
-	got, err := MalUnquote(quoted)
-	if err == nil {
-		t.Fatalf("MalUnquote(%q) = %q, want error containing %q", quoted, got, wantSub)
-	}
-	if wantSub != "" && !strings.Contains(err.Error(), wantSub) {
-		t.Errorf("MalUnquote(%q) error = %q, want substring %q", quoted, err.Error(), wantSub)
-	}
-}
-
-func mustUnquote(t *testing.T, quoted string) string {
-	t.Helper()
-	s, err := MalUnquote(quoted)
-	if err != nil {
-		t.Fatalf("mustUnquote(%q) unexpected error: %v", quoted, err)
-	}
-	return s
+	_, err := strfun.MalUnquote(quoted)
+	assert.ErrContains(t, err, wantSub)
 }
 
 //////////
@@ -58,97 +38,87 @@ func mustUnquote(t *testing.T, quoted string) string {
 
 // Shared round-trip pairs: unquoted <-> quoted.
 // Used by both TestMalQuote and TestMalUnquote so the two directions cannot drift apart.
-type quotePair struct {
-	name     string
-	unquoted string
-	quoted   string
-}
-
+// Input holds the unquoted value, Want holds the quoted value.
+//
 //revive:disable:line-length-limit
-var sharedQuotePairs = []quotePair{
-	{"empty", "", `""`},
-	{"plain", "hello", `"hello"`},
-	{"spaces", "hello world", `"hello world"`},
-	{"digits", "123", `"123"`},
-	{"punctuation", "a,b.c!?", `"a,b.c!?"`},
-	{"single quote inside", "it's", `"it's"`},
-	{"tab preserved", "a\tb", "\"a\tb\""},
-	{"carriage return preserved", "a\rb", "\"a\rb\""},
-	{"unicode", "héllo 🌍", "\"héllo 🌍\""},
+var sharedQuotePairs = []tut.Case[string]{
+	{Name: "empty", Input: "", Want: `""`},
+	{Name: "plain", Input: "hello", Want: `"hello"`},
+	{Name: "spaces", Input: "hello world", Want: `"hello world"`},
+	{Name: "digits", Input: "123", Want: `"123"`},
+	{Name: "punctuation", Input: "a,b.c!?", Want: `"a,b.c!?"`},
+	{Name: "single quote inside", Input: "it's", Want: `"it's"`},
+	{Name: "tab preserved", Input: "a\tb", Want: "\"a\tb\""},
+	{Name: "carriage return preserved", Input: "a\rb", Want: "\"a\rb\""},
+	{Name: "unicode", Input: "héllo 🌍", Want: "\"héllo 🌍\""},
 
-	{"single newline", "\n", `"\n"`},
-	{"newline middle", "a\nb", `"a\nb"`},
-	{"newline start", "\na", `"\na"`},
-	{"newline end", "a\n", `"a\n"`},
-	{"multiple newlines", "\n\n\n", `"\n\n\n"`},
-	{"newline mixed text", "line1\nline2\nline3", `"line1\nline2\nline3"`},
+	{Name: "single newline", Input: "\n", Want: `"\n"`},
+	{Name: "newline middle", Input: "a\nb", Want: `"a\nb"`},
+	{Name: "newline start", Input: "\na", Want: `"\na"`},
+	{Name: "newline end", Input: "a\n", Want: `"a\n"`},
+	{Name: "multiple newlines", Input: "\n\n\n", Want: `"\n\n\n"`},
+	{Name: "newline mixed text", Input: "line1\nline2\nline3", Want: `"line1\nline2\nline3"`},
 
-	{"single dquote", `"`, `"\""`},
-	{"multiple dquotes", `"""`, `"\"\"\""`},
-	{"dquote middle", `say "hi"`, `"say \"hi\""`},
-	{"dquote start end", `"hi"`, `"\"hi\""`},
-	{"dquote only ends", `"a`, `"\"a"`},
+	{Name: "single dquote", Input: `"`, Want: `"\""`},
+	{Name: "multiple dquotes", Input: `"""`, Want: `"\"\"\""`},
+	{Name: "dquote middle", Input: `say "hi"`, Want: `"say \"hi\""`},
+	{Name: "dquote start end", Input: `"hi"`, Want: `"\"hi\""`},
+	{Name: "dquote only ends", Input: `"a`, Want: `"\"a"`},
 
-	{"single backslash", `\`, `"\\"`},
-	{"double backslash", `\\`, `"\\\\"`},
-	{"triple backslash", `\\\`, `"\\\\\\"`},
-	{"backslash middle", `a\b`, `"a\\b"`},
-	{"backslash start", `\a`, `"\\a"`},
-	{"backslash end", `a\`, `"a\\"`},
+	{Name: "single backslash", Input: `\`, Want: `"\\"`},
+	{Name: "double backslash", Input: `\\`, Want: `"\\\\"`},
+	{Name: "triple backslash", Input: `\\\`, Want: `"\\\\\\"`},
+	{Name: "backslash middle", Input: `a\b`, Want: `"a\\b"`},
+	{Name: "backslash start", Input: `\a`, Want: `"\\a"`},
+	{Name: "backslash end", Input: `a\`, Want: `"a\\"`},
 
 	// backslash + 'n' (two chars) must not be confused with newline (one char)
-	{"backslash plus n", "\\n", `"\\n"`},
-	{"backslash plus n middle", "a\\nb", `"a\\nb"`},
+	{Name: "backslash plus n", Input: "\\n", Want: `"\\n"`},
+	{Name: "backslash plus n middle", Input: "a\\nb", Want: `"a\\nb"`},
 
-	{"newline plus backslash", "a\n\\b", `"a\n\\b"`},
-	{"backslash plus quote", "\\\"", `"\\\""`},
-	{"quote plus backslash", `"\`, `"\"\\"`},
-	{"quote plus two backslashes", `"\\`, `"\"\\\\"`},
-	{"all specials", "\"\\\n", `"\"\\\n"`},
-	{"all specials reversed", "\n\\\"", `"\n\\\""`},
-	{"sentence with specials", "a\"b\\c\nd\"e\\f", `"a\"b\\c\nd\"e\\f"`},
-	{"many specials", "\\\"\\\n\"\\", `"\\\"\\\n\"\\"`},
-	{"adjacent escapes", "\n\n\"\"\\\\", `"\n\n\"\"\\\\"`},
+	{Name: "newline plus backslash", Input: "a\n\\b", Want: `"a\n\\b"`},
+	{Name: "backslash plus quote", Input: "\\\"", Want: `"\\\""`},
+	{Name: "quote plus backslash", Input: `"\`, Want: `"\"\\"`},
+	{Name: "quote plus two backslashes", Input: `"\\`, Want: `"\"\\\\"`},
+	{Name: "all specials", Input: "\"\\\n", Want: `"\"\\\n"`},
+	{Name: "all specials reversed", Input: "\n\\\"", Want: `"\n\\\""`},
+	{Name: "sentence with specials", Input: "a\"b\\c\nd\"e\\f", Want: `"a\"b\\c\nd\"e\\f"`},
+	{Name: "many specials", Input: "\\\"\\\n\"\\", Want: `"\\\"\\\n\"\\"`},
+	{Name: "adjacent escapes", Input: "\n\n\"\"\\\\", Want: `"\n\n\"\"\\\\"`},
 }
 
-type unquoteError struct {
-	name    string
-	quoted  string
-	wantSub string
-}
-
-var unquoteErrors = []unquoteError{
-	{"invalid q middle", `"a\qb"`, `invalid escape \q`},
-	{"invalid t middle", `"a\tb"`, `invalid escape \t`},
-	{"invalid r", `"a\rb"`, `invalid escape \r`},
-	{"invalid b", `"a\bb"`, `invalid escape \b`},
-	{"invalid f", `"a\fb"`, `invalid escape \f`},
-	{"invalid v", `"a\vb"`, `invalid escape \v`},
-	{"invalid 0", `"a\0b"`, `invalid escape \0`},
-	{"invalid u", `"a\ub"`, `invalid escape \u`},
-	{"invalid x", `"a\xb"`, `invalid escape \x`},
-	{"invalid space", `"a\ b"`, `invalid escape \ `},
-	{"invalid single quote", `"a\'b"`, `invalid escape \'`},
-	{"invalid slash", `"a\/b"`, `invalid escape \/`},
-	{"invalid a", `"a\ab"`, `invalid escape \a`},
-	{"invalid e", `"a\eb"`, `invalid escape \e`},
-	{"invalid N uppercase", `"a\Nb"`, `invalid escape \N`},
-	{"invalid at start", `"\qb"`, `invalid escape \q`},
-	{"invalid at end", `"ab\q"`, `invalid escape \q`},
-	{"only invalid", `"\q"`, `invalid escape \q`},
-	{"double invalid first wins", `"\q\n"`, `invalid escape \q`},
-	{"invalid after valid", `"\\n\q"`, `invalid escape \q`},
-	{"invalid digit", `"a\1b"`, `invalid escape \1`},
-	{"invalid star", `"a\*b"`, `invalid escape \*`},
-	{"empty", "", `missing surrounding quotes`},
-	{"single char", "a", `missing surrounding quotes`},
-	{"single dquote", "\"", `missing surrounding quotes`},
-	{"missing leading quote", `abc"`, `missing surrounding quotes`},
-	{"missing trailing quote", `"abc`, `missing surrounding quotes`},
-	{"unquoted", `abc`, `missing surrounding quotes`},
-	{"single quotes", `'abc'`, `missing surrounding quotes`},
-	{"trailing lone backslash", `"abc\"`, `invalid escape`},
-	{"only lone backslash", `"\"`, `invalid escape`},
+var unquoteErrors = []tut.Case[string]{
+	{Name: "invalid q middle", Input: `"a\qb"`, Want: `invalid escape \q`, WantErr: true},
+	{Name: "invalid t middle", Input: `"a\tb"`, Want: `invalid escape \t`, WantErr: true},
+	{Name: "invalid r", Input: `"a\rb"`, Want: `invalid escape \r`, WantErr: true},
+	{Name: "invalid b", Input: `"a\bb"`, Want: `invalid escape \b`, WantErr: true},
+	{Name: "invalid f", Input: `"a\fb"`, Want: `invalid escape \f`, WantErr: true},
+	{Name: "invalid v", Input: `"a\vb"`, Want: `invalid escape \v`, WantErr: true},
+	{Name: "invalid 0", Input: `"a\0b"`, Want: `invalid escape \0`, WantErr: true},
+	{Name: "invalid u", Input: `"a\ub"`, Want: `invalid escape \u`, WantErr: true},
+	{Name: "invalid x", Input: `"a\xb"`, Want: `invalid escape \x`, WantErr: true},
+	{Name: "invalid space", Input: `"a\ b"`, Want: `invalid escape \ `, WantErr: true},
+	{Name: "invalid single quote", Input: `"a\'b"`, Want: `invalid escape \'`, WantErr: true},
+	{Name: "invalid slash", Input: `"a\/b"`, Want: `invalid escape \/`, WantErr: true},
+	{Name: "invalid a", Input: `"a\ab"`, Want: `invalid escape \a`, WantErr: true},
+	{Name: "invalid e", Input: `"a\eb"`, Want: `invalid escape \e`, WantErr: true},
+	{Name: "invalid N uppercase", Input: `"a\Nb"`, Want: `invalid escape \N`, WantErr: true},
+	{Name: "invalid at start", Input: `"\qb"`, Want: `invalid escape \q`, WantErr: true},
+	{Name: "invalid at end", Input: `"ab\q"`, Want: `invalid escape \q`, WantErr: true},
+	{Name: "only invalid", Input: `"\q"`, Want: `invalid escape \q`, WantErr: true},
+	{Name: "double invalid first wins", Input: `"\q\n"`, Want: `invalid escape \q`, WantErr: true},
+	{Name: "invalid after valid", Input: `"\\n\q"`, Want: `invalid escape \q`, WantErr: true},
+	{Name: "invalid digit", Input: `"a\1b"`, Want: `invalid escape \1`, WantErr: true},
+	{Name: "invalid star", Input: `"a\*b"`, Want: `invalid escape \*`, WantErr: true},
+	{Name: "empty", Input: "", Want: `missing surrounding quotes`, WantErr: true},
+	{Name: "single char", Input: "a", Want: `missing surrounding quotes`, WantErr: true},
+	{Name: "single dquote", Input: "\"", Want: `missing surrounding quotes`, WantErr: true},
+	{Name: "missing leading quote", Input: `abc"`, Want: `missing surrounding quotes`, WantErr: true},
+	{Name: "missing trailing quote", Input: `"abc`, Want: `missing surrounding quotes`, WantErr: true},
+	{Name: "unquoted", Input: `abc`, Want: `missing surrounding quotes`, WantErr: true},
+	{Name: "single quotes", Input: `'abc'`, Want: `missing surrounding quotes`, WantErr: true},
+	{Name: "trailing lone backslash", Input: `"abc\"`, Want: `invalid escape`, WantErr: true},
+	{Name: "only lone backslash", Input: `"\"`, Want: `invalid escape`, WantErr: true},
 }
 
 ///////////
@@ -156,62 +126,52 @@ var unquoteErrors = []unquoteError{
 
 func TestMalQuote(t *testing.T) {
 	t.Run("shared pairs", func(t *testing.T) {
-		for _, tc := range sharedQuotePairs {
-			t.Run(tc.name, func(t *testing.T) {
-				checkMalQuote(t, tc.unquoted, tc.quoted)
-			})
-		}
+		tut.Run(t, sharedQuotePairs, func(t *testing.T, c tut.Case[string]) {
+			checkMalQuote(t, c.Input, c.Want)
+		})
 	})
 
 	t.Run("extra cases", func(t *testing.T) {
-		extra := []quotePair{
-			{"long", "the quick brown fox jumps over the lazy dog", `"the quick brown fox jumps over the lazy dog"`},
-			{"only spaces", "   ", `"   "`},
-			{"semicolon", "(+ 1 2)", `"(+ 1 2)"`},
+		extra := []tut.Case[string]{
+			{Name: "long", Input: "the quick brown fox jumps over the lazy dog", Want: `"the quick brown fox jumps over the lazy dog"`},
+			{Name: "only spaces", Input: "   ", Want: `"   "`},
+			{Name: "semicolon", Input: "(+ 1 2)", Want: `"(+ 1 2)"`},
 		}
-		for _, tc := range extra {
-			t.Run(tc.name, func(t *testing.T) {
-				checkMalQuote(t, tc.unquoted, tc.quoted)
-			})
-		}
+		tut.Run(t, extra, func(t *testing.T, c tut.Case[string]) {
+			checkMalQuote(t, c.Input, c.Want)
+		})
 	})
 }
 
 func TestMalUnquote(t *testing.T) {
 	t.Run("shared pairs", func(t *testing.T) {
-		for _, tc := range sharedQuotePairs {
-			t.Run(tc.name, func(t *testing.T) {
-				checkMalUnquote(t, tc.quoted, tc.unquoted)
-			})
-		}
+		tut.Run(t, sharedQuotePairs, func(t *testing.T, c tut.Case[string]) {
+			checkMalUnquote(t, c.Want, c.Input)
+		})
 	})
 
 	t.Run("extra valid cases", func(t *testing.T) {
 		//TODO: consider failing on those cases.
-		extra := []quotePair{
-			{"escaped quote at end", `a"`, `"a\""`},
-			{"escaped backslash at end", `a\`, `"a\\"`},
-			{"escaped newline at end", "a\n", `"a\n"`},
-			{"only escaped quote", `"`, `"\""`},
-			{"only escaped backslash", `\`, `"\\"`},
-			{"only escaped newline", "\n", `"\n"`},
-			{"consecutive escapes", "\\\"\n", `"\\\"\n"`},
-			{"text around escapes", "x\\y\"z\nw", `"x\\y\"z\nw"`},
+		extra := []tut.Case[string]{
+			{Name: "escaped quote at end", Input: `a"`, Want: `"a\""`},
+			{Name: "escaped backslash at end", Input: `a\`, Want: `"a\\"`},
+			{Name: "escaped newline at end", Input: "a\n", Want: `"a\n"`},
+			{Name: "only escaped quote", Input: `"`, Want: `"\""`},
+			{Name: "only escaped backslash", Input: `\`, Want: `"\\"`},
+			{Name: "only escaped newline", Input: "\n", Want: `"\n"`},
+			{Name: "consecutive escapes", Input: "\\\"\n", Want: `"\\\"\n"`},
+			{Name: "text around escapes", Input: "x\\y\"z\nw", Want: `"x\\y\"z\nw"`},
 		}
-		for _, tc := range extra {
-			t.Run(tc.name, func(t *testing.T) {
-				checkMalUnquote(t, tc.quoted, tc.unquoted)
-			})
-		}
+		tut.Run(t, extra, func(t *testing.T, c tut.Case[string]) {
+			checkMalUnquote(t, c.Want, c.Input)
+		})
 	})
 }
 
 func TestMalUnquoteErrors(t *testing.T) {
-	for _, tc := range unquoteErrors {
-		t.Run(tc.name, func(t *testing.T) {
-			checkMalUnquoteError(t, tc.quoted, tc.wantSub)
-		})
-	}
+	tut.Run(t, unquoteErrors, func(t *testing.T, c tut.Case[string]) {
+		checkMalUnquoteError(t, c.Input, c.Want)
+	})
 }
 
 func TestMalQuoteUnquoteRoundTrip(t *testing.T) {
@@ -222,27 +182,18 @@ func TestMalQuoteUnquoteRoundTrip(t *testing.T) {
 		}
 		// include every shared unquoted value as well.
 		for _, p := range sharedQuotePairs {
-			cases = append(cases, p.unquoted)
+			cases = append(cases, p.Input)
 		}
 		for _, s := range cases {
-			quoted := MalQuote(s)
-			got, err := MalUnquote(quoted)
-			if err != nil {
-				t.Errorf("MalUnquote(MalQuote(%q)=%q) unexpected error: %v", s, quoted, err)
-				continue
-			}
-			if got != s {
-				t.Errorf("MalUnquote(MalQuote(%q)=%q) = %q, want %q", s, quoted, got, s)
-			}
+			got, err := strfun.MalUnquote(strfun.MalQuote(s))
+			assert.Equal(t, assert.Must(t, got, err), s)
 		}
 	})
 
 	t.Run("quoted round trip", func(t *testing.T) {
-		for _, p := range sharedQuotePairs {
-			got := MalQuote(mustUnquote(t, p.quoted))
-			if got != p.quoted {
-				t.Errorf("MalQuote(MalUnquote(%q)) = %q, want %q", p.quoted, got, p.quoted)
-			}
-		}
+		tut.Run(t, sharedQuotePairs, func(t *testing.T, c tut.Case[string]) {
+			got, err := strfun.MalUnquote(c.Want)
+			assert.Equal(t, strfun.MalQuote(assert.Must(t, got, err)), c.Want)
+		})
 	})
 }
