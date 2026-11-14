@@ -30,10 +30,10 @@ func runSingleCases(t *testing.T, cases []tut.Case[core.Value]) {
 		r := reader.ReadStr(c.Input)
 		got, err := r.ReadForm()
 		if c.WantErr {
-			assert.Err(t, err)
+			assert.MustError(t, err)
 			return
 		}
-		assert.NoErr(t, err)
+		assert.NoError(t, err)
 		assert.MalEqual(t, got, c.Want)
 	})
 }
@@ -283,7 +283,7 @@ func TestReaderCursor(t *testing.T) {
 		assert.Equal(t, r.Done(), true)
 		assert.Equal(t, len(r.Rest()), 0)
 		_, err := r.ReadForm()
-		assert.Err(t, err)
+		assert.MustError(t, err)
 	})
 
 	t.Run("peek next rest done", func(t *testing.T) {
@@ -313,14 +313,14 @@ func TestReaderCursor(t *testing.T) {
 	t.Run("readform advances", func(t *testing.T) {
 		r := reader.ReadStr("(1) 2")
 		first, err := r.ReadForm()
-		assert.NoErr(t, err)
+		assert.NoError(t, err)
 		assert.MalEqual(t, first, lst(num(1)))
 		assert.Equal(t, r.Done(), false)
 		rest := r.Rest()
 		assert.Equal(t, len(rest), 1)
 		assert.Equal(t, rest[0].Value, "2")
 		second, err := r.ReadForm()
-		assert.NoErr(t, err)
+		assert.NoError(t, err)
 		assert.MalEqual(t, second, num(2))
 		assert.Equal(t, r.Done(), true)
 	})

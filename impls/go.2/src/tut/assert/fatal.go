@@ -22,6 +22,10 @@ func Fatal(t *testing.T, v core.Value) typ.Fatal {
 	var zero typ.Fatal
 	return zero
 }
+func (tr Tester) Fatal(v core.Value) typ.Fatal {
+	tr.T.Helper()
+	return Fatal(tr.T, v)
+}
 
 // Ok fails if v is Fatal and returns v.
 func Ok(t *testing.T, v core.Value) core.Value {
@@ -30,4 +34,8 @@ func Ok(t *testing.T, v core.Value) core.Value {
 		t.Fatalf("got Fatal %v, want success", v)
 	}
 	return v
+}
+func (tr Tester) Ok(v core.Value) core.Value {
+	tr.T.Helper()
+	return Ok(tr.T, v)
 }

@@ -15,14 +15,22 @@ func Compare[T any](t *testing.T, got, want T, name string, compare func(a, b T)
 		t.Fatalf("%s(%#v, %#v) failed", name, got, want)
 	}
 }
+func (tr Tester) Compare[T any](got, want T, name string, compare func(a, b T) bool) {
+	tr.T.Helper()
+	Compare(tr.T, got, want, name, compare)
+}
 
 // Equal fails if got != want according to reflect.DeepEqual.
 func Equal[T any](t *testing.T, got, want T) {
 	t.Helper()
 
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %v, want %v", got, want)
+		t.Fatalf("got %#v, want %#v", got, want)
 	}
+}
+func (tr Tester) Equal[T any](got, want T) {
+	tr.T.Helper()
+	Equal(tr.T, got, want)
 }
 
 // MalDifferent fails unless MalDifferent(got, want).
@@ -30,15 +38,27 @@ func MalDifferent(t *testing.T, got, want core.Value) {
 	t.Helper()
 	Compare(t, got, want, "eq.MalNot", eq.MalNot)
 }
+func (tr Tester) MalDifferent(got, want core.Value) {
+	tr.T.Helper()
+	MalDifferent(tr.T, got, want)
+}
 
 // MalEqual fails unless MalEqual(got, want).
 func MalEqual(t *testing.T, got, want core.Value) {
 	t.Helper()
 	Compare(t, got, want, "eq.Mal", eq.Mal)
 }
+func (tr Tester) MalEqual(got, want core.Value) {
+	tr.T.Helper()
+	MalEqual(tr.T, got, want)
+}
 
 // MalEqualSlice fails unless MalEqualSlices(got, want).
 func MalEqualSlice(t *testing.T, got, want []core.Value) {
 	t.Helper()
 	Compare(t, got, want, "eq.MalSlice", eq.MalSlice)
+}
+func (tr Tester) MalEqualSlice(got, want []core.Value) {
+	tr.T.Helper()
+	MalEqualSlice(tr.T, got, want)
 }

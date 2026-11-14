@@ -10,29 +10,6 @@ import (
 	"github.com/mooss/mal/src/tut/assert"
 )
 
-///////////
-// Utils //
-
-func checkMalQuote(t *testing.T, unquoted, wantQuoted string) {
-	t.Helper()
-	got := strfun.MalQuote(unquoted)
-	assert.Equal(t, got, wantQuoted)
-	assert.StringStartsWith(t, got, `"`)
-	assert.StringEndsWith(t, got, `"`)
-}
-
-func checkMalUnquote(t *testing.T, quoted, want string) {
-	t.Helper()
-	got, err := strfun.MalUnquote(quoted)
-	assert.Equal(t, assert.Must(t, got, err), want)
-}
-
-func checkMalUnquoteError(t *testing.T, quoted, wantSub string) {
-	t.Helper()
-	_, err := strfun.MalUnquote(quoted)
-	assert.ErrContains(t, err, wantSub)
-}
-
 //////////
 // Data //
 
@@ -124,76 +101,77 @@ var unquoteErrors = []tut.Case[string]{
 ///////////
 // Tests //
 
-func TestMalQuote(t *testing.T) {
-	t.Run("shared pairs", func(t *testing.T) {
-		tut.Run(t, sharedQuotePairs, func(t *testing.T, c tut.Case[string]) {
-			checkMalQuote(t, c.Input, c.Want)
-		})
-	})
+func checkMalQuote(tr assert.Tester, c tut.Case[string]) {
+	tr.T.Helper()
+	got := strfun.MalQuote(c.Input)
+	tr.Equal(got, c.Want)
+	tr.StringStartsWith(got, `"`)
+	tr.StringEndsWith(got, `"`)
+}
 
-	t.Run("extra cases", func(t *testing.T) {
-		extra := []tut.Case[string]{
-			{Name: "long", Input: "the quick brown fox jumps over the lazy dog", Want: `"the quick brown fox jumps over the lazy dog"`},
-			{Name: "only spaces", Input: "   ", Want: `"   "`},
-			{Name: "semicolon", Input: "(+ 1 2)", Want: `"(+ 1 2)"`},
-		}
-		tut.Run(t, extra, func(t *testing.T, c tut.Case[string]) {
-			checkMalQuote(t, c.Input, c.Want)
-		})
-	})
+func TestMalQuote(t *testing.T) {
+	tr := assert.New(t)
+	tr.RunCases("shared pairs", checkMalQuote, sharedQuotePairs...)
+
+	extra := []tut.Case[string]{
+		{Name: "long", Input: "the quick brown fox jumps over the lazy dog", Want: `"the quick brown fox jumps over the lazy dog"`},
+		{Name: "only spaces", Input: "   ", Want: `"   "`},
+		{Name: "semicolon", Input: "(+ 1 2)", Want: `"(+ 1 2)"`},
+	}
+	tr.RunCases("extra cases", checkMalQuote, extra...)
+}
+
+func checkMalUnquote(tr assert.Tester, c tut.Case[string]) {
+	tr.T.Helper()
+	got := tr.Must(strfun.MalUnquote(c.Want))
+	tr.Equal(got, c.Input)
 }
 
 func TestMalUnquote(t *testing.T) {
-	t.Run("shared pairs", func(t *testing.T) {
-		tut.Run(t, sharedQuotePairs, func(t *testing.T, c tut.Case[string]) {
-			checkMalUnquote(t, c.Want, c.Input)
-		})
-	})
+	tr := assert.New(t)
+	tr.RunCases("shared pairs", checkMalUnquote, sharedQuotePairs...)
 
-	t.Run("extra valid cases", func(t *testing.T) {
-		//TODO: consider failing on those cases.
-		extra := []tut.Case[string]{
-			{Name: "escaped quote at end", Input: `a"`, Want: `"a\""`},
-			{Name: "escaped backslash at end", Input: `a\`, Want: `"a\\"`},
-			{Name: "escaped newline at end", Input: "a\n", Want: `"a\n"`},
-			{Name: "only escaped quote", Input: `"`, Want: `"\""`},
-			{Name: "only escaped backslash", Input: `\`, Want: `"\\"`},
-			{Name: "only escaped newline", Input: "\n", Want: `"\n"`},
-			{Name: "consecutive escapes", Input: "\\\"\n", Want: `"\\\"\n"`},
-			{Name: "text around escapes", Input: "x\\y\"z\nw", Want: `"x\\y\"z\nw"`},
-		}
-		tut.Run(t, extra, func(t *testing.T, c tut.Case[string]) {
-			checkMalUnquote(t, c.Want, c.Input)
-		})
-	})
+	//TODO: consider failing on those cases.
+	extra := []tut.Case[string]{
+		{Name: "escaped quote at end", Input: `a"`, Want: `"a\""`},
+		{Name: "escaped backslash at end", Input: `a\`, Want: `"a\\"`},
+		{Name: "escaped newline at end", Input: "a\n", Want: `"a\n"`},
+		{Name: "only escaped quote", Input: `"`, Want: `"\""`},
+		{Name: "only escaped backslash", Input: `\`, Want: `"\\"`},
+		{Name: "only escaped newline", Input: "\n", Want: `"\n"`},
+		{Name: "consecutive escapes", Input: "\\\"\n", Want: `"\\\"\n"`},
+		{Name: "text around escapes", Input: "x\\y\"z\nw", Want: `"x\\y\"z\nw"`},
+	}
+	tr.RunCases("extra valid cases", checkMalUnquote, extra...)
+}
+
+func checkMalUnquoteError(tr assert.Tester, c tut.Case[string]) {
+	tr.T.Helper()
+	_, err := strfun.MalUnquote(c.Input)
+	tr.ErrorContains(err, c.Want)
 }
 
 func TestMalUnquoteErrors(t *testing.T) {
-	tut.Run(t, unquoteErrors, func(t *testing.T, c tut.Case[string]) {
-		checkMalUnquoteError(t, c.Input, c.Want)
-	})
+	assert.New(t).RunCases("", checkMalUnquoteError, unquoteErrors...)
 }
 
 func TestMalQuoteUnquoteRoundTrip(t *testing.T) {
-	t.Run("unquoted round trip", func(t *testing.T) {
-		cases := []string{
-			"", "hello", `"`, `\`, "\n", `a"b\c` + "\n" + `d`, "\\n", "\n\\\"\\\\", "héllo 🌍",
-			"a\tb", "   ", "\n\n\"\"\\\\",
-		}
-		// include every shared unquoted value as well.
-		for _, p := range sharedQuotePairs {
-			cases = append(cases, p.Input)
-		}
-		for _, s := range cases {
-			got, err := strfun.MalUnquote(strfun.MalQuote(s))
-			assert.Equal(t, assert.Must(t, got, err), s)
-		}
-	})
+	tr := assert.New(t)
 
-	t.Run("quoted round trip", func(t *testing.T) {
-		tut.Run(t, sharedQuotePairs, func(t *testing.T, c tut.Case[string]) {
-			got, err := strfun.MalUnquote(c.Want)
-			assert.Equal(t, strfun.MalQuote(assert.Must(t, got, err)), c.Want)
-		})
-	})
+	cases := []string{
+		"", "hello", `"`, `\`, "\n", `a"b\c` + "\n" + `d`, "\\n", "\n\\\"\\\\", "héllo 🌍",
+		"a\tb", "   ", "\n\n\"\"\\\\",
+	}
+	for _, p := range sharedQuotePairs {
+		cases = append(cases, p.Input)
+	}
+
+	tr.RunCases("unquoted round trip", func(tr assert.Tester, input string) {
+		got := tr.Must(strfun.MalUnquote(strfun.MalQuote(input)))
+		tr.Equal(got, input)
+	}, cases...)
+
+	tr.RunCases("quoted round trip", func(tr assert.Tester, c tut.Case[string]) {
+		tr.Equal(strfun.MalQuote(tr.Must(strfun.MalUnquote(c.Want))), c.Want)
+	}, sharedQuotePairs...)
 }

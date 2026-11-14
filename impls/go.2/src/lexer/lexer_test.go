@@ -309,5 +309,5 @@ func TestTokenIteratorEarlyBreak(t *testing.T) {
 	}
 	assert.Equal(t, len(got), 1)
 	assert.Equal(t, got[0], lexer.Token{Type: LPAREN, Value: "("})
-	assert.NoErr(t, errFn())
+	assert.NoError(t, errFn())
 }

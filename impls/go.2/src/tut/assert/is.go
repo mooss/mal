@@ -17,6 +17,10 @@ func Is[T core.Value](t *testing.T, v core.Value) T {
 	}
 	return got
 }
+func (tr Tester) Is[T core.Value](v core.Value) T {
+	tr.T.Helper()
+	return Is[T](tr.T, v)
+}
 
 // IsFatal reports whether v is a Fatal value.
 func IsFatal(v core.Value) bool {
