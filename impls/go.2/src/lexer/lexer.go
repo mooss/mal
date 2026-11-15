@@ -112,7 +112,7 @@ func (lex *Lexer) Success(typ TokenType) (Token, error) {
 func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
 	peek := lex.Peek(0)
 	switch peek {
-	case '(', ')', '[', ']', '{', '}', '\'', EOF, ' ', '\t', '\n', '\r', ',':
+	case '(', ')', '[', ']', '{', '}', '\'', EOF, ' ', '\t', '\n', '\r', ',', ';':
 	default:
 		lex.Next() // Make the faulty rune a part of the token included in the error message.
 		return Token{}, lex.Failuref(InvalidTokenBoundary, "%q is not a boundary character", peek)
@@ -122,12 +122,18 @@ func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
 
 // SkipWhitespace advances the current position and the start position to the next non-whitespace
 // character.
+// A semicolon discards the rest of the line as a comment.
 func (lex *Lexer) SkipWhitespace() {
 	for {
 		switch lex.Peek(0) {
 		// mal treats comma as whitespace.
 		case ' ', '\t', '\n', '\r', ',':
 			lex.Next()
+			lex.start = lex.pos
+		case ';':
+			for r := lex.Next(); r != '\n' && r != '\r' && r != EOF; {
+				r = lex.Next()
+			}
 			lex.start = lex.pos
 		default:
 			return
@@ -227,14 +233,14 @@ func lexDqs(lex *Lexer) (Token, error) {
 //
 //revive:disable:line-length-limit
 func isPlainTokenRest(r rune) bool {
-	return strings.ContainsRune("!&*+-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", r)
+	return strings.ContainsRune("!&*+-./0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", r)
 }
 
 // isPlainTokenStart returns whether r can be the first character of a plain token.
 //
 //revive:disable:line-length-limit
 func isPlainTokenStart(r rune) bool {
-	return strings.ContainsRune("!&*+-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", r)
+	return strings.ContainsRune("!&*+-./:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", r)
 }
 
 // isNumASCII returns true if r is a numerical ASCII character.

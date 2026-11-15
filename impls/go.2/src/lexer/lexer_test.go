@@ -311,3 +311,22 @@ func TestTokenIteratorEarlyBreak(t *testing.T) {
 	assert.Equal(t, got[0], lexer.Token{Type: LPAREN, Value: "("})
 	assert.NoError(t, errFn())
 }
+
+func TestTokenizeComments(t *testing.T) {
+	tests := []tut.Case[[]lexer.Token]{
+		{Name: "empty comment", Input: ";"},
+		{Name: "comment only", Input: "; hello"},
+		{Name: "comment newline terminated", Input: "; hello\n"},
+		{Name: "comment no newline at EOF", Input: "foo\n; comment", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
+		{Name: "symbol before comment", Input: "foo ; comment", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
+		{Name: "symbol attached comment", Input: "foo;comment", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
+		{Name: "comment between symbols", Input: "foo ; comment\nbar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}}},
+		{Name: "comment in list", Input: "(foo ; comment\n bar)", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}, {Type: RPAREN, Value: ")"}}},
+		{Name: "int attached comment", Input: "123;comment", Want: []lexer.Token{{Type: INT, Value: "123"}}},
+		{Name: "semicolon in string", Input: `"a;b"`, Want: []lexer.Token{{Type: DQS, Value: `"a;b"`}}},
+		{Name: "string then comment", Input: `"foo"; comment`, Want: []lexer.Token{{Type: DQS, Value: `"foo"`}}},
+		{Name: "comment with commas", Input: "foo,; comment\n,bar", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}, {Type: SYMBOL, Value: "bar"}}},
+	}
+
+	runTokenCases(t, tests)
+}
