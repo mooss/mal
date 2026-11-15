@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/tut"
 )
 
 // Tester holds a *testing.T and provides methods wrapping assert functions.
@@ -21,13 +24,22 @@ type Tester struct {
 	T *testing.T
 }
 
+type T = Tester
+
 // New creates a new wrapper holding t.
 func New(t *testing.T) Tester { return Tester{t} }
+
+func (Tester) MustEval(env core.Env, program string) core.Value {
+	return tut.MustEval(env, program)
+}
+
+func (tr Tester) MustEvalAs[T core.Value](env core.Env, program string) T {
+	return tut.MustEvalAs[T](tr.T, env, program)
+}
 
 func (tr Tester) RunCases[Case any](
 	groupname string, fun func(Tester, Case), cases ...Case,
 ) {
-	tr.T.Helper() // REVIEW: Not sure if this should be here (or the other T.Helper()).
 	if len(cases) == 0 {
 		tr.T.Fatalf("%s was given no test cases", groupname)
 	}
@@ -42,11 +54,32 @@ func (tr Tester) RunCases[Case any](
 
 			t.Run(name, func(t *testing.T) {
 				t.Helper()
-				fun(Tester{t}, c)
+				fun(New(t), c)
 			})
 		}
 	})
 }
+
+//////////////////////////
+// testing.T forwarding //
+
+func (tr Tester) Fatalf(format string, args ...any) {
+	tr.T.Fatalf(format, args...)
+}
+
+func (tr Tester) Run(name string, fun func(Tester)) {
+	tr.T.Run(name, func(t *testing.T) {
+		t.Helper()
+		fun(New(t))
+	})
+}
+
+func (tr Tester) TempDir() string {
+	return tr.T.TempDir()
+}
+
+/////////////////
+// Local utils //
 
 func getStringField(field string, data any) *string {
 	v := reflect.Indirect(reflect.ValueOf(data))
