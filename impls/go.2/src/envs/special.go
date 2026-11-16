@@ -11,11 +11,12 @@ import (
 )
 
 var MalSpecial core.Env = core.Bindings{
-	"def!": typ.SpII(defBang),
-	"fn*":  typ.SpII(lambda),
-	"let*": typ.SpII(letStar),
-	"do":   typ.Special(specDo),
-	"if":   typ.Special(specIf),
+	"def!":  typ.SpII(defBang),
+	"do":    typ.Special(specDo),
+	"fn*":   typ.SpII(lambda),
+	"if":    typ.Special(specIf),
+	"let*":  typ.SpII(letStar),
+	"quote": typ.SpI(quote),
 }.AsEnv()
 
 // ExtraSpecial contains special forms that are not a part of Mal.
@@ -99,6 +100,9 @@ func MkEval(envr core.Env) func(core.Value) core.Value {
 	}
 }
 
+// quote returns an expression as-is, without any evaluation.
+func quote(_ core.Env, value core.Value) core.Value { return value }
+
 // specDo evaluates each argument in order and returns the value of the last one.
 func specDo(envr core.Env, args ...core.Value) core.Value {
 	if len(args) == 0 {
@@ -146,6 +150,7 @@ func specIf(envr core.Env, args ...core.Value) core.Value {
 
 /////////////////////////
 // Extra special forms //
+// Those are some utilities sprinkled on top of Mal.
 
 func env(envr core.Env) typ.Vector {
 	mkassoc := func(key string, value core.Value) core.Value {

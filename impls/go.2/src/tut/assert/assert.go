@@ -34,6 +34,7 @@ func (Tester) MustEval(env core.Env, program string) core.Value {
 }
 
 func (tr Tester) MustEvalAs[T core.Value](env core.Env, program string) T {
+	tr.T.Helper()
 	return tut.MustEvalAs[T](tr.T, env, program)
 }
 

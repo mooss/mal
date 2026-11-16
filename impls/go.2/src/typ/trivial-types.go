@@ -85,18 +85,6 @@ func (n Nil) Eval(core.Env) core.Value  { return n }
 func (Nil) String() string              { return "nil" }
 func (Nil) Type() core.TypeName         { return core.NIL }
 
-// Quote is a quoted value which returns the raw value upon evaluation.
-type Quote struct{ Value core.Value }
-
-func (q Quote) Equal(other core.Value) bool {
-	o, ok := other.(Quote)
-	return ok && q.Value.Equal(o.Value)
-}
-
-func (q Quote) Eval(core.Env) core.Value { return q.Value }
-func (q Quote) String() string           { return "(quote " + q.Value.String() + ")" }
-func (Quote) Type() core.TypeName        { return core.QUOTE }
-
 // String is a Mal string value.
 type String string
 

@@ -43,13 +43,6 @@ func assertTrivial[T core.Value](t *testing.T, env core.Env, v core.Value, wantS
 	assertSelfEval(t, env, v)
 }
 
-func assertEval(t *testing.T, env core.Env, v, want core.Value) {
-	t.Helper()
-	if got := v.Eval(env); !got.Equal(want) {
-		t.Fatalf("%v (%T).Eval() = %v, want %v", v, v, got, want)
-	}
-}
-
 func assertContains(t *testing.T, got, want string) {
 	t.Helper()
 	if !strings.Contains(got, want) {
@@ -139,33 +132,6 @@ func TestStringMustEval(t *testing.T) {
 	// String prints quoted.
 	s := typ.String("hi")
 	assertTrivial[typ.String](t, envr, s, `"hi"`)
-}
-
-func TestQuoteMustEval(t *testing.T) {
-	var envr core.Env
-
-	assertEqual(t, mustEvalAs[typ.Integer](t, envr, "'42"), typ.Integer(42))
-	_ = mustEvalAs[typ.Nil](t, envr, "'nil")
-	assertEqual(t, mustEvalAs[typ.String](t, envr, `'"hi"`), typ.String("hi"))
-
-	// Quote type itself: String, Type and Eval return raw value.
-	q := typ.Quote{Value: typ.Integer(1)}
-	assertRepr[typ.Quote](t, q, "(quote 1)")
-	assertEval(t, envr, q, typ.Integer(1))
-}
-
-func TestSymbolViaQuoteMustEval(t *testing.T) {
-	var envr core.Env
-
-	// Quoting prevents symbol lookup, so this works with an empty env
-	// and proves Quote returns the raw unevaluated form.
-	got := mustEvalAs[typ.Symbol](t, envr, "'my-sym")
-	assertEqual(t, string(got), "my-sym")
-	assertRepr[typ.Symbol](t, got, "my-sym")
-
-	// Direct Symbol trivial behaviour (no env lookup).
-	direct := typ.Symbol("foo")
-	assertRepr[typ.Symbol](t, direct, "foo")
 }
 
 func TestFatalTrivial(t *testing.T) {

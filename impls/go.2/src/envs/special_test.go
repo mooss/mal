@@ -258,3 +258,41 @@ func TestFnStarVariadicMisplacedAmpersand(t *testing.T) {
 		"(fn* [x & ()] x)",
 	)
 }
+
+func TestQuoteSymbolUnevaluated(t *testing.T) {
+	env := envs.MalSpecial.Nest(core.Bindings{"a": tut.Sym("a-val")})
+	assert.Eval(t, env, "(quote a)", tut.Sym("a"))
+}
+
+func TestQuoteListUnevaluated(t *testing.T) {
+	assert.Eval(t, envs.MalSpecial.Nest(nil), "(quote (a b))", tut.Lst(tut.Sym("a"), tut.Sym("b")))
+}
+
+func TestQuoteEval(t *testing.T) {
+	tr := assert.New(t)
+	envr := envs.MalSpecial.Nest(nil)
+
+	tr.Equal(tr.MustEvalAs[typ.Integer](envr, "'42"), typ.Integer(42))
+	_ = tr.MustEvalAs[typ.Nil](envr, "'nil")
+	tr.Equal(tr.MustEvalAs[typ.String](envr, `'"hi"`), typ.String("hi"))
+
+	// Quote type itself: String, Type and Eval return raw value.
+	q := tut.Quote(typ.Integer(1))
+	tr.Repr[typ.List](q, "(quote 1)")
+	tr.EvalValue(envr, q, typ.Integer(1))
+}
+
+func TestSymbolViaQuoteMustEval(t *testing.T) {
+	tr := assert.New(t)
+	envr := envs.MalSpecial.Nest(nil)
+
+	// Quoting prevents symbol lookup, so this works with an env that does not contain my-sym and
+	// proves Quote returns the raw unevaluated form.
+	got := tr.MustEvalAs[typ.Symbol](envr, "'my-sym")
+	tr.Equal(string(got), "my-sym")
+	tr.Repr[typ.Symbol](got, "my-sym")
+
+	// Direct Symbol trivial behaviour (no env lookup).
+	direct := typ.Symbol("foo")
+	tr.Repr[typ.Symbol](direct, "foo")
+}

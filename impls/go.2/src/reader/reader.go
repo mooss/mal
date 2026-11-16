@@ -219,5 +219,6 @@ func (r *Reader) readQuote() (core.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return typ.Quote{Value: quoted}, nil
+
+	return typ.NewList(typ.Symbol("quote"), quoted), nil
 }

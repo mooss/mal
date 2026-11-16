@@ -18,13 +18,13 @@ func Num(n int64) typ.Integer { return typ.Integer(n) }
 func Nil() typ.Nil { return typ.Nil{} }
 
 // Lst builds a Lst form.
-func Lst(elems ...core.Value) typ.List { return typ.List(elems) }
+var Lst = typ.NewList
 
 // Vec builds a VectorForm.
 func Vec(elems ...core.Value) typ.VectorForm { return typ.VectorForm(elems) }
 
-// Quote builds a Quote.
-func Quote(v core.Value) typ.Quote { return typ.Quote{Value: v} }
+// Quote builds a quoted value, i.e. a list with two elements, the symbol quote and the given value.
+func Quote(v core.Value) typ.List { return Lst(Sym("quote"), v) }
 
 // MapForm builds a MapForm, panicking on odd length.
 func MapForm(pairs ...core.Value) typ.MapForm {

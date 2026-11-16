@@ -15,6 +15,8 @@ const canDebug = false
 // List is a sequence of values.
 type List []core.Value
 
+func NewList(elements ...core.Value) List { return List(elements) }
+
 func (lst List) Equal(other core.Value) bool { return sliceEq(lst, other, core.Value.Equal) }
 
 func (lst List) Eval(envr core.Env) core.Value {
