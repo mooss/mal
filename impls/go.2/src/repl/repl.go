@@ -2,6 +2,7 @@ package repl
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -53,10 +54,10 @@ func Run(driver func(string) (string, error)) error {
 		}
 
 		output, err := driver(input)
-		if err != nil {
-			ut.Report(err)
-		} else {
+		if err == nil {
 			fmt.Println(output)
+		} else if !errors.Is(err, io.EOF) {
+			ut.Report(err)
 		}
 	}
 	return nil

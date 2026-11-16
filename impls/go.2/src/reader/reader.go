@@ -3,6 +3,7 @@ package reader
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/mooss/mal/src/core"
@@ -69,12 +70,13 @@ func (*Reader) errf(msg string, args ...any) error {
 
 // ReadForm constructs the next type from the input tokens, after ensuring that there was no
 // tokenization error and that there are tokens left to read.
+// Returns an error wrapping io.EOF when there are no more tokens left to read.
 func (r *Reader) ReadForm() (core.Value, error) {
 	if err := r.tokerr(); err != nil {
 		return nil, r.wrap(err)
 	}
 	if r.Done() {
-		return nil, r.err("no tokens left to read")
+		return nil, r.wrap(io.EOF)
 	}
 	return r.readForm()
 }

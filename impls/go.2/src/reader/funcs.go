@@ -19,6 +19,7 @@ func ReadStr(input string) Reader {
 }
 
 // ParseOne parses the input string as one expression, failing when there are leftover tokens.
+// Will return a error wrapping io.EOF when input contains no expression.
 func ParseOne(input string) (core.Value, error) {
 	rdr := ReadStr(input)
 	parsed, err := rdr.ReadForm()
