@@ -32,3 +32,12 @@ func Resolve(env core.Env, form core.Value) core.Value {
 		form, env = tc.Form, tc.Env
 	}
 }
+
+// EnsureResolved resolves the value as a tail call if it is one, otherwise it returns the value
+// as-is.
+func EnsureResolved(value core.Value) core.Value {
+	if tc, isTc := value.(TailCall); isTc {
+		return Resolve(tc.Env, tc.Form)
+	}
+	return value
+}

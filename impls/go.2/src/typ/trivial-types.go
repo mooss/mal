@@ -69,6 +69,14 @@ func (i Integer) Eval(core.Env) core.Value    { return i }
 func (i Integer) String() string              { return strconv.FormatInt(int64(i), 10) }
 func (Integer) Type() core.TypeName           { return core.INTEGER }
 
+// Keyword is a Mal keyword value, written with a leading colon.
+type Keyword string
+
+func (k Keyword) Equal(other core.Value) bool { return TrivialEq(k, other) }
+func (k Keyword) Eval(core.Env) core.Value    { return k }
+func (k Keyword) String() string              { return ":" + string(k) }
+func (Keyword) Type() core.TypeName           { return core.TypeName("keyword") }
+
 // Nil is the Mal nil value.
 type Nil struct{}
 
@@ -112,11 +120,3 @@ func (s Symbol) Eval(envr core.Env) core.Value {
 
 func (s Symbol) String() string    { return string(s) }
 func (Symbol) Type() core.TypeName { return core.SYMBOL }
-
-// Keyword is a Mal keyword value, written with a leading colon.
-type Keyword string
-
-func (k Keyword) Equal(other core.Value) bool { return TrivialEq(k, other) }
-func (k Keyword) Eval(core.Env) core.Value    { return k }
-func (k Keyword) String() string              { return ":" + string(k) }
-func (Keyword) Type() core.TypeName           { return core.TypeName("keyword") }

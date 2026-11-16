@@ -77,7 +77,11 @@ func swap(args ...core.Value) core.Value {
 	params[0] = atom.Ref
 	copy(params[1:], args[2:])
 
-	res := fn(params...)
+	// fn may be a user-defined closure, which can return a TailCall for tail-call optimization
+	// instead of a realized value.
+	// It must be resolved (trampolined) here, otherwise an unevaluated TailCall would be stored in
+	// the atom and leak to the caller.
+	res := typ.EnsureResolved(fn(params...))
 	if ut.Is[typ.Fatal](res) {
 		return res
 	}
