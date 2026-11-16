@@ -12,7 +12,6 @@ import (
 
 var MalSpecial core.Env = core.Bindings{
 	"def!": typ.SpII(defBang),
-	"eval": typ.SpI(eval),
 	"fn*":  typ.SpII(lambda),
 	"let*": typ.SpII(letStar),
 	"do":   typ.Special(specDo),
@@ -37,9 +36,6 @@ func defBang(envr core.Env, key typ.Symbol, value core.Value) core.Value {
 	envr.Set(string(key), evald)
 	return evald
 }
-
-// eval evaluates data as a Mal program.
-func eval(envr core.Env, data core.Value) core.Value { return typ.Resolve(envr, data.Eval(envr)) }
 
 // lambda builds a closure capturing the current environment, with fixed or variadic parameters.
 // A `&` symbol before the last parameter marks it as capturing the remaining arguments.
@@ -94,6 +90,13 @@ func letStar(envr core.Env, bindings core.Value, form core.Value) core.Value {
 	}
 
 	return typ.Tail(letenv, form)
+}
+
+// MkEval returns an eval function closed over envr.
+func MkEval(envr core.Env) func(core.Value) core.Value {
+	return func(ast core.Value) core.Value {
+		return typ.Resolve(envr, ast)
+	}
 }
 
 // specDo evaluates each argument in order and returns the value of the last one.

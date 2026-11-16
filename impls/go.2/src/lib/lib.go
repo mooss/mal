@@ -5,30 +5,68 @@ import (
 	"fmt"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/envs"
 	"github.com/mooss/mal/src/reader"
 	"github.com/mooss/mal/src/typ"
 )
 
-var Std = Package{
+// StdMal implements the Mal standard library.
+var StdMal = Package{
 	Name: "standard",
-	Functions: []Function{{
+	GuestFun: []GuestFun{{
 		"load-file",
-		`(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`,
+		`(def! load-file (fn* (f)
+  (do (eval (read-string (str "(do " (slurp f) "\nnil)")))) ))`,
+	}},
+	BoundPrimitives: []EnvBound{{
+		Name:  "eval",
+		Maker: pipe(envs.MkEval, typ.I),
 	}},
 }
 
-type Function struct {
+/////////////
+// Package //
+
+// Package is a named collection of guest functions and bound primitives that can be loaded into an
+// environment.
+type Package struct {
+	Name            string
+	GuestFun        []GuestFun
+	BoundPrimitives []EnvBound
+}
+
+// Load registers all the package's guest functions and bound primitives in the given environment.
+func (p Package) Load(root core.Env) error {
+	for _, fun := range p.GuestFun {
+		if err := fun.Load(root); err != nil {
+			return fmt.Errorf("package %s: %w", p.Name, err)
+		}
+	}
+
+	for _, envcap := range p.BoundPrimitives {
+		root.Set(envcap.Name, envcap.Maker(root))
+	}
+
+	return nil
+}
+
+/////////////////////////////////
+// Functions (guest and bound) //
+
+// GuestFun is a function implemented in the guest language.
+type GuestFun struct {
 	Name string
 	Impl string
 }
 
-func (fun Function) Load(envr core.Env) error {
+// Load evaluates the function's implementation and registers it in the given environment.
+func (fun GuestFun) Load(root core.Env) error {
 	parsed, err := reader.ParseOne(fun.Impl)
 	if err != nil {
 		return err
 	}
 
-	res := typ.Resolve(envr, parsed)
+	res := typ.Resolve(root, parsed)
 	fatal, isFatal := res.(typ.Fatal)
 	if isFatal {
 		return fmt.Errorf("function %s: %w", fun.Name, fatal.Unbox())
@@ -37,16 +75,16 @@ func (fun Function) Load(envr core.Env) error {
 	return nil
 }
 
-type Package struct {
-	Name      string
-	Functions []Function
+// EnvBound is a function bound to the root environment.
+type EnvBound struct {
+	Name  string
+	Maker func(core.Env) typ.Function
 }
 
-func (p Package) Load(envr core.Env) error {
-	for _, fun := range p.Functions {
-		if err := fun.Load(envr); err != nil {
-			return fmt.Errorf("package %s: %w", p.Name, err)
-		}
-	}
-	return nil
+/////////////////////
+// Local utilities //
+
+// pipe combines two functions into one, applying inner first and then outer.
+func pipe[A, B, C any](inner func(A) B, outer func(B) C) func(A) C {
+	return func(input A) C { return outer(inner(input)) }
 }

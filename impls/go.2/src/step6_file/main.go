@@ -12,7 +12,7 @@ import (
 
 func main() {
 	environment := core.CatEnv(envs.All)
-	ut.Must(lib.Std.Load(environment))
+	ut.Must(lib.StdMal.Load(environment))
 
 	rep := func(input string) (string, error) {
 		parsed, err := reader.ParseOne(input)
