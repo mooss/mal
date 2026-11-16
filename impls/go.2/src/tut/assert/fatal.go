@@ -22,7 +22,7 @@ func Fatal(t *testing.T, v core.Value) typ.Fatal {
 	var zero typ.Fatal
 	return zero
 }
-func (tr Tester) Fatal(v core.Value) typ.Fatal {
+func (tr T) Fatal(v core.Value) typ.Fatal {
 	tr.T.Helper()
 	return Fatal(tr.T, v)
 }
@@ -35,7 +35,7 @@ func Ok(t *testing.T, v core.Value) core.Value {
 	}
 	return v
 }
-func (tr Tester) Ok(v core.Value) core.Value {
+func (tr T) Ok(v core.Value) core.Value {
 	tr.T.Helper()
 	return Ok(tr.T, v)
 }

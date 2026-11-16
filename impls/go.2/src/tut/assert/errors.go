@@ -16,7 +16,7 @@ func ErrorContains(t *testing.T, err error, sub string) {
 		t.Fatalf("%q does not contain %q", err.Error(), sub)
 	}
 }
-func (tr Tester) ErrorContains(err error, sub string) {
+func (tr T) ErrorContains(err error, sub string) {
 	tr.T.Helper()
 	ErrorContains(tr.T, err, sub)
 }
@@ -29,7 +29,7 @@ func Must[T any](t *testing.T, v T, err error) T {
 	}
 	return v
 }
-func (tr Tester) Must[T any](v T, err error) T {
+func (tr T) Must[T any](v T, err error) T {
 	tr.T.Helper()
 	return Must(tr.T, v, err)
 }
@@ -41,7 +41,7 @@ func MustError(t *testing.T, err error) {
 		t.Fatal("expected error, got nil")
 	}
 }
-func (tr Tester) MustError(err error) {
+func (tr T) MustError(err error) {
 	tr.T.Helper()
 	MustError(tr.T, err)
 }
@@ -53,7 +53,7 @@ func NoError(t *testing.T, err error) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
-func (tr Tester) NoError(err error) {
+func (tr T) NoError(err error) {
 	tr.T.Helper()
 	NoError(tr.T, err)
 }

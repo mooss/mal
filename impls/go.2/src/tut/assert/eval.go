@@ -17,7 +17,7 @@ func Eval(t *testing.T, env core.Env, input string, want core.Value) {
 		t.Fatalf("MustEval(%q) = %v, want %v", input, got, want)
 	}
 }
-func (tr Tester) Eval(env core.Env, input string, want core.Value) {
+func (tr T) Eval(env core.Env, input string, want core.Value) {
 	tr.T.Helper()
 	Eval(tr.T, env, input, want)
 }
@@ -29,7 +29,7 @@ func EvalFatal(t *testing.T, env core.Env, inputs ...string) {
 		_ = Fatal(t, tut.MustEval(env, in))
 	}
 }
-func (tr Tester) EvalFatal(env core.Env, inputs ...string) {
+func (tr T) EvalFatal(env core.Env, inputs ...string) {
 	tr.T.Helper()
 	EvalFatal(tr.T, env, inputs...)
 }
@@ -41,7 +41,7 @@ func EvalFatalContains(t *testing.T, env core.Env, input, sub string) typ.Fatal 
 	StringContains(t, f.String(), sub)
 	return f
 }
-func (tr Tester) EvalFatalContains(env core.Env, input, sub string) typ.Fatal {
+func (tr T) EvalFatalContains(env core.Env, input, sub string) typ.Fatal {
 	tr.T.Helper()
 	return EvalFatalContains(tr.T, env, input, sub)
 }
@@ -56,7 +56,7 @@ func EvalSame(t *testing.T, env core.Env, input, wantSrc string) {
 		t.Fatalf("MustEval(%q) = %v, want %v from %q", input, got, want, wantSrc)
 	}
 }
-func (tr Tester) EvalSame(env core.Env, input, wantSrc string) {
+func (tr T) EvalSame(env core.Env, input, wantSrc string) {
 	tr.T.Helper()
 	EvalSame(tr.T, env, input, wantSrc)
 }
@@ -67,7 +67,7 @@ func Print(t *testing.T, env core.Env, input, wantOutput string) {
 	output := tut.Capture(t, func() { Eval(t, env, input, typ.Nil{}) })
 	Equal(t, output, wantOutput)
 }
-func (tr Tester) Print(env core.Env, input, wantOutput string) {
+func (tr T) Print(env core.Env, input, wantOutput string) {
 	tr.T.Helper()
 	Print(tr.T, env, input, wantOutput)
 }
@@ -79,7 +79,7 @@ func EvalValue(t *testing.T, env core.Env, v, want core.Value) {
 		t.Fatalf("%v (%T).Eval() = %v, want %v", v, v, got, want)
 	}
 }
-func (tr Tester) EvalValue(env core.Env, v, want core.Value) {
+func (tr T) EvalValue(env core.Env, v, want core.Value) {
 	tr.T.Helper()
 	EvalValue(tr.T, env, v, want)
 }
@@ -89,7 +89,7 @@ func SelfEval(t *testing.T, env core.Env, v core.Value) {
 	t.Helper()
 	EvalValue(t, env, v, v)
 }
-func (tr Tester) SelfEval(env core.Env, v core.Value) {
+func (tr T) SelfEval(env core.Env, v core.Value) {
 	tr.T.Helper()
 	SelfEval(tr.T, env, v)
 }
@@ -103,7 +103,7 @@ func Repr[T core.Value](t *testing.T, v core.Value, want string) {
 	Is[T](t, v)
 	StringRepr(t, v, want)
 }
-func (tr Tester) Repr[T core.Value](v core.Value, want string) {
+func (tr T) Repr[T core.Value](v core.Value, want string) {
 	tr.T.Helper()
 	Repr[T](tr.T, v, want)
 }
@@ -114,7 +114,7 @@ func Trivial[T core.Value](t *testing.T, env core.Env, v core.Value, want string
 	Repr[T](t, v, want)
 	SelfEval(t, env, v)
 }
-func (tr Tester) Trivial[T core.Value](env core.Env, v core.Value, want string) {
+func (tr T) Trivial[T core.Value](env core.Env, v core.Value, want string) {
 	tr.T.Helper()
 	Trivial[T](tr.T, env, v, want)
 }

@@ -14,7 +14,7 @@ func StringContains(t *testing.T, got, substring string) {
 		t.Fatalf("%q does not contain %q", got, substring)
 	}
 }
-func (tr Tester) StringContains(got, substring string) {
+func (tr T) StringContains(got, substring string) {
 	tr.T.Helper()
 	StringContains(tr.T, got, substring)
 }
@@ -26,7 +26,7 @@ func StringEndsWith(t *testing.T, got, suffix string) {
 		t.Fatalf("%q does not end with %q", got, suffix)
 	}
 }
-func (tr Tester) StringEndsWith(got, suffix string) {
+func (tr T) StringEndsWith(got, suffix string) {
 	tr.T.Helper()
 	StringEndsWith(tr.T, got, suffix)
 }
@@ -41,7 +41,7 @@ func StringRepr(t *testing.T, v core.Value, want string) {
 		t.Fatalf("String() = %q, want %q", got, want)
 	}
 }
-func (tr Tester) StringRepr(v core.Value, want string) {
+func (tr T) StringRepr(v core.Value, want string) {
 	tr.T.Helper()
 	StringRepr(tr.T, v, want)
 }
@@ -53,7 +53,7 @@ func StringStartsWith(t *testing.T, got, prefix string) {
 		t.Fatalf("%q does not start with %q", got, prefix)
 	}
 }
-func (tr Tester) StringStartsWith(got, prefix string) {
+func (tr T) StringStartsWith(got, prefix string) {
 	tr.T.Helper()
 	StringStartsWith(tr.T, got, prefix)
 }

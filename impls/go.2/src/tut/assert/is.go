@@ -17,7 +17,7 @@ func Is[T core.Value](t *testing.T, v core.Value) T {
 	}
 	return got
 }
-func (tr Tester) Is[T core.Value](v core.Value) T {
+func (tr T) Is[T core.Value](v core.Value) T {
 	tr.T.Helper()
 	return Is[T](tr.T, v)
 }

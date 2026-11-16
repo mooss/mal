@@ -101,7 +101,7 @@ var unquoteErrors = []tut.Case[string]{
 ///////////
 // Tests //
 
-func checkMalQuote(tr assert.Tester, c tut.Case[string]) {
+func checkMalQuote(tr assert.T, c tut.Case[string]) {
 	tr.T.Helper()
 	got := strfun.MalQuote(c.Input)
 	tr.Equal(got, c.Want)
@@ -121,7 +121,7 @@ func TestMalQuote(t *testing.T) {
 	tr.RunCases("extra cases", checkMalQuote, extra...)
 }
 
-func checkMalUnquote(tr assert.Tester, c tut.Case[string]) {
+func checkMalUnquote(tr assert.T, c tut.Case[string]) {
 	tr.T.Helper()
 	got := tr.Must(strfun.MalUnquote(c.Want))
 	tr.Equal(got, c.Input)
@@ -145,7 +145,7 @@ func TestMalUnquote(t *testing.T) {
 	tr.RunCases("extra valid cases", checkMalUnquote, extra...)
 }
 
-func checkMalUnquoteError(tr assert.Tester, c tut.Case[string]) {
+func checkMalUnquoteError(tr assert.T, c tut.Case[string]) {
 	tr.T.Helper()
 	_, err := strfun.MalUnquote(c.Input)
 	tr.ErrorContains(err, c.Want)
@@ -166,12 +166,12 @@ func TestMalQuoteUnquoteRoundTrip(t *testing.T) {
 		cases = append(cases, p.Input)
 	}
 
-	tr.RunCases("unquoted round trip", func(tr assert.Tester, input string) {
+	tr.RunCases("unquoted round trip", func(tr assert.T, input string) {
 		got := tr.Must(strfun.MalUnquote(strfun.MalQuote(input)))
 		tr.Equal(got, input)
 	}, cases...)
 
-	tr.RunCases("quoted round trip", func(tr assert.Tester, c tut.Case[string]) {
+	tr.RunCases("quoted round trip", func(tr assert.T, c tut.Case[string]) {
 		tr.Equal(strfun.MalQuote(tr.Must(strfun.MalUnquote(c.Want))), c.Want)
 	}, sharedQuotePairs...)
 }
