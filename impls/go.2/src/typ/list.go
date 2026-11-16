@@ -1,11 +1,16 @@
 package typ
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/fun"
 )
+
+// canDebug guards the ability to enable debug mode.
+const canDebug = false
 
 // List is a sequence of values.
 type List []core.Value
@@ -13,11 +18,14 @@ type List []core.Value
 func (lst List) Equal(other core.Value) bool { return sliceEq(lst, other, core.Value.Equal) }
 
 func (lst List) Eval(envr core.Env) core.Value {
+	if canDebug && IsTrue(envr.Get("DEBUG-MODE")) {
+		fmt.Fprintln(os.Stderr, ":APPLY", lst)
+	}
+
 	if len(lst) == 0 {
 		return lst
 	}
 
-	// Apply phase.
 	op := Resolve(envr, lst[0])
 	switch op := op.(type) {
 	case Function:

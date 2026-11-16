@@ -116,7 +116,38 @@ func FmtExpectedNArgs(expected string, got int) Fatal {
 	return Fatalf("expected %s args, got %d", expected, got)
 }
 
+// IsTrue returns whether the value is considered truthful, discarding any Fatal error.
+// Intended for cases where the error is handled elsewhere or irrelevant.
+func IsTrue(arg core.Value) bool {
+	res, _ := Truthful(arg)
+	return res
+}
+
+// TrivialEq implements trivial equality comparison, when right has the same type as left, the two
+// are compared with Go's == operator.
+// Intended to be used as an equality predicate for comparable values of a known concrete type.
 func TrivialEq[T comparable](left T, right any) bool {
 	rt, ok := right.(T)
 	return ok && left == rt
+}
+
+// Truthful returns whether the value is considered truthful in a boolean context.
+// A nil value is falsy, a Fatal error is forwarded as is, a Bool is returned as is and any other
+// value is considered truthful.
+func Truthful(arg core.Value) (bool, Fatal) {
+	if arg == nil {
+		return false, Fatal{}
+	}
+
+	realised := false
+	switch typed := arg.(type) {
+	case Fatal:
+		return false, typed
+	case Nil:
+	case Bool:
+		realised = bool(typed)
+	default:
+		realised = true
+	}
+	return realised, Fatal{}
 }

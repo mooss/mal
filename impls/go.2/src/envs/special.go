@@ -120,7 +120,7 @@ func specDo(envr core.Env, args ...core.Value) core.Value {
 // Only nil and false are falsy.
 func specIfElse(envr core.Env, cond core.Value, cons core.Value, alt core.Value) core.Value {
 	condeval := typ.Resolve(envr, cond)
-	realised, err := truthful(condeval)
+	realised, err := typ.Truthful(condeval)
 	if err.NotNil() {
 		return err
 	}

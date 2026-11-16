@@ -74,22 +74,8 @@ func leq[T numbers](l, t T) typ.Bool { return l <= t }
 func gt[T numbers](l, t T) typ.Bool  { return l > t }
 func geq[T numbers](l, t T) typ.Bool { return l >= t }
 
-func truthful(arg core.Value) (bool, typ.Fatal) {
-	realised := true
-	switch typed := arg.(type) {
-	case typ.Fatal:
-		return false, typed
-	case typ.Nil:
-		realised = false
-	case typ.Bool:
-		realised = bool(typed)
-	default:
-	}
-	return realised, typ.Fatal{}
-}
-
 func not(arg core.Value) core.Value {
-	isTrue, err := truthful(arg)
+	isTrue, err := typ.Truthful(arg)
 	if err.NotNil() {
 		return err
 	}
