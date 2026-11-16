@@ -1,81 +1,15 @@
 package typ_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/mooss/mal/src/core"
-	"github.com/mooss/mal/src/tut"
+	"github.com/mooss/mal/src/tut/assert"
 	"github.com/mooss/mal/src/typ"
 )
 
-func assertType[T core.Value](t *testing.T, v core.Value) {
-	t.Helper()
-	_, err := typ.As[T](v)
-	if err.NotNil() {
-		t.Fatalf("%v: %v", v, err)
-	}
-}
-
-func assertString(t *testing.T, v core.Value, want string) {
-	t.Helper()
-	if got := v.String(); got != want {
-		t.Fatalf("%v (%T).String() = %q, want %q", v, v, got, want)
-	}
-}
-
-func assertRepr[T core.Value](t *testing.T, v core.Value, wantStr string) {
-	t.Helper()
-	assertType[T](t, v)
-	assertString(t, v, wantStr)
-}
-
-func assertSelfEval(t *testing.T, env core.Env, v core.Value) {
-	t.Helper()
-	if got := v.Eval(env); !got.Equal(v) {
-		t.Fatalf("%v (%T).Eval() = %v, want %v", v, v, got, v)
-	}
-}
-
-func assertTrivial[T core.Value](t *testing.T, env core.Env, v core.Value, wantStr string) {
-	t.Helper()
-	assertRepr[T](t, v, wantStr)
-	assertSelfEval(t, env, v)
-}
-
-func assertContains(t *testing.T, got, want string) {
-	t.Helper()
-	if !strings.Contains(got, want) {
-		t.Fatalf("%q does not contain %q", got, want)
-	}
-}
-
-func assertNotNil(t *testing.T, f typ.Fatal, want bool) {
-	t.Helper()
-	if got := f.NotNil(); got != want {
-		t.Fatalf("Fatal.NotNil() = %v, want %v", got, want)
-	}
-}
-
-func assertEqual[T comparable](t *testing.T, got, want T) {
-	t.Helper()
-	if got != want {
-		t.Fatalf("got %v, want %v", got, want)
-	}
-}
-
-func mustEvalAs[T core.Value](t *testing.T, env core.Env, input string) T {
-	t.Helper()
-	got := tut.MustEval(env, input)
-	v, ok := any(got).(T)
-	if !ok {
-		var zero T
-		t.Fatalf("MustEval(%q) type = %T, want %T", input, got, zero)
-	}
-	return v
-}
-
 func TestBoolTrivial(t *testing.T) {
+	tr := assert.New(t)
 	var envr core.Env
 
 	for _, tc := range []struct {
@@ -85,11 +19,13 @@ func TestBoolTrivial(t *testing.T) {
 		{typ.True, "true"},
 		{typ.False, "false"},
 	} {
-		assertTrivial[typ.Bool](t, envr, tc.val, tc.str)
+		tr.Trivial[typ.Bool](envr, tc.val, tc.str)
+		tr.SelfEval(envr, tc.val)
 	}
 }
 
 func TestIntegerMustEval(t *testing.T) {
+	tr := assert.New(t)
 	var envr core.Env
 
 	for _, tc := range []struct {
@@ -100,20 +36,25 @@ func TestIntegerMustEval(t *testing.T) {
 		{"0", typ.Integer(0)},
 		{"-7", typ.Integer(-7)},
 	} {
-		got := mustEvalAs[typ.Integer](t, envr, tc.input)
-		assertEqual(t, got, tc.want)
-		assertTrivial[typ.Integer](t, envr, got, tc.input)
+		got := tr.MustEvalAs[typ.Integer](envr, tc.input)
+		tr.Equal(got, tc.want)
+		tr.Trivial[typ.Integer](envr, got, tc.input)
+		tr.SelfEval(envr, got)
+		tr.SelfEval(envr, tc.want)
 	}
 }
 
 func TestNilMustEval(t *testing.T) {
+	tr := assert.New(t)
 	var envr core.Env
 
-	got := mustEvalAs[typ.Nil](t, envr, "nil")
-	assertTrivial[typ.Nil](t, envr, got, "nil")
+	got := tr.MustEvalAs[typ.Nil](envr, "nil")
+	tr.Trivial[typ.Nil](envr, got, "nil")
+	tr.SelfEval(envr, got)
 }
 
 func TestStringMustEval(t *testing.T) {
+	tr := assert.New(t)
 	var envr core.Env
 
 	for _, tc := range []struct {
@@ -124,28 +65,42 @@ func TestStringMustEval(t *testing.T) {
 		{`""`, typ.String("")},
 		{`"a b"`, typ.String("a b")},
 	} {
-		got := mustEvalAs[typ.String](t, envr, tc.input)
-		assertEqual(t, got, tc.want)
-		assertTrivial[typ.String](t, envr, got, tc.input)
+		got := tr.MustEvalAs[typ.String](envr, tc.input)
+		tr.Equal(got, tc.want)
+		tr.Trivial[typ.String](envr, got, tc.input)
+		tr.SelfEval(envr, got)
+		tr.SelfEval(envr, tc.want)
 	}
 
 	// String prints quoted.
 	s := typ.String("hi")
-	assertTrivial[typ.String](t, envr, s, `"hi"`)
+	tr.Trivial[typ.String](envr, s, `"hi"`)
+	tr.SelfEval(envr, s)
 }
 
 func TestFatalTrivial(t *testing.T) {
-	var envr core.Env
+	tr := assert.New(t)
 
 	f := typ.Fatalf("oops")
-	assertRepr[typ.Fatal](t, f, `(fatal "oops")`)
-	assertNotNil(t, f, true)
+	tr.Repr[typ.Fatal](f, `(fatal "oops")`)
+	if !f.NotNil() {
+		tr.Fatalf("expected f.NotNil() to be true (f=%v)", f)
+	}
 	var empty typ.Fatal
-	assertNotNil(t, empty, false)
-	assertString(t, f.Eval(envr), `(fatal "oops")`)
+	if empty.NotNil() {
+		tr.Fatalf("expected f.NotNil() to be false (f=%v)", f)
+	}
 
 	qualified := f.Qualify("test")
-	assertNotNil(t, qualified, true)
-	assertContains(t, qualified.Error(), "test: oops")
-	assertContains(t, qualified.String(), "test: oops")
+	if !qualified.NotNil() {
+		tr.Fatalf("expected qualified.NotNil() to be true (qualified=%v)", qualified)
+	}
+	tr.StringContains(qualified.Error(), "test: oops")
+	tr.StringContains(qualified.String(), "test: oops")
+
+	var envr core.Env
+	tr.Run("Fatal represents itself as a fatal list", func(tr assert.T) {
+		tr.StringRepr(f.Eval(envr), `(fatal "oops")`)
+		tr.StringRepr(qualified.Eval(envr), `(fatal "test: oops")`)
+	})
 }

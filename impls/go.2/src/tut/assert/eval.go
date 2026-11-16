@@ -71,3 +71,50 @@ func (tr Tester) Print(env core.Env, input, wantOutput string) {
 	tr.T.Helper()
 	Print(tr.T, env, input, wantOutput)
 }
+
+// EvalValue checks v.Eval(env) equals want.
+func EvalValue(t *testing.T, env core.Env, v, want core.Value) {
+	t.Helper()
+	if got := v.Eval(env); !got.Equal(want) {
+		t.Fatalf("%v (%T).Eval() = %v, want %v", v, v, got, want)
+	}
+}
+func (tr Tester) EvalValue(env core.Env, v, want core.Value) {
+	tr.T.Helper()
+	EvalValue(tr.T, env, v, want)
+}
+
+// SelfEval checks v.Eval(env) equals itself.
+func SelfEval(t *testing.T, env core.Env, v core.Value) {
+	t.Helper()
+	EvalValue(t, env, v, v)
+}
+func (tr Tester) SelfEval(env core.Env, v core.Value) {
+	tr.T.Helper()
+	SelfEval(tr.T, env, v)
+}
+
+// Repr checks v has type T and its String equals want.
+func Repr[T core.Value](t *testing.T, v core.Value, want string) {
+	t.Helper()
+	if v == nil {
+		t.Fatalf("got nil, want %q", want)
+	}
+	Is[T](t, v)
+	StringRepr(t, v, want)
+}
+func (tr Tester) Repr[T core.Value](v core.Value, want string) {
+	tr.T.Helper()
+	Repr[T](tr.T, v, want)
+}
+
+// Trivial checks Repr and SelfEval.
+func Trivial[T core.Value](t *testing.T, env core.Env, v core.Value, want string) {
+	t.Helper()
+	Repr[T](t, v, want)
+	SelfEval(t, env, v)
+}
+func (tr Tester) Trivial[T core.Value](env core.Env, v core.Value, want string) {
+	tr.T.Helper()
+	Trivial[T](tr.T, env, v, want)
+}
