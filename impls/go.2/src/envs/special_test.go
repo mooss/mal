@@ -13,49 +13,56 @@ import (
 )
 
 func TestLetStarSequentialScopingAndOuterIsolation(t *testing.T) {
+	tr := assert.New(t)
 	for _, input := range []string{"(let* (x a y x) y)", "(let* [x a y x] y)"} {
 		outer := envs.MalSpecial.Nest(core.Bindings{"a": tut.Sym("outer-a-val")})
-		assert.Eval(t, outer, input, tut.Sym("outer-a-val"))
-		assert.EnvLacks(t, outer, "x", "y")
-		assert.EnvHas(t, outer, "a", tut.Sym("outer-a-val"))
+		tr.Eval(outer, input, tut.Sym("outer-a-val"))
+		tr.EnvLacks(outer, "x", "y")
+		tr.EnvHas(outer, "a", tut.Sym("outer-a-val"))
 	}
 }
 
 func TestLetStarOddBindingsError(t *testing.T) {
+	tr := assert.New(t)
 	for _, input := range []string{"(let* (x) x)", "(let* [x] x)"} {
-		_ = assert.EvalFatalContains(t, envs.MalSpecial.Nest(nil), input, "odd")
+		_ = tr.EvalFatalContains(envs.MalSpecial.Nest(nil), input, "odd")
 	}
 }
 
 func TestLetStarNonSymbolKeyQualifyPrefix(t *testing.T) {
+	tr := assert.New(t)
 	for _, input := range []string{"(let* (() a) a)", "(let* [() a] a)"} {
 		outer := envs.MalSpecial.Nest(core.Bindings{"a": tut.Sym("a-val")})
-		_ = assert.EvalFatalContains(t, outer, input, "invalid key in let bindings")
+		_ = tr.EvalFatalContains(outer, input, "invalid key in let bindings")
 	}
 }
 
 func TestLetStarFatalValueForwardingWithoutSet(t *testing.T) {
+	tr := assert.New(t)
 	for _, input := range []string{"(let* (ok missing) ok)", "(let* [ok missing] ok)"} {
 		outer := envs.MalSpecial.Nest(core.Bindings{"good": tut.Sym("good-val")})
-		assert.EvalFatal(t, outer, input)
-		assert.EnvLacks(t, outer, "ok")
-		assert.EnvHas(t, outer, "good", tut.Sym("good-val"))
+		tr.EvalFatal(outer, input)
+		tr.EnvLacks(outer, "ok")
+		tr.EnvHas(outer, "good", tut.Sym("good-val"))
 	}
 }
 
 func TestDefBangEvalThenSetAndReturn(t *testing.T) {
+	tr := assert.New(t)
 	env := envs.MalSpecial.Nest(core.Bindings{"a": tut.Sym("a-val")})
-	assert.Eval(t, env, "(def! k a)", tut.Sym("a-val"))
-	assert.EnvHas(t, env, "k", tut.Sym("a-val"))
+	tr.Eval(env, "(def! k a)", tut.Sym("a-val"))
+	tr.EnvHas(env, "k", tut.Sym("a-val"))
 }
 
 func TestDefBangFatalNonSet(t *testing.T) {
+	tr := assert.New(t)
 	env := envs.MalSpecial.Nest(nil)
-	assert.EvalFatal(t, env, "(def! k missing)")
-	assert.EnvLacks(t, env, "k")
+	tr.EvalFatal(env, "(def! k missing)")
+	tr.EnvLacks(env, "k")
 }
 
 func TestFnStarIdentityListVecEmptyMulti(t *testing.T) {
+	tr := assert.New(t)
 	cases := []struct {
 		input string
 		want  core.Value
@@ -73,37 +80,40 @@ func TestFnStarIdentityListVecEmptyMulti(t *testing.T) {
 			"a": tut.Sym("a-val"),
 			"b": tut.Sym("b-val"),
 		})
-		assert.Eval(t, env, tc.input, tc.want)
-		assert.EnvLacks(t, env, "x", "y")
+		tr.Eval(env, tc.input, tc.want)
+		tr.EnvLacks(env, "x", "y")
 	}
 }
 
 func TestFnStarClosureCapturesDefiningEnv(t *testing.T) {
+	tr := assert.New(t)
 	outer := envs.MalSpecial.Nest(core.Bindings{
 		"a": tut.Sym("outer-a-val"),
 		"d": tut.Sym("d-val"),
 		"s": tut.Sym("shadow-val"),
 	})
-	assert.Ok(t, tut.MustEval(outer, "(def! f (fn* (x) a))"))
-	assert.Eval(t, outer, "(let* (a s) (f d))", tut.Sym("outer-a-val"))
+	tr.Ok(tr.MustEval(outer, "(def! f (fn* (x) a))"))
+	tr.Eval(outer, "(let* (a s) (f d))", tut.Sym("outer-a-val"))
 }
 
 func TestFnStarParamShadowsOuter(t *testing.T) {
+	tr := assert.New(t)
 	outer := envs.MalSpecial.Nest(core.Bindings{
 		"x": tut.Sym("outer-x"),
 		"a": tut.Sym("a-val"),
 	})
-	assert.Eval(t, outer, "((fn* (x) x) a)", tut.Sym("a-val"))
-	assert.EnvHas(t, outer, "x", tut.Sym("outer-x"))
+	tr.Eval(outer, "((fn* (x) x) a)", tut.Sym("a-val"))
+	tr.EnvHas(outer, "x", tut.Sym("outer-x"))
 }
 
 func TestFnStarCallArityMismatch(t *testing.T) {
+	tr := assert.New(t)
 	outer := envs.MalSpecial.Nest(core.Bindings{
 		"a": tut.Sym("a-val"),
 		"b": tut.Sym("b-val"),
 		"c": tut.Sym("c-val"),
 	})
-	assert.EvalFatal(t, outer,
+	tr.EvalFatal(outer,
 		"((fn* (x) x))",
 		"((fn* (x) x) a b)",
 		"((fn* (x y) x) a)",
@@ -114,7 +124,8 @@ func TestFnStarCallArityMismatch(t *testing.T) {
 }
 
 func TestFnStarInvalidParamsAndFormArity(t *testing.T) {
-	assert.EvalFatal(t, envs.MalSpecial.Nest(nil),
+	tr := assert.New(t)
+	tr.EvalFatal(envs.MalSpecial.Nest(nil),
 		"(fn* x x)",
 		"(fn* a a)",
 		"(fn* (()) x)",
@@ -128,87 +139,95 @@ func TestFnStarInvalidParamsAndFormArity(t *testing.T) {
 }
 
 func TestFnStarDefIntegrationAndBodyFatal(t *testing.T) {
+	tr := assert.New(t)
 	env := envs.MalSpecial.Nest(core.Bindings{"a": tut.Sym("a-val")})
-	assert.Ok(t, tut.MustEval(env, "(def! ident (fn* (x) x))"))
-	assert.Eval(t, env, "(ident a)", tut.Sym("a-val"))
-	assert.Ok(t, tut.MustEval(env, "(def! ident2 (fn* [x] x))"))
-	assert.Eval(t, env, "(ident2 a)", tut.Sym("a-val"))
-	assert.EvalFatal(t, env, "((fn* (x) missing) a)")
+	tr.Ok(tr.MustEval(env, "(def! ident (fn* (x) x))"))
+	tr.Eval(env, "(ident a)", tut.Sym("a-val"))
+	tr.Ok(tr.MustEval(env, "(def! ident2 (fn* [x] x))"))
+	tr.Eval(env, "(ident2 a)", tut.Sym("a-val"))
+	tr.EvalFatal(env, "((fn* (x) missing) a)")
 }
 
 func TestDoReturnsLastAndSequencesEffects(t *testing.T) {
+	tr := assert.New(t)
 	outer := envs.MalSpecial.Nest(core.Bindings{
 		"a": tut.Sym("a-val"),
 		"b": tut.Sym("b-val"),
 		"c": tut.Sym("c-val"),
 	})
-	assert.Eval(t, outer, "(do a)", tut.Sym("a-val"))
-	assert.Eval(t, outer, "(do a b)", tut.Sym("b-val"))
-	assert.Eval(t, outer, "(do a b c)", tut.Sym("c-val"))
+	tr.Eval(outer, "(do a)", tut.Sym("a-val"))
+	tr.Eval(outer, "(do a b)", tut.Sym("b-val"))
+	tr.Eval(outer, "(do a b c)", tut.Sym("c-val"))
 
 	env := envs.MalSpecial.Nest(core.Bindings{"a": tut.Sym("a-val")})
-	assert.Eval(t, env, "(do (def! x a) (def! y x) y)", tut.Sym("a-val"))
-	assert.EnvHas(t, env, "x", tut.Sym("a-val"))
-	assert.EnvHas(t, env, "y", tut.Sym("a-val"))
+	tr.Eval(env, "(do (def! x a) (def! y x) y)", tut.Sym("a-val"))
+	tr.EnvHas(env, "x", tut.Sym("a-val"))
+	tr.EnvHas(env, "y", tut.Sym("a-val"))
 }
 
 func TestDoFatalShortCircuit(t *testing.T) {
+	tr := assert.New(t)
 	outer := envs.MalSpecial.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	assert.EvalFatal(t, outer, "(do good missing good)")
-	assert.EvalFatal(t, outer, "(do missing (def! leaked good))")
-	assert.EnvLacks(t, outer, "leaked")
+	tr.EvalFatal(outer, "(do good missing good)")
+	tr.EvalFatal(outer, "(do missing (def! leaked good))")
+	tr.EnvLacks(outer, "leaked")
 
 	env := envs.MalSpecial.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	assert.EvalFatal(t, env, "(do (def! x good) missing (def! y good))")
-	assert.EnvHas(t, env, "x", tut.Sym("good-val"))
-	assert.EnvLacks(t, env, "y")
+	tr.EvalFatal(env, "(do (def! x good) missing (def! y good))")
+	tr.EnvHas(env, "x", tut.Sym("good-val"))
+	tr.EnvLacks(env, "y")
 }
 
 func TestDoEmptyReturnsNil(t *testing.T) {
-	assert.Is[typ.Nil](t, tut.MustEval(envs.MalSpecial.Nest(nil), "(do)"))
+	tr := assert.New(t)
+	_ = tr.MustEvalAs[typ.Nil](envs.MalSpecial.Nest(nil), "(do)")
 }
 
 func TestIfTruthinessTable(t *testing.T) {
+	tr := assert.New(t)
 	outer := envs.MalDefault.Nest(core.Bindings{
 		"t": tut.Sym("then-val"),
 		"e": tut.Sym("else-val"),
 	})
-	assert.Eval(t, outer, "(if nil t e)", tut.Sym("else-val"))
-	assert.Eval(t, outer, "(if false t e)", tut.Sym("else-val"))
-	assert.Eval(t, outer, "(if true t e)", tut.Sym("then-val"))
-	assert.Eval(t, outer, "(if t t e)", tut.Sym("then-val"))
-	assert.Eval(t, outer, "(if e t e)", tut.Sym("then-val"))
+	tr.Eval(outer, "(if nil t e)", tut.Sym("else-val"))
+	tr.Eval(outer, "(if false t e)", tut.Sym("else-val"))
+	tr.Eval(outer, "(if true t e)", tut.Sym("then-val"))
+	tr.Eval(outer, "(if t t e)", tut.Sym("then-val"))
+	tr.Eval(outer, "(if e t e)", tut.Sym("then-val"))
 }
 
 func TestIfOnlyTakenBranchEvaluated(t *testing.T) {
+	tr := assert.New(t)
 	outer := envs.MalDefault.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	assert.Eval(t, outer, "(if true good missing)", tut.Sym("good-val"))
-	assert.Eval(t, outer, "(if false missing good)", tut.Sym("good-val"))
-	assert.Eval(t, outer, "(if nil missing good)", tut.Sym("good-val"))
+	tr.Eval(outer, "(if true good missing)", tut.Sym("good-val"))
+	tr.Eval(outer, "(if false missing good)", tut.Sym("good-val"))
+	tr.Eval(outer, "(if nil missing good)", tut.Sym("good-val"))
 
 	env := envs.MalDefault.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	assert.Eval(t, env, "(if true (def! x good) (def! y good))", tut.Sym("good-val"))
-	assert.EnvHas(t, env, "x", tut.Sym("good-val"))
-	assert.EnvLacks(t, env, "y")
+	tr.Eval(env, "(if true (def! x good) (def! y good))", tut.Sym("good-val"))
+	tr.EnvHas(env, "x", tut.Sym("good-val"))
+	tr.EnvLacks(env, "y")
 
 	env2 := envs.MalDefault.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	assert.Eval(t, env2, "(if false (def! x good) (def! y good))", tut.Sym("good-val"))
-	assert.EnvLacks(t, env2, "x")
-	assert.EnvHas(t, env2, "y", tut.Sym("good-val"))
+	tr.Eval(env2, "(if false (def! x good) (def! y good))", tut.Sym("good-val"))
+	tr.EnvLacks(env2, "x")
+	tr.EnvHas(env2, "y", tut.Sym("good-val"))
 }
 
 func TestIfCondFatalSkipsBranches(t *testing.T) {
+	tr := assert.New(t)
 	outer := envs.MalSpecial.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	assert.EvalFatal(t, outer, "(if missing good good)")
+	tr.EvalFatal(outer, "(if missing good good)")
 
 	env := envs.MalSpecial.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	assert.EvalFatal(t, env, "(if missing (def! x good) (def! y good))")
-	assert.EnvLacks(t, env, "x", "y")
+	tr.EvalFatal(env, "(if missing (def! x good) (def! y good))")
+	tr.EnvLacks(env, "x", "y")
 }
 
 func TestIfBranchFatalAndArity(t *testing.T) {
+	tr := assert.New(t)
 	outer := envs.MalDefault.Nest(core.Bindings{"good": tut.Sym("good-val")})
-	assert.EvalFatal(t, outer,
+	tr.EvalFatal(outer,
 		"(if true missing good)",
 		"(if false good missing)",
 		"(if nil good missing)",
@@ -218,35 +237,37 @@ func TestIfBranchFatalAndArity(t *testing.T) {
 }
 
 func TestFnStarVariadicRestCollection(t *testing.T) {
+	tr := assert.New(t)
 	outer := envs.MalSpecial.Nest(core.Bindings{
 		"a": tut.Sym("a-val"),
 		"b": tut.Sym("b-val"),
 		"c": tut.Sym("c-val"),
 	})
-	assert.Eval(t, outer, "((fn* (x & rest) x) a)", tut.Sym("a-val"))
-	assert.Eval(t, outer, "((fn* (x & rest) x) a b)", tut.Sym("a-val"))
-	assert.Eval(t, outer, "((fn* (x & rest) x) a b c)", tut.Sym("a-val"))
-	assert.Eval(t, outer, "((fn* [x & rest] x) a b c)", tut.Sym("a-val"))
+	tr.Eval(outer, "((fn* (x & rest) x) a)", tut.Sym("a-val"))
+	tr.Eval(outer, "((fn* (x & rest) x) a b)", tut.Sym("a-val"))
+	tr.Eval(outer, "((fn* (x & rest) x) a b c)", tut.Sym("a-val"))
+	tr.Eval(outer, "((fn* [x & rest] x) a b c)", tut.Sym("a-val"))
 
-	assert.Eval(t, outer, "((fn* (x & rest) rest) a)", tut.Lst())
-	assert.Eval(t, outer, "((fn* [x & rest] rest) a)", tut.Lst())
-	assert.Eval(t, outer, "((fn* (a b & rest) rest) a b)", tut.Lst())
+	tr.Eval(outer, "((fn* (x & rest) rest) a)", tut.Lst())
+	tr.Eval(outer, "((fn* [x & rest] rest) a)", tut.Lst())
+	tr.Eval(outer, "((fn* (a b & rest) rest) a b)", tut.Lst())
 
-	assert.Eval(t, outer, "((fn* (x & rest) rest) a b c)",
+	tr.Eval(outer, "((fn* (x & rest) rest) a b c)",
 		tut.Lst(tut.Sym("b-val"), tut.Sym("c-val")))
-	assert.Eval(t, outer, "((fn* [x & rest] rest) a b c)",
+	tr.Eval(outer, "((fn* [x & rest] rest) a b c)",
 		tut.Lst(tut.Sym("b-val"), tut.Sym("c-val")))
 
-	assert.EvalFatal(t, outer,
+	tr.EvalFatal(outer,
 		"((fn* (x y & rest) x) a)",
 		"((fn* [x y & rest] x) a)",
 		"((fn* (x & rest) x))",
 	)
-	assert.EnvLacks(t, outer, "x", "rest")
+	tr.EnvLacks(outer, "x", "rest")
 }
 
 func TestFnStarVariadicMisplacedAmpersand(t *testing.T) {
-	assert.EvalFatal(t, envs.MalSpecial.Nest(nil),
+	tr := assert.New(t)
+	tr.EvalFatal(envs.MalSpecial.Nest(nil),
 		"(fn* (x & ) x)",
 		"(fn* [x &] x)",
 		"(fn* (&) x)",
@@ -260,12 +281,14 @@ func TestFnStarVariadicMisplacedAmpersand(t *testing.T) {
 }
 
 func TestQuoteSymbolUnevaluated(t *testing.T) {
+	tr := assert.New(t)
 	env := envs.MalSpecial.Nest(core.Bindings{"a": tut.Sym("a-val")})
-	assert.Eval(t, env, "(quote a)", tut.Sym("a"))
+	tr.Eval(env, "(quote a)", tut.Sym("a"))
 }
 
 func TestQuoteListUnevaluated(t *testing.T) {
-	assert.Eval(t, envs.MalSpecial.Nest(nil), "(quote (a b))", tut.Lst(tut.Sym("a"), tut.Sym("b")))
+	tr := assert.New(t)
+	tr.Eval(envs.MalSpecial.Nest(nil), "(quote (a b))", tut.Lst(tut.Sym("a"), tut.Sym("b")))
 }
 
 func TestQuoteEval(t *testing.T) {
