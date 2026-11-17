@@ -152,23 +152,81 @@ func TestReadLists(t *testing.T) {
 	})
 }
 
+func mkSigilCase(sigil, tag string) []tut.Case[core.Value] {
+	wrap := func(inner core.Value) core.Value {
+		if tag == "quote" {
+			return qot(inner)
+		}
+		return lst(sym(tag), inner)
+	}
+	double := wrap(wrap(sym("foo")))
+	triple := wrap(wrap(wrap(sym("foo"))))
+	return []tut.Case[core.Value]{
+		{Name: "symbol", Input: sigil + "foo", Want: wrap(sym("foo"))},
+		{Name: "spaced", Input: sigil + " foo", Want: wrap(sym("foo"))},
+		{Name: "int", Input: sigil + "1", Want: wrap(num(1))},
+		{Name: "string", Input: sigil + ` "hello"`, Want: wrap(str(`hello`))},
+		{Name: "list", Input: sigil + "(1 2)", Want: wrap(lst(num(1), num(2)))},
+		{Name: "empty list", Input: sigil + "()", Want: wrap(lst())},
+		{Name: "double", Input: sigil + sigil + "foo", Want: double},
+		{Name: "triple", Input: sigil + sigil + sigil + "foo", Want: triple},
+		{Name: "nested", Input: sigil + "(" + sigil + "foo)", Want: wrap(lst(wrap(sym("foo"))))},
+		{Name: "vector", Input: sigil + "[1]", Want: wrap(vec(num(1)))},
+		{Name: "map", Input: sigil + `{"a" 1}`, Want: wrap(mapf(str(`a`), num(1)))},
+		{Name: "inside list", Input: "(" + sigil + "foo 1)", Want: lst(wrap(sym("foo")), num(1))},
+		{Name: "inside vector", Input: "[" + sigil + "foo]", Want: vec(wrap(sym("foo")))},
+		{Name: "inside map value", Input: "{a " + sigil + "foo}", Want: mapf(sym("a"), wrap(sym("foo")))},
+		{Name: "lone", Input: sigil, WantErr: true},
+		{Name: "lone padded", Input: sigil + "   ", WantErr: true},
+		{Name: "closer paren", Input: sigil + " )", WantErr: true},
+		{Name: "closer bracket", Input: sigil + " ]", WantErr: true},
+		{Name: "closer brace", Input: sigil + " }", WantErr: true},
+		{Name: "unbalanced", Input: sigil + "(1", WantErr: true},
+	}
+}
+
 func TestReadQuotes(t *testing.T) {
+	runSingleCases(assert.New(t), mkSigilCase("'", "quote"))
+}
+
+func TestReadQuasiquote(t *testing.T) {
+	runSingleCases(assert.New(t), mkSigilCase("`", "quasiquote"))
+}
+
+func TestReadUnquote(t *testing.T) {
+	runSingleCases(assert.New(t), append(mkSigilCase("~", "unquote"),
+		tut.Case[core.Value]{Name: "inside quasiquoted list", Input: "`(1 ~a)", Want: lst(sym("quasiquote"), lst(num(1), lst(sym("unquote"), sym("a"))))},
+	))
+}
+
+func TestReadSpliceUnquote(t *testing.T) {
+	runSingleCases(assert.New(t), append(mkSigilCase("~@", "splice-unquote"),
+		tut.Case[core.Value]{Name: "inside quasiquoted list", Input: "`(1 ~@a)", Want: lst(sym("quasiquote"), lst(num(1), lst(sym("splice-unquote"), sym("a"))))},
+	))
+}
+
+func TestReadDeref(t *testing.T) {
+	runSingleCases(assert.New(t), mkSigilCase("@", "deref"))
+}
+
+func TestReadSigilCombinations(t *testing.T) {
 	runSingleCases(assert.New(t), []tut.Case[core.Value]{
-		{Name: "symbol", Input: "'foo", Want: qot(sym("foo"))},
-		{Name: "spaced", Input: "' foo", Want: qot(sym("foo"))},
-		{Name: "int", Input: "'1", Want: qot(num(1))},
-		{Name: "string", Input: `' "hello"`, Want: qot(str(`hello`))},
-		{Name: "list", Input: "'(1 2)", Want: qot(lst(num(1), num(2)))},
-		{Name: "empty list", Input: "'()", Want: qot(lst())},
-		{Name: "double quote", Input: "''foo", Want: qot(qot(sym("foo")))},
-		{Name: "triple quote", Input: "'''foo", Want: qot(qot(qot(sym("foo"))))},
-		{Name: "quoted list with quote", Input: "'('foo)", Want: qot(lst(qot(sym("foo"))))},
-		{Name: "quoted vector", Input: "'[1]", Want: qot(vec(num(1)))},
-		{Name: "lone quote", Input: "'", WantErr: true},
-		{Name: "lone quote padded", Input: "'   ", WantErr: true},
-		{Name: "quote closer", Input: "' )", WantErr: true},
-		{Name: "quote closer bracket", Input: "' ]", WantErr: true},
-		{Name: "quote unbalanced", Input: "'(1", WantErr: true},
+		{Name: "quote quasiquote", Input: "'`foo", Want: qot(lst(sym("quasiquote"), sym("foo")))},
+		{Name: "quasiquote quote", Input: "`'foo", Want: lst(sym("quasiquote"), qot(sym("foo")))},
+		{Name: "quasiquote unquote", Input: "`~foo", Want: lst(sym("quasiquote"), lst(sym("unquote"), sym("foo")))},
+		{Name: "quasiquote splice", Input: "`~@foo", Want: lst(sym("quasiquote"), lst(sym("splice-unquote"), sym("foo")))},
+		{Name: "quote deref", Input: "'@foo", Want: qot(lst(sym("deref"), sym("foo")))},
+		{Name: "deref quote", Input: "@'foo", Want: lst(sym("deref"), qot(sym("foo")))},
+		{Name: "unquote deref", Input: "~@foo", Want: lst(sym("splice-unquote"), sym("foo"))},
+		{Name: "deref unquote", Input: "@~foo", Want: lst(sym("deref"), lst(sym("unquote"), sym("foo")))},
+		{Name: "splice quote", Input: "~@'foo", Want: lst(sym("splice-unquote"), qot(sym("foo")))},
+		{Name: "quasiquote list with unquote and splice", Input: "`(1 ~a ~@b)", Want: lst(sym("quasiquote"), lst(num(1), lst(sym("unquote"), sym("a")), lst(sym("splice-unquote"), sym("b"))))},
+		{Name: "all sigils multi", Input: "'a `b ~c ~@d @e", Want: qot(sym("a"))},
+	})
+	runMultiCases(assert.New(t), []tut.Case[[]core.Value]{
+		{Name: "all sigils", Input: "'a `b ~c ~@d @e", Want: valst(qot(sym("a")), lst(sym("quasiquote"), sym("b")), lst(sym("unquote"), sym("c")), lst(sym("splice-unquote"), sym("d")), lst(sym("deref"), sym("e")))},
+		{Name: "sigil second lone", Input: "'a ~", Want: valst(qot(sym("a"))), WantErr: true},
+		{Name: "sigil second closer", Input: "@a ~@ )", Want: valst(lst(sym("deref"), sym("a"))), WantErr: true},
 	})
 }
 

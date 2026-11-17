@@ -221,16 +221,22 @@ func (r *Reader) readString(token lexer.Token) (core.Value, error) {
 func (r *Reader) readSigil(token lexer.Token) (core.Value, error) {
 	switch token.Value {
 	case "'":
-		return r.readQuote("quote")
+		return r.expandSigil("quote")
 	case "`":
-		return r.readQuote("quasiquote")
+		return r.expandSigil("quasiquote")
+	case "~":
+		return r.expandSigil("unquote")
+	case "@":
+		return r.expandSigil("deref")
+	case "~@":
+		return r.expandSigil("splice-unquote")
 	default:
 		return nil, r.errf("unexpected sigil %q", token.Value)
 	}
 }
 
-// readQuote quotes the next form with the given symbol.
-func (r *Reader) readQuote(symbol string) (core.Value, error) {
+// expandSigil wraps the next form within a list application starting with the given symbol.
+func (r *Reader) expandSigil(symbol string) (core.Value, error) {
 	if r.Done() {
 		return nil, r.errf("nothing left to %s", symbol)
 	}
