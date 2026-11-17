@@ -115,6 +115,7 @@ func quasiquoteImpl(ast core.Value) core.Value {
 	}
 }
 
+//revive:disable:cognitive-complexity
 func quasiquoteList(ast typ.List) core.Value {
 	if len(ast) == 0 {
 		return ast

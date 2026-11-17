@@ -104,14 +104,12 @@ func (r *Reader) readForm() (core.Value, error) {
 	// Quotes, atoms and errors.
 	case lexer.TOKEN_ERROR:
 		return nil, r.err("unexpected error token")
-	case lexer.TOKEN_BACKQUOTE:
-		return r.readQuote("quasiquote")
+	case lexer.TOKEN_SIGIL:
+		return r.readSigil(token)
 	case lexer.TOKEN_DQS:
 		return r.readString(token)
 	case lexer.TOKEN_INT:
 		return r.readInt(token)
-	case lexer.TOKEN_SQUOTE:
-		return r.readQuote("quote")
 	case lexer.TOKEN_SYMBOL:
 		return r.readSymbol(token)
 	default:
@@ -210,6 +208,18 @@ func (r *Reader) readString(token lexer.Token) (core.Value, error) {
 	}
 
 	return typ.String(res), nil
+}
+
+// readSigil dispatches on the sigil value, allowing longer prefixes (e.g. ->) later.
+func (r *Reader) readSigil(token lexer.Token) (core.Value, error) {
+	switch token.Value {
+	case "'":
+		return r.readQuote("quote")
+	case "`":
+		return r.readQuote("quasiquote")
+	default:
+		return nil, r.errf("unexpected sigil %q", token.Value)
+	}
 }
 
 // readQuote quotes the next form with the given symbol.

@@ -273,7 +273,7 @@ func TestReadMultipleForms(t *testing.T) {
 		{Name: "trailing rparen", Input: "(1))", Want: valst(lst(num(1))), WantErr: true},
 		{Name: "trailing rbracket", Input: "(1) ]", Want: valst(lst(num(1))), WantErr: true},
 		{Name: "second unbalanced", Input: "(1) (2", Want: valst(lst(num(1))), WantErr: true},
-		{Name: "token error", Input: "1 `", WantErr: true},
+		{Name: "token error", Input: "1 ²", WantErr: true},
 		{Name: "unterminated", Input: "(1) \"foo", WantErr: true},
 	})
 }

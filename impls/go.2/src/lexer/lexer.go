@@ -112,7 +112,7 @@ func (lex *Lexer) Success(typ TokenType) (Token, error) {
 func (lex *Lexer) SuccessOnBoundary(typ TokenType) (Token, error) {
 	peek := lex.Peek(0)
 	switch peek {
-	case '(', ')', '[', ']', '{', '}', '\'', EOF, ' ', '\t', '\n', '\r', ',', ';':
+	case '(', ')', '[', ']', '{', '}', EOF, ' ', '\t', '\n', '\r', ',', ';':
 	default:
 		lex.Next() // Make the faulty rune a part of the token included in the error message.
 		return Token{}, lex.Failuref(InvalidTokenBoundary, "%q is not a boundary character", peek)
@@ -176,10 +176,8 @@ func lexMal(lex *Lexer) (Token, error) {
 		if isNumASCII(lex.Peek(0)) {
 			return lexInt(lex)
 		}
-	case '\'':
-		return lex.Success(TOKEN_SQUOTE)
-	case '`':
-		return lex.Success(TOKEN_BACKQUOTE)
+	case '\'', '`':
+		return lexSigil(lex)
 	default:
 	}
 
@@ -192,21 +190,9 @@ func lexMal(lex *Lexer) (Token, error) {
 	return Token{}, lex.Failure(InvalidStart)
 }
 
-// lexSymbol lexes a symbol token.
-// Assumes that the first symbol has already been tested as a valid symbol start.
-func lexSymbol(lex *Lexer) (Token, error) {
-	for isPlainTokenRest(lex.Peek(0)) {
-		lex.Next()
-	}
-	return lex.SuccessOnBoundary(TOKEN_SYMBOL)
-}
-
-// lexInt lexes an integer token.
-func lexInt(lex *Lexer) (Token, error) {
-	for isNumASCII(lex.Peek(0)) {
-		lex.Next()
-	}
-	return lex.SuccessOnBoundary(TOKEN_INT)
+// lexSigil lexes a sigil prefix like ' or `.
+func lexSigil(lex *Lexer) (Token, error) {
+	return lex.Success(TOKEN_SIGIL)
 }
 
 // lexDqs lexes a double quoted string.
@@ -225,6 +211,23 @@ func lexDqs(lex *Lexer) (Token, error) {
 		default:
 		}
 	}
+}
+
+// lexInt lexes an integer token.
+func lexInt(lex *Lexer) (Token, error) {
+	for isNumASCII(lex.Peek(0)) {
+		lex.Next()
+	}
+	return lex.SuccessOnBoundary(TOKEN_INT)
+}
+
+// lexSymbol lexes a symbol token.
+// Assumes that the first symbol has already been tested as a valid symbol start.
+func lexSymbol(lex *Lexer) (Token, error) {
+	for isPlainTokenRest(lex.Peek(0)) {
+		lex.Next()
+	}
+	return lex.SuccessOnBoundary(TOKEN_SYMBOL)
 }
 
 ///////////////////////

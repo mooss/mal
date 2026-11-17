@@ -18,9 +18,11 @@ const (
 	RBRACE   = lexer.TOKEN_RBRACE
 	RBRACKET = lexer.TOKEN_RBRACKET
 	RPAREN   = lexer.TOKEN_RPAREN
-	SQUOTE   = lexer.TOKEN_SQUOTE
+	SIGIL    = lexer.TOKEN_SIGIL
 	SYMBOL   = lexer.TOKEN_SYMBOL
 )
+
+type tokensCase = tut.Case[[]lexer.Token]
 
 func tok(typ lexer.TokenType, val string) lexer.Token {
 	return lexer.Token{Type: typ, Value: val}
@@ -35,9 +37,9 @@ func collectTokens(input string) ([]lexer.Token, bool) {
 	return got, errFn() != nil
 }
 
-func runTokenCases(t *testing.T, tests []tut.Case[[]lexer.Token]) {
+func runTokenCases(t *testing.T, tests []tokensCase) {
 	t.Helper()
-	tut.Run(t, tests, func(t *testing.T, c tut.Case[[]lexer.Token]) {
+	tut.Run(t, tests, func(t *testing.T, c tokensCase) {
 		t.Helper()
 		got, gotErr := collectTokens(c.Input)
 		assert.Equal(t, got, c.Want)
@@ -58,31 +60,12 @@ func dqsTokens(vals []string) []lexer.Token {
 
 func runStringCases(t *testing.T, tests []tut.Case[[]string]) {
 	t.Helper()
-	converted := make([]tut.Case[[]lexer.Token], len(tests))
+	converted := make([]tokensCase, len(tests))
 	for i, tt := range tests {
-		converted[i] = tut.Case[[]lexer.Token]{Name: tt.Name, Input: tt.Input, Want: dqsTokens(tt.Want), WantErr: tt.WantErr}
+		converted[i] = tokensCase{Name: tt.Name, Input: tt.Input, Want: dqsTokens(tt.Want), WantErr: tt.WantErr}
 	}
 	runTokenCases(t, converted)
 }
-
-func singleCharCases(char string, typ lexer.TokenType) []tut.Case[[]lexer.Token] {
-	one := tok(typ, char)
-	symFoo := tok(SYMBOL, "foo")
-	symBar := tok(SYMBOL, "bar")
-	int123 := tok(INT, "123")
-	return []tut.Case[[]lexer.Token]{
-		{Name: "single", Input: char, Want: []lexer.Token{one}},
-		{Name: "doubled", Input: char + char, Want: []lexer.Token{one, one}},
-		{Name: "spaced", Input: char + " " + char, Want: []lexer.Token{one, one}},
-		{Name: "whitespace padded", Input: "  " + char + "\n\t ", Want: []lexer.Token{one}},
-		{Name: "symbol before", Input: "foo" + char, Want: []lexer.Token{symFoo, one}},
-		{Name: "symbol after", Input: char + "foo", Want: []lexer.Token{one, symFoo}},
-		{Name: "int before", Input: "123" + char, Want: []lexer.Token{int123, one}},
-		{Name: "int after", Input: char + "123", Want: []lexer.Token{one, int123}},
-		{Name: "symbol spaced", Input: "foo " + char + " bar", Want: []lexer.Token{symFoo, one, symBar}},
-	}
-}
-
 func TestTokenizeStrings(t *testing.T) {
 	tests := []tut.Case[[]string]{
 		{Name: "empty input", Input: ""},
@@ -113,9 +96,34 @@ func TestTokenizeStrings(t *testing.T) {
 	runStringCases(t, tests)
 }
 
-func testSingleCharToken(t *testing.T, char string, typ lexer.TokenType) {
-	t.Helper()
-	runTokenCases(t, singleCharCases(char, typ))
+// specialTokenCases builds test cases for delimiters and sigils.
+func specialTokenCases(char string, typ lexer.TokenType) []tokensCase {
+	one := tok(typ, char)
+	symFoo := tok(SYMBOL, "foo")
+	symBar := tok(SYMBOL, "bar")
+	int123 := tok(INT, "123")
+	strBaz := tok(DQS, `"baz"`)
+	res := []tokensCase{
+		{Name: "single", Input: char, Want: []lexer.Token{one}},
+		{Name: "doubled", Input: char + char, Want: []lexer.Token{one, one}},
+		{Name: "spaced", Input: char + " " + char, Want: []lexer.Token{one, one}},
+		{Name: "whitespace padded", Input: "  " + char + "\n\t ", Want: []lexer.Token{one}},
+		{Name: "string after", Input: char + `"baz"`, Want: []lexer.Token{one, strBaz}},
+		{Name: "symbol after", Input: char + "foo", Want: []lexer.Token{one, symFoo}},
+		{Name: "int after", Input: char + "123", Want: []lexer.Token{one, int123}},
+		{Name: "symbol spaced", Input: "foo " + char + " bar", Want: []lexer.Token{symFoo, one, symBar}},
+	}
+
+	if typ != SIGIL {
+		// Sigil are not boundaries and must not be stuck to something else, but delimiters are and
+		// can.
+		res = append(res,
+			tokensCase{Name: "string before", Input: `"baz"` + char, Want: []lexer.Token{strBaz, one}},
+			tokensCase{Name: "symbol before", Input: "foo" + char, Want: []lexer.Token{symFoo, one}},
+			tokensCase{Name: "int before", Input: "123" + char, Want: []lexer.Token{int123, one}})
+	}
+
+	return res
 }
 
 func TestTokenizeSingleCharTokens(t *testing.T) {
@@ -126,15 +134,16 @@ func TestTokenizeSingleCharTokens(t *testing.T) {
 		{Name: "rbracket", Input: "]", Want: RBRACKET},
 		{Name: "lbrace", Input: "{", Want: LBRACE},
 		{Name: "rbrace", Input: "}", Want: RBRACE},
-		{Name: "squote", Input: "'", Want: SQUOTE},
+		{Name: "squote", Input: "'", Want: SIGIL},
+		{Name: "backquote", Input: "`", Want: SIGIL},
 	}, func(t *testing.T, c tut.Case[lexer.TokenType]) {
 		t.Helper()
-		testSingleCharToken(t, c.Input, c.Want)
+		runTokenCases(t, specialTokenCases(c.Input, c.Want))
 	})
 }
 
 func TestTokenizeInts(t *testing.T) {
-	tests := []tut.Case[[]lexer.Token]{
+	tests := []tokensCase{
 		{Name: "zero", Input: "0", Want: []lexer.Token{{Type: INT, Value: "0"}}},
 		{Name: "single digit", Input: "1", Want: []lexer.Token{{Type: INT, Value: "1"}}},
 		{Name: "multi digit", Input: "123", Want: []lexer.Token{{Type: INT, Value: "123"}}},
@@ -154,7 +163,7 @@ func TestTokenizeInts(t *testing.T) {
 }
 
 func TestTokenizeSymbols(t *testing.T) {
-	tests := []tut.Case[[]lexer.Token]{
+	tests := []tokensCase{
 		{Name: "single letter", Input: "a", Want: []lexer.Token{{Type: SYMBOL, Value: "a"}}},
 		{Name: "simple", Input: "foo", Want: []lexer.Token{{Type: SYMBOL, Value: "foo"}}},
 		{Name: "uppercase", Input: "ABC", Want: []lexer.Token{{Type: SYMBOL, Value: "ABC"}}},
@@ -191,7 +200,7 @@ func TestTokenizeSymbols(t *testing.T) {
 }
 
 func TestTokenizeCombinations(t *testing.T) {
-	tests := []tut.Case[[]lexer.Token]{
+	tests := []tokensCase{
 		{Name: "empty input", Input: ""},
 		{Name: "whitespace only", Input: " \t\n\r "},
 		{Name: "empty list", Input: "()", Want: []lexer.Token{{Type: LPAREN, Value: "("}, {Type: RPAREN, Value: ")"}}},
@@ -224,8 +233,7 @@ func TestTokenizeCombinations(t *testing.T) {
 }
 
 func TestTokenizeInvalid(t *testing.T) {
-	tests := []tut.Case[[]lexer.Token]{
-		{Name: "backtick", Input: "`", WantErr: true},
+	tests := []tokensCase{
 		{Name: "tilde", Input: "~", WantErr: true},
 		{Name: "hash", Input: "#", WantErr: true},
 		{Name: "dollar", Input: "$", WantErr: true},
@@ -245,7 +253,7 @@ func TestTokenizeInvalid(t *testing.T) {
 }
 
 func TestTokenizeWhitespace(t *testing.T) {
-	tests := []tut.Case[[]lexer.Token]{
+	tests := []tokensCase{
 		{Name: "space only", Input: " "},
 		{Name: "tab only", Input: "\t"},
 		{Name: "newline only", Input: "\n"},
@@ -313,7 +321,7 @@ func TestTokenIteratorEarlyBreak(t *testing.T) {
 }
 
 func TestTokenizeComments(t *testing.T) {
-	tests := []tut.Case[[]lexer.Token]{
+	tests := []tokensCase{
 		{Name: "empty comment", Input: ";"},
 		{Name: "comment only", Input: "; hello"},
 		{Name: "comment newline terminated", Input: "; hello\n"},
