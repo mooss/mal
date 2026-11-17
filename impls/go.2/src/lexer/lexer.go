@@ -92,13 +92,13 @@ func (lex *Lexer) produce(typ TokenType) Token {
 func (lex *Lexer) Failuref(reason LexicalFailure, msg string, args ...any) error {
 	token := lex.produce(TOKEN_ERROR)
 	args = append([]any{reason, token.Value}, args...)
-	return fmt.Errorf("%s at %#q: "+msg, args...)
+	return fmt.Errorf("lexer: %s at %#q: "+msg, args...)
 }
 
 // Failure returns a lexical error wrapping the current token.
 func (lex *Lexer) Failure(reason LexicalFailure) error {
 	token := lex.produce(TOKEN_ERROR)
-	return fmt.Errorf("%s at %#q", reason, token.Value)
+	return fmt.Errorf("lexer: %s at %#q", reason, token.Value)
 }
 
 // Success returns the current token without error and advances the input.

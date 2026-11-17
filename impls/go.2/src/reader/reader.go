@@ -73,7 +73,7 @@ func (*Reader) errf(msg string, args ...any) error {
 // Returns an error wrapping io.EOF when there are no more tokens left to read.
 func (r *Reader) ReadForm() (core.Value, error) {
 	if err := r.tokerr(); err != nil {
-		return nil, r.wrap(err)
+		return nil, err
 	}
 	if r.Done() {
 		return nil, r.wrap(io.EOF)
