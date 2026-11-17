@@ -10,16 +10,17 @@ import (
 )
 
 const (
-	DQS      = lexer.TOKEN_DQS
-	INT      = lexer.TOKEN_INT
-	LBRACE   = lexer.TOKEN_LBRACE
-	LBRACKET = lexer.TOKEN_LBRACKET
-	LPAREN   = lexer.TOKEN_LPAREN
-	RBRACE   = lexer.TOKEN_RBRACE
-	RBRACKET = lexer.TOKEN_RBRACKET
-	RPAREN   = lexer.TOKEN_RPAREN
-	SIGIL    = lexer.TOKEN_SIGIL
-	SYMBOL   = lexer.TOKEN_SYMBOL
+	DQS       = lexer.TOKEN_DQS
+	INT       = lexer.TOKEN_INT
+	DELIMITER = lexer.TOKEN_DELIMITER
+	LBRACE    = lexer.TOKEN_DELIMITER
+	LBRACKET  = lexer.TOKEN_DELIMITER
+	LPAREN    = lexer.TOKEN_DELIMITER
+	RBRACE    = lexer.TOKEN_DELIMITER
+	RBRACKET  = lexer.TOKEN_DELIMITER
+	RPAREN    = lexer.TOKEN_DELIMITER
+	SIGIL     = lexer.TOKEN_SIGIL
+	SYMBOL    = lexer.TOKEN_SYMBOL
 )
 
 type tokensCase = tut.Case[[]lexer.Token]

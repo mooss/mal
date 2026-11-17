@@ -156,18 +156,8 @@ func lexMal(lex *Lexer) (Token, error) {
 		return Token{}, EndOfInput
 
 	// Balanced expressions.
-	case '(':
-		return lex.Success(TOKEN_LPAREN)
-	case ')':
-		return lex.Success(TOKEN_RPAREN)
-	case '[':
-		return lex.Success(TOKEN_LBRACKET)
-	case ']':
-		return lex.Success(TOKEN_RBRACKET)
-	case '{':
-		return lex.Success(TOKEN_LBRACE)
-	case '}':
-		return lex.Success(TOKEN_RBRACE)
+	case '(', ')', '[', ']', '{', '}':
+		return lex.Success(TOKEN_DELIMITER)
 	case '"':
 		return lexDqs(lex)
 

@@ -5,17 +5,12 @@ type TokenType int
 //revive:disable:var-naming
 const (
 	// Lexer error, must stay to top so that the default value is invalid.
-	TOKEN_ERROR    TokenType = iota
-	TOKEN_DQS                // Double quoted string "..."
-	TOKEN_INT                // Integer.
-	TOKEN_LBRACE             // Opening brace {
-	TOKEN_LBRACKET           // Opening bracket [
-	TOKEN_LPAREN             // Opening paren (
-	TOKEN_RBRACE             // Closing brace }
-	TOKEN_RBRACKET           // Closing bracket ]
-	TOKEN_RPAREN             // Closing paren )
-	TOKEN_SIGIL              // Sigil prefix like ' ` ~@
-	TOKEN_SYMBOL             // Symbol.
+	TOKEN_ERROR     TokenType = iota
+	TOKEN_DQS                 // Double quoted string "..."
+	TOKEN_INT                 // Integer.
+	TOKEN_DELIMITER           // Delimiter like ( ) [ ] { }
+	TOKEN_SIGIL               // Sigil prefix like ' ` ~@
+	TOKEN_SYMBOL              // Symbol.
 )
 
 type Token struct {
@@ -32,18 +27,8 @@ func (t TokenType) String() string {
 		return "DQS"
 	case TOKEN_INT:
 		return "INT"
-	case TOKEN_LBRACE:
-		return "LBRACE"
-	case TOKEN_LBRACKET:
-		return "LBRACKET"
-	case TOKEN_LPAREN:
-		return "LPAREN"
-	case TOKEN_RBRACE:
-		return "RBRACE"
-	case TOKEN_RBRACKET:
-		return "RBRACKET"
-	case TOKEN_RPAREN:
-		return "RPAREN"
+	case TOKEN_DELIMITER:
+		return "DELIMITER"
 	case TOKEN_SIGIL:
 		return "SIGIL"
 	case TOKEN_SYMBOL:
@@ -62,18 +47,8 @@ func (t TokenType) What() string {
 		return "double quoted string"
 	case TOKEN_INT:
 		return "integer"
-	case TOKEN_LBRACE:
-		return "opening brace"
-	case TOKEN_LBRACKET:
-		return "opening bracket"
-	case TOKEN_LPAREN:
-		return "opening paren"
-	case TOKEN_RBRACE:
-		return "closing brace"
-	case TOKEN_RBRACKET:
-		return "closing bracket"
-	case TOKEN_RPAREN:
-		return "closing paren"
+	case TOKEN_DELIMITER:
+		return "delimiter"
 	case TOKEN_SIGIL:
 		return "sigil"
 	case TOKEN_SYMBOL:

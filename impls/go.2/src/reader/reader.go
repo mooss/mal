@@ -82,25 +82,12 @@ func (r *Reader) ReadForm() (core.Value, error) {
 }
 
 // readForm constructs the next type from the input tokens.
-//
-//revive:disable:cyclomatic
 func (r *Reader) readForm() (core.Value, error) {
 	token := r.Next()
 	switch token.Type {
 	// Balanced expressions.
-	case lexer.TOKEN_LPAREN:
-		return r.readSequence[typ.List](lexer.TOKEN_RPAREN)
-	case lexer.TOKEN_RPAREN:
-		return nil, r.err("unexpected closing paren")
-	case lexer.TOKEN_LBRACKET:
-		return r.readSequence[typ.VectorForm](lexer.TOKEN_RBRACKET)
-	case lexer.TOKEN_RBRACKET:
-		return nil, r.err("unexpected closing bracket")
-	case lexer.TOKEN_LBRACE:
-		return r.readMapLit()
-	case lexer.TOKEN_RBRACE:
-		return nil, r.err("unexpected closing brace")
-
+	case lexer.TOKEN_DELIMITER:
+		return r.dispatchDelim(token.Value)
 	// Quotes, atoms and errors.
 	case lexer.TOKEN_ERROR:
 		return nil, r.err("unexpected error token")
@@ -117,17 +104,37 @@ func (r *Reader) readForm() (core.Value, error) {
 	}
 }
 
+// dispatchDelim dispatches a read delimiter to the appropriate read* method.
+func (r *Reader) dispatchDelim(value string) (core.Value, error) {
+	switch value {
+	case "(":
+		return r.readSequence[typ.List](")")
+	case ")":
+		return nil, r.err("unexpected closing paren")
+	case "[":
+		return r.readSequence[typ.VectorForm]("]")
+	case "]":
+		return nil, r.err("unexpected closing bracket")
+	case "{":
+		return r.readMapLit()
+	case "}":
+		return nil, r.err("unexpected closing brace")
+	default:
+		return nil, r.err("unexpected delimiter")
+	}
+}
+
 // seekDelim seeks a balanced expression delimiter.
 // Returns:
 //   - An error when the reader is done.
 //   - nil, nil when the delimiter is found.
 //   - The next form otherwise.
-func (r *Reader) seekDelim(delim lexer.TokenType) (core.Value, error) {
+func (r *Reader) seekDelim(delim string) (core.Value, error) {
 	if r.Done() {
-		return nil, r.errf("unbalanced expression (missing %s)", delim.What())
+		return nil, r.errf("unbalanced expression (missing %q)", delim)
 	}
 
-	if r.Peek().Type == delim {
+	if r.Peek().Type == lexer.TOKEN_DELIMITER && r.Peek().Value == delim {
 		r.position++
 		return nil, nil
 	}
@@ -137,7 +144,7 @@ func (r *Reader) seekDelim(delim lexer.TokenType) (core.Value, error) {
 
 // readSequence constructs a sequence type from the remaining input tokens (assumes that the opening
 // delimiter has already been consumed).
-func (r *Reader) readSequence[T ~[]core.Value](closing lexer.TokenType) (T, error) {
+func (r *Reader) readSequence[T ~[]core.Value](closing string) (T, error) {
 	var res T
 	for {
 		next, err := r.seekDelim(closing)
@@ -160,7 +167,7 @@ func (r *Reader) readSequence[T ~[]core.Value](closing lexer.TokenType) (T, erro
 func (r *Reader) readMapLit() (typ.MapForm, error) {
 	var res typ.MapForm
 	for {
-		key, err := r.seekDelim(lexer.TOKEN_RBRACE)
+		key, err := r.seekDelim("}")
 		if err != nil {
 			return nil, err
 		}
@@ -168,7 +175,7 @@ func (r *Reader) readMapLit() (typ.MapForm, error) {
 			return res, nil
 		}
 
-		value, err := r.seekDelim(lexer.TOKEN_RBRACE)
+		value, err := r.seekDelim("}")
 		if err != nil {
 			return nil, err
 		}
