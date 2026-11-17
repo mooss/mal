@@ -3,6 +3,7 @@ package envs
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/mooss/mal/src/core"
@@ -22,10 +23,12 @@ var MalFun core.Env = core.Bindings{
 	"swap!":  typ.Function(swap),
 
 	// Containers.
+	"concat": typ.Function(concat),
+	"cons":   typ.II(cons),
+	"count":  typ.I(count),
+	"empty?": typ.I(isEmpty),
 	"list":   typ.Function(list),
 	"list?":  typ.I(isList),
-	"empty?": typ.I(isEmpty),
-	"count":  typ.I(count),
 
 	// Strings.
 	"pr-str":  typ.Function(prStr),
@@ -91,6 +94,33 @@ func swap(args ...core.Value) core.Value {
 
 ////////////////
 // Containers //
+
+// concat concatenates 0 or more lists.
+func concat(lists ...core.Value) core.Value {
+	typed := make([][]core.Value, len(lists))
+	for i, elt := range lists {
+		ellist, err := typ.AsListOrVec(elt)
+		if err.NotNil() {
+			return err
+		}
+		typed[i] = ellist
+	}
+
+	return typ.List(slices.Concat(typed...))
+}
+
+// cons creates a new list containing value and all the elements of list.
+func cons(value core.Value, list core.Value) core.Value {
+	typlist, err := typ.AsListOrVec(list)
+	if err.NotNil() {
+		return err
+	}
+
+	res := make(typ.List, len(typlist)+1)
+	res[0] = value
+	copy(res[1:], typlist)
+	return res
+}
 
 // count returns the number of elements in the given container.
 func count(arg core.Value) core.Value {

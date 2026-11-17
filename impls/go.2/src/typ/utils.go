@@ -22,6 +22,23 @@ func As[T core.Value](val core.Value) (T, Fatal) {
 	return res, Fatal{}
 }
 
+// AsListOrVec converts a list, vector, or vector form to a slice of values, or returns a fatal
+// error.
+func AsListOrVec(elements core.Value) ([]core.Value, Fatal) {
+	var bindlist []core.Value
+	switch typed := elements.(type) {
+	case List:
+		bindlist = typed
+	case VectorForm:
+		bindlist = typed
+	case Vector:
+		bindlist = typed
+	default:
+		return nil, Expected(fmt.Sprintf("%s or %s", core.LIST, core.VECTOR_FORM), elements)
+	}
+	return bindlist, Fatal{}
+}
+
 // AsSeq returns an iterator yielding all values as the type T.
 //
 // The iterator dies at the first unexpected type.

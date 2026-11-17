@@ -178,6 +178,8 @@ func lexMal(lex *Lexer) (Token, error) {
 		}
 	case '\'':
 		return lex.Success(TOKEN_SQUOTE)
+	case '`':
+		return lex.Success(TOKEN_BACKQUOTE)
 	default:
 	}
 

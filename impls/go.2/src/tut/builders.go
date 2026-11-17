@@ -23,9 +23,6 @@ var Lst = typ.NewList
 // Vec builds a VectorForm.
 func Vec(elems ...core.Value) typ.VectorForm { return typ.VectorForm(elems) }
 
-// Quote builds a quoted value, i.e. a list with two elements, the symbol quote and the given value.
-func Quote(v core.Value) typ.List { return Lst(Sym("quote"), v) }
-
 // MapForm builds a MapForm, panicking on odd length.
 func MapForm(pairs ...core.Value) typ.MapForm {
 	f, err := typ.NewMapForm(pairs...)

@@ -5,17 +5,18 @@ type TokenType int
 //revive:disable:var-naming
 const (
 	// Lexer error, must stay to top so that the default value is invalid.
-	TOKEN_ERROR TokenType = iota
-	TOKEN_DQS      // Double quoted string "..."
-	TOKEN_INT      // Integer.
-	TOKEN_LBRACE   // Opening brace {
-	TOKEN_LBRACKET // Opening bracket [
-	TOKEN_LPAREN   // Opening paren (
-	TOKEN_RBRACE   // Closing brace }
-	TOKEN_RBRACKET // Closing bracket ]
-	TOKEN_RPAREN   // Closing paren )
-	TOKEN_SQUOTE   // Single quote '
-	TOKEN_SYMBOL   // Symbol.
+	TOKEN_ERROR     TokenType = iota
+	TOKEN_BACKQUOTE           // Backquote `
+	TOKEN_DQS                 // Double quoted string "..."
+	TOKEN_INT                 // Integer.
+	TOKEN_LBRACE              // Opening brace {
+	TOKEN_LBRACKET            // Opening bracket [
+	TOKEN_LPAREN              // Opening paren (
+	TOKEN_RBRACE              // Closing brace }
+	TOKEN_RBRACKET            // Closing bracket ]
+	TOKEN_RPAREN              // Closing paren )
+	TOKEN_SQUOTE              // Single quote '
+	TOKEN_SYMBOL              // Symbol.
 )
 
 type Token struct {
@@ -28,6 +29,8 @@ func (t TokenType) String() string {
 	switch t {
 	case TOKEN_ERROR:
 		return "ERROR"
+	case TOKEN_BACKQUOTE:
+		return "BACKQUOTE"
 	case TOKEN_DQS:
 		return "DQS"
 	case TOKEN_INT:
@@ -58,6 +61,8 @@ func (t TokenType) What() string {
 	switch t {
 	case TOKEN_ERROR:
 		return "error"
+	case TOKEN_BACKQUOTE:
+		return "backquote"
 	case TOKEN_DQS:
 		return "double quoted string"
 	case TOKEN_INT:

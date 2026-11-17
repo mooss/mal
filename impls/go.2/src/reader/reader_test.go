@@ -9,6 +9,7 @@ import (
 	"github.com/mooss/mal/src/reader"
 	"github.com/mooss/mal/src/tut"
 	"github.com/mooss/mal/src/tut/assert"
+	"github.com/mooss/mal/src/typ"
 )
 
 var (
@@ -18,7 +19,7 @@ var (
 	lst   = tut.Lst
 	vec   = tut.Vec
 	mapf  = tut.MapForm
-	qot   = tut.Quote
+	qot   = typ.Quote
 	nul   = tut.Nil
 	valst = tut.Values
 )

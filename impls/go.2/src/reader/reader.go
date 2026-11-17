@@ -102,16 +102,18 @@ func (r *Reader) readForm() (core.Value, error) {
 		return nil, r.err("unexpected closing brace")
 
 	// Quotes, atoms and errors.
-	case lexer.TOKEN_SQUOTE:
-		return r.readQuote()
-	case lexer.TOKEN_DQS:
-		return r.readString(token)
-	case lexer.TOKEN_SYMBOL:
-		return r.readSymbol(token)
-	case lexer.TOKEN_INT:
-		return r.readInt(token)
 	case lexer.TOKEN_ERROR:
 		return nil, r.err("unexpected error token")
+	case lexer.TOKEN_BACKQUOTE:
+		return r.readQuote("quasiquote")
+	case lexer.TOKEN_DQS:
+		return r.readString(token)
+	case lexer.TOKEN_INT:
+		return r.readInt(token)
+	case lexer.TOKEN_SQUOTE:
+		return r.readQuote("quote")
+	case lexer.TOKEN_SYMBOL:
+		return r.readSymbol(token)
 	default:
 		return nil, r.err("unexpected token type")
 	}
@@ -210,15 +212,15 @@ func (r *Reader) readString(token lexer.Token) (core.Value, error) {
 	return typ.String(res), nil
 }
 
-// readQuote quotes the next form.
-func (r *Reader) readQuote() (core.Value, error) {
+// readQuote quotes the next form with the given symbol.
+func (r *Reader) readQuote(symbol string) (core.Value, error) {
 	if r.Done() {
-		return nil, r.err("nothing left to quote")
+		return nil, r.errf("nothing left to %s", symbol)
 	}
 	quoted, err := r.readForm()
 	if err != nil {
 		return nil, err
 	}
 
-	return typ.NewList(typ.Symbol("quote"), quoted), nil
+	return typ.NewList(typ.Symbol(symbol), quoted), nil
 }

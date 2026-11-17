@@ -300,7 +300,7 @@ func TestQuoteEval(t *testing.T) {
 	tr.Equal(tr.MustEvalAs[typ.String](envr, `'"hi"`), typ.String("hi"))
 
 	// Quote type itself: String, Type and Eval return raw value.
-	q := tut.Quote(typ.Integer(1))
+	q := typ.Quote(typ.Integer(1))
 	tr.Repr[typ.List](q, "(quote 1)")
 	tr.EvalValue(envr, q, typ.Integer(1))
 }

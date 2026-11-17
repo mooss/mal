@@ -1,7 +1,6 @@
 package envs
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/mooss/mal/src/core"
@@ -11,12 +10,13 @@ import (
 )
 
 var MalSpecial core.Env = core.Bindings{
-	"def!":  typ.SpII(defBang),
-	"do":    typ.Special(specDo),
-	"fn*":   typ.SpII(lambda),
-	"if":    typ.Special(specIf),
-	"let*":  typ.SpII(letStar),
-	"quote": typ.SpI(quote),
+	"def!":       typ.SpII(defBang),
+	"do":         typ.Special(specDo),
+	"fn*":        typ.SpII(lambda),
+	"if":         typ.Special(specIf),
+	"let*":       typ.SpII(letStar),
+	"quasiquote": typ.SpI(quasiquote),
+	"quote":      typ.SpI(quote),
 }.AsEnv()
 
 // ExtraSpecial contains special forms that are not a part of Mal.
@@ -41,7 +41,7 @@ func defBang(envr core.Env, key typ.Symbol, value core.Value) core.Value {
 // lambda builds a closure capturing the current environment, with fixed or variadic parameters.
 // A `&` symbol before the last parameter marks it as capturing the remaining arguments.
 func lambda(envr core.Env, paramlist core.Value, body core.Value) core.Value {
-	bindlist, err := asListOrVec(paramlist) // Assert params is a list or vector.
+	bindlist, err := typ.AsListOrVec(paramlist) // Assert params is a list or vector.
 	if err.NotNil() {
 		return err
 	}
@@ -66,7 +66,7 @@ func lambda(envr core.Env, paramlist core.Value, body core.Value) core.Value {
 // letStar creates a temporary environment containing the given bindings and evaluates form in this
 // new environment.
 func letStar(envr core.Env, bindings core.Value, form core.Value) core.Value {
-	bindlist, err := asListOrVec(bindings)
+	bindlist, err := typ.AsListOrVec(bindings)
 	if err.NotNil() {
 		return err
 	}
@@ -100,8 +100,51 @@ func MkEval(envr core.Env) func(core.Value) core.Value {
 	}
 }
 
+func quasiquote(envr core.Env, ast core.Value) core.Value {
+	return typ.Tail(envr, quasiquoteImpl(ast))
+}
+
+func quasiquoteImpl(ast core.Value) core.Value {
+	switch typed := ast.(type) {
+	case typ.List:
+		return quasiquoteList(typed)
+	case typ.Map, typ.MapForm, typ.Symbol:
+		return typ.Quote(typed)
+	default:
+		return ast
+	}
+}
+
+func quasiquoteList(ast typ.List) core.Value {
+	if len(ast) == 0 {
+		return ast
+	}
+
+	if typ.Symbol("unquote").Equal(ast[0]) {
+		if err := typ.ExpectNArgs(2, ast); err.NotNil() {
+			return err.Qualify("unquote")
+		}
+		return ast[1]
+	}
+
+	res := typ.List{}
+	for _, elt := range slices.Backward(ast) {
+		eltlst, isList := elt.(typ.List)
+		if isList && len(eltlst) > 0 && typ.Symbol("splice-unquote").Equal(eltlst[0]) {
+			if err := typ.ExpectNArgs(2, eltlst); err.NotNil() {
+				return err.Qualify("splice-unquote")
+			}
+			res = typ.List{typ.Symbol("concat"), eltlst[1], res}
+			continue
+		}
+
+		res = typ.List{typ.Symbol("cons"), quasiquoteImpl(elt), res}
+	}
+	return res
+}
+
 // quote returns an expression as-is, without any evaluation.
-func quote(_ core.Env, value core.Value) core.Value { return value }
+func quote(_ core.Env, ast core.Value) core.Value { return ast }
 
 // specDo evaluates each argument in order and returns the value of the last one.
 func specDo(envr core.Env, args ...core.Value) core.Value {
@@ -164,20 +207,6 @@ func env(envr core.Env) typ.Vector {
 
 /////////////////
 // Local utils //
-
-// asListOrVec converts a list or vector form to a slice of values, or returns a fatal error.
-func asListOrVec(elements core.Value) ([]core.Value, typ.Fatal) {
-	var bindlist []core.Value
-	switch typed := elements.(type) {
-	case typ.List:
-		bindlist = typed
-	case typ.VectorForm:
-		bindlist = typed
-	default:
-		return nil, typ.Expected(fmt.Sprintf("%s or %s", core.LIST, core.VECTOR_FORM), elements)
-	}
-	return bindlist, typ.Fatal{}
-}
 
 // mkFixedClosure returns a closure binding exactly len(symlist) arguments to the given symbols.
 func mkFixedClosure(
