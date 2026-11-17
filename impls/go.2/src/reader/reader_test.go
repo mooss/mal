@@ -24,24 +24,24 @@ var (
 	valst = tut.Values
 )
 
-func runSingleCases(t *testing.T, cases []tut.Case[core.Value]) {
+func runSingleCases(t assert.T, cases []tut.Case[core.Value]) {
 	t.Helper()
-	tut.Run(t, cases, func(t *testing.T, c tut.Case[core.Value]) {
+	t.RunCases("single", func(t assert.T, c tut.Case[core.Value]) {
 		t.Helper()
 		r := reader.ReadStr(c.Input)
 		got, err := r.ReadForm()
 		if c.WantErr {
-			assert.MustError(t, err)
+			t.MustError(err)
 			return
 		}
-		assert.NoError(t, err)
-		assert.MalEqual(t, got, c.Want)
-	})
+		t.NoError(err)
+		t.MalEqual(got, c.Want)
+	}, cases...)
 }
 
-func runMultiCases(t *testing.T, cases []tut.Case[[]core.Value]) {
+func runMultiCases(t assert.T, cases []tut.Case[[]core.Value]) {
 	t.Helper()
-	tut.Run(t, cases, func(t *testing.T, c tut.Case[[]core.Value]) {
+	t.RunCases("multi", func(t assert.T, c tut.Case[[]core.Value]) {
 		t.Helper()
 		r := reader.ReadStr(c.Input)
 		var got []core.Value
@@ -54,13 +54,13 @@ func runMultiCases(t *testing.T, cases []tut.Case[[]core.Value]) {
 			}
 			got = append(got, form)
 		}
-		assert.Equal(t, gotErr, c.WantErr)
-		assert.MalEqualSlice(t, got, c.Want)
-	})
+		t.Equal(gotErr, c.WantErr)
+		t.MalEqualSlice(got, c.Want)
+	}, cases...)
 }
 
 func TestReadAtoms(t *testing.T) {
-	runSingleCases(t, []tut.Case[core.Value]{
+	runSingleCases(assert.New(t), []tut.Case[core.Value]{
 		{Name: "zero", Input: "0", Want: num(0)},
 		{Name: "single digit", Input: "1", Want: num(1)},
 		{Name: "multi digit", Input: "123", Want: num(123)},
@@ -99,7 +99,8 @@ func TestReadAtoms(t *testing.T) {
 }
 
 func TestReadNil(t *testing.T) {
-	runSingleCases(t, []tut.Case[core.Value]{
+	at := assert.New(t)
+	runSingleCases(at, []tut.Case[core.Value]{
 		{Name: "nil padded", Input: "  nil  ", Want: nul()},
 		{Name: "nil in list", Input: "(nil)", Want: lst(nul())},
 		{Name: "nil in list mixed", Input: "(1 nil foo)", Want: lst(num(1), nul(), sym("foo"))},
@@ -112,23 +113,23 @@ func TestReadNil(t *testing.T) {
 		{Name: "uppercase NIL is symbol", Input: "NIL", Want: sym("NIL")},
 		{Name: "nil vs symbol not equal", Input: "nil", Want: nul()},
 	})
-	runMultiCases(t, []tut.Case[[]core.Value]{
+	runMultiCases(at, []tut.Case[[]core.Value]{
 		//nolint:dupword
 		{Name: "two nils", Input: "nil nil", Want: valst(nul(), nul())},
 		{Name: "nil mixed", Input: `nil 1 foo "hi"`, Want: valst(nul(), num(1), sym("foo"), str(`hi`))},
 		{Name: "nil in forms", Input: "(nil) [nil] nil", Want: valst(lst(nul()), vec(nul()), nul())},
 	})
-	t.Run("nil not equal other types", func(t *testing.T) {
-		assert.MalDifferent(t, nul(), sym("nil"))
-		assert.MalDifferent(t, nul(), lst())
-		assert.MalDifferent(t, nul(), vec())
-		assert.MalDifferent(t, nul(), num(0))
-		assert.MalEqual(t, nul(), nul())
+	at.Run("nil not equal other types", func(t assert.T) {
+		t.MalDifferent(nul(), sym("nil"))
+		t.MalDifferent(nul(), lst())
+		t.MalDifferent(nul(), vec())
+		t.MalDifferent(nul(), num(0))
+		t.MalEqual(nul(), nul())
 	})
 }
 
 func TestReadLists(t *testing.T) {
-	runSingleCases(t, []tut.Case[core.Value]{
+	runSingleCases(assert.New(t), []tut.Case[core.Value]{
 		{Name: "empty", Input: "()", Want: lst()},
 		{Name: "empty padded", Input: "( )", Want: lst()},
 		{Name: "empty commas", Input: "(,)", Want: lst()},
@@ -152,7 +153,7 @@ func TestReadLists(t *testing.T) {
 }
 
 func TestReadQuotes(t *testing.T) {
-	runSingleCases(t, []tut.Case[core.Value]{
+	runSingleCases(assert.New(t), []tut.Case[core.Value]{
 		{Name: "symbol", Input: "'foo", Want: qot(sym("foo"))},
 		{Name: "spaced", Input: "' foo", Want: qot(sym("foo"))},
 		{Name: "int", Input: "'1", Want: qot(num(1))},
@@ -172,7 +173,7 @@ func TestReadQuotes(t *testing.T) {
 }
 
 func TestReadVectors(t *testing.T) {
-	runSingleCases(t, []tut.Case[core.Value]{
+	runSingleCases(assert.New(t), []tut.Case[core.Value]{
 		{Name: "empty brackets", Input: "[]", Want: vec()},
 		{Name: "padded brackets", Input: "[ ]", Want: vec()},
 		{Name: "commas", Input: "[,]", Want: vec()},
@@ -189,7 +190,8 @@ func TestReadVectors(t *testing.T) {
 }
 
 func TestReadMaps(t *testing.T) {
-	runSingleCases(t, []tut.Case[core.Value]{
+	at := assert.New(t)
+	runSingleCases(at, []tut.Case[core.Value]{
 		{Name: "empty", Input: "{}", Want: mapf()},
 		{Name: "padded", Input: "{ }", Want: mapf()},
 		{Name: "commas", Input: "{,}", Want: mapf()},
@@ -227,7 +229,7 @@ func TestReadMaps(t *testing.T) {
 		{Name: "odd five", Input: `{"a" 1 "b" 2 "c"}`, WantErr: true},
 		{Name: "unterminated string key", Input: `{"a"`, WantErr: true},
 	})
-	runMultiCases(t, []tut.Case[[]core.Value]{
+	runMultiCases(at, []tut.Case[[]core.Value]{
 		{Name: "two maps", Input: `{"a" 1} {"b" 2}`, Want: valst(mapf(str(`a`), num(1)), mapf(str(`b`), num(2)))},
 		{Name: "map then list", Input: `{"a" 1} (1)`, Want: valst(mapf(str(`a`), num(1)), lst(num(1)))},
 		{Name: "second unbalanced", Input: `{"a" 1} {`, Want: valst(mapf(str(`a`), num(1))), WantErr: true},
@@ -236,7 +238,7 @@ func TestReadMaps(t *testing.T) {
 }
 
 func TestReadErrors(t *testing.T) {
-	runSingleCases(t, []tut.Case[core.Value]{
+	runSingleCases(assert.New(t), []tut.Case[core.Value]{
 		{Name: "empty", Input: "", WantErr: true},
 		{Name: "whitespace only", Input: " \t\n\r ", WantErr: true},
 		{Name: "commas only", Input: ",,,", WantErr: true},
@@ -260,7 +262,7 @@ func TestReadErrors(t *testing.T) {
 }
 
 func TestReadMultipleForms(t *testing.T) {
-	runMultiCases(t, []tut.Case[[]core.Value]{
+	runMultiCases(assert.New(t), []tut.Case[[]core.Value]{
 		{Name: "empty", Input: ""},
 		{Name: "whitespace only", Input: " \t\n\r,, "},
 		{Name: "single int", Input: "1", Want: valst(num(1))},
@@ -279,50 +281,49 @@ func TestReadMultipleForms(t *testing.T) {
 }
 
 func TestReaderCursor(t *testing.T) {
-	t.Run("empty done rest", func(t *testing.T) {
+	at := assert.New(t)
+	at.Run("empty done rest", func(t assert.T) {
 		r := reader.ReadStr("")
-		assert.Equal(t, r.Done(), true)
-		assert.Equal(t, len(r.Rest()), 0)
+		t.Equal(r.Done(), true)
+		t.Equal(len(r.Rest()), 0)
 		_, err := r.ReadForm()
-		assert.MustError(t, err)
+		t.MustError(err)
 	})
 
-	t.Run("peek next rest done", func(t *testing.T) {
+	at.Run("peek next rest done", func(t assert.T) {
 		r := reader.ReadStr("1 foo")
-		assert.Equal(t, r.Done(), false)
+		t.Equal(r.Done(), false)
 		peeked := r.Peek()
-		assert.Equal(t, peeked.Type, lexer.TOKEN_INT)
-		assert.Equal(t, peeked.Value, "1")
-		assert.Equal(t, len(r.Rest()), 2)
+		t.Equal(peeked.Type, lexer.TOKEN_INT)
+		t.Equal(peeked.Value, "1")
+		t.Equal(len(r.Rest()), 2)
 		next := r.Next()
-		assert.Equal(t, next.Type, lexer.TOKEN_INT)
-		assert.Equal(t, next.Value, "1")
+		t.Equal(next.Type, lexer.TOKEN_INT)
+		t.Equal(next.Value, "1")
 		peeked = r.Peek()
-		assert.Equal(t, peeked.Type, lexer.TOKEN_SYMBOL)
-		assert.Equal(t, peeked.Value, "foo")
+		t.Equal(peeked.Type, lexer.TOKEN_SYMBOL)
+		t.Equal(peeked.Value, "foo")
 		rest := r.Rest()
-		assert.Equal(t, len(rest), 1)
-		assert.Equal(t, rest[0].Value, "foo")
+		t.Equal(len(rest), 1)
+		t.Equal(rest[0].Value, "foo")
 		next = r.Next()
-		assert.Equal(t, next.Value, "foo")
-		assert.Equal(t, r.Done(), true)
-		if r.Rest() != nil {
-			t.Fatal("r.Rest is not nil")
-		}
+		t.Equal(next.Value, "foo")
+		t.Equal(r.Done(), true)
+		t.Equal(r.Rest(), nil)
 	})
 
-	t.Run("readform advances", func(t *testing.T) {
+	at.Run("readform advances", func(t assert.T) {
 		r := reader.ReadStr("(1) 2")
 		first, err := r.ReadForm()
-		assert.NoError(t, err)
-		assert.MalEqual(t, first, lst(num(1)))
-		assert.Equal(t, r.Done(), false)
+		t.NoError(err)
+		t.MalEqual(first, lst(num(1)))
+		t.Equal(r.Done(), false)
 		rest := r.Rest()
-		assert.Equal(t, len(rest), 1)
-		assert.Equal(t, rest[0].Value, "2")
+		t.Equal(len(rest), 1)
+		t.Equal(rest[0].Value, "2")
 		second, err := r.ReadForm()
-		assert.NoError(t, err)
-		assert.MalEqual(t, second, num(2))
-		assert.Equal(t, r.Done(), true)
+		t.NoError(err)
+		t.MalEqual(second, num(2))
+		t.Equal(r.Done(), true)
 	})
 }

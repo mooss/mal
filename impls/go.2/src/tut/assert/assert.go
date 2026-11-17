@@ -73,6 +73,10 @@ func (tr T) Run(name string, fun func(T)) {
 	})
 }
 
+func (tr T) Helper() {
+	tr.T.Helper()
+}
+
 func (tr T) TempDir() string {
 	return tr.T.TempDir()
 }
