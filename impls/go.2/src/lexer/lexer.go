@@ -166,8 +166,8 @@ func lexMal(lex *Lexer) (Token, error) {
 		if isNumASCII(lex.Peek(0)) {
 			return lexInt(lex)
 		}
-	case '\'', '`':
-		return lexSigil(lex)
+	case '\'', '`', '~', '@':
+		return lexSigil(next, lex)
 	default:
 	}
 
@@ -181,7 +181,12 @@ func lexMal(lex *Lexer) (Token, error) {
 }
 
 // lexSigil lexes a sigil prefix like ' or `.
-func lexSigil(lex *Lexer) (Token, error) {
+func lexSigil(r rune, lex *Lexer) (Token, error) {
+	if r == '~' {
+		if lex.Peek(0) == '@' {
+			lex.Next()
+		}
+	}
 	return lex.Success(TOKEN_SIGIL)
 }
 

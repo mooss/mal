@@ -98,30 +98,30 @@ func TestTokenizeStrings(t *testing.T) {
 }
 
 // specialTokenCases builds test cases for delimiters and sigils.
-func specialTokenCases(char string, typ lexer.TokenType) []tokensCase {
-	one := tok(typ, char)
+func specialTokenCases(lexem string, typ lexer.TokenType) []tokensCase {
+	one := tok(typ, lexem)
 	symFoo := tok(SYMBOL, "foo")
 	symBar := tok(SYMBOL, "bar")
 	int123 := tok(INT, "123")
 	strBaz := tok(DQS, `"baz"`)
 	res := []tokensCase{
-		{Name: "single", Input: char, Want: []lexer.Token{one}},
-		{Name: "doubled", Input: char + char, Want: []lexer.Token{one, one}},
-		{Name: "spaced", Input: char + " " + char, Want: []lexer.Token{one, one}},
-		{Name: "whitespace padded", Input: "  " + char + "\n\t ", Want: []lexer.Token{one}},
-		{Name: "string after", Input: char + `"baz"`, Want: []lexer.Token{one, strBaz}},
-		{Name: "symbol after", Input: char + "foo", Want: []lexer.Token{one, symFoo}},
-		{Name: "int after", Input: char + "123", Want: []lexer.Token{one, int123}},
-		{Name: "symbol spaced", Input: "foo " + char + " bar", Want: []lexer.Token{symFoo, one, symBar}},
+		{Name: "single", Input: lexem, Want: []lexer.Token{one}},
+		{Name: "doubled", Input: lexem + lexem, Want: []lexer.Token{one, one}},
+		{Name: "spaced", Input: lexem + " " + lexem, Want: []lexer.Token{one, one}},
+		{Name: "whitespace padded", Input: "  " + lexem + "\n\t ", Want: []lexer.Token{one}},
+		{Name: "string after", Input: lexem + `"baz"`, Want: []lexer.Token{one, strBaz}},
+		{Name: "symbol after", Input: lexem + "foo", Want: []lexer.Token{one, symFoo}},
+		{Name: "int after", Input: lexem + "123", Want: []lexer.Token{one, int123}},
+		{Name: "symbol spaced", Input: "foo " + lexem + " bar", Want: []lexer.Token{symFoo, one, symBar}},
 	}
 
 	if typ != SIGIL {
 		// Sigil are not boundaries and must not be stuck to something else, but delimiters are and
 		// can.
 		res = append(res,
-			tokensCase{Name: "string before", Input: `"baz"` + char, Want: []lexer.Token{strBaz, one}},
-			tokensCase{Name: "symbol before", Input: "foo" + char, Want: []lexer.Token{symFoo, one}},
-			tokensCase{Name: "int before", Input: "123" + char, Want: []lexer.Token{int123, one}})
+			tokensCase{Name: "string before", Input: `"baz"` + lexem, Want: []lexer.Token{strBaz, one}},
+			tokensCase{Name: "symbol before", Input: "foo" + lexem, Want: []lexer.Token{symFoo, one}},
+			tokensCase{Name: "int before", Input: "123" + lexem, Want: []lexer.Token{int123, one}})
 	}
 
 	return res
@@ -137,6 +137,9 @@ func TestTokenizeSingleCharTokens(t *testing.T) {
 		{Name: "rbrace", Input: "}", Want: RBRACE},
 		{Name: "squote", Input: "'", Want: SIGIL},
 		{Name: "backquote", Input: "`", Want: SIGIL},
+		{Name: "tilde", Input: "~", Want: SIGIL},
+		{Name: "@", Input: "@", Want: SIGIL},
+		{Name: "~@", Input: "~@", Want: SIGIL},
 	}, func(t *testing.T, c tut.Case[lexer.TokenType]) {
 		t.Helper()
 		runTokenCases(t, specialTokenCases(c.Input, c.Want))
@@ -235,7 +238,6 @@ func TestTokenizeCombinations(t *testing.T) {
 
 func TestTokenizeInvalid(t *testing.T) {
 	tests := []tokensCase{
-		{Name: "tilde", Input: "~", WantErr: true},
 		{Name: "hash", Input: "#", WantErr: true},
 		{Name: "dollar", Input: "$", WantErr: true},
 		{Name: "percent", Input: "%", WantErr: true},
