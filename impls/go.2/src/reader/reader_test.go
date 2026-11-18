@@ -13,15 +13,16 @@ import (
 )
 
 var (
-	sym   = tut.Sym
-	str   = tut.Str
-	num   = tut.Num
+	kw    = tut.Kyw
 	lst   = tut.Lst
-	vec   = tut.Vec
 	mapf  = tut.MapForm
-	qot   = typ.Quote
 	nul   = tut.Nil
+	num   = tut.Num
+	qot   = typ.Quote
+	str   = tut.Str
+	sym   = tut.Sym
 	valst = tut.Values
+	vec   = tut.Vec
 )
 
 func runSingleCases(t assert.T, cases []tut.Case[core.Value]) {
@@ -286,6 +287,15 @@ func TestReadMaps(t *testing.T) {
 		{Name: "odd single string", Input: `{"a"}`, WantErr: true},
 		{Name: "odd five", Input: `{"a" 1 "b" 2 "c"}`, WantErr: true},
 		{Name: "unterminated string key", Input: `{"a"`, WantErr: true},
+
+		// Edge cases.
+		{Name: "empty map as key", Input: "{{} 1}", Want: mapf(mapf(), num(1))},
+		{Name: "vector key list value", Input: "{[1] (2)}", Want: mapf(vec(num(1)), lst(num(2)))},
+		{Name: "list key vector value", Input: "{(1) [2]}", Want: mapf(lst(num(1)), vec(num(2)))},
+		{Name: "keyword key", Input: "{:a 1}", Want: mapf(kw("a"), num(1))},
+		{Name: "nil key nil value", Input: "{nil nil}", Want: mapf(nul(), nul())},
+		{Name: "nested empty maps", Input: "{{} {}}", Want: mapf(mapf(), mapf())},
+		{Name: "odd nested outer", Input: "{{} 1 2}", WantErr: true},
 	})
 	runMultiCases(at, []tut.Case[[]core.Value]{
 		{Name: "two maps", Input: `{"a" 1} {"b" 2}`, Want: valst(mapf(str(`a`), num(1)), mapf(str(`b`), num(2)))},
@@ -383,5 +393,53 @@ func TestReaderCursor(t *testing.T) {
 		t.NoError(err)
 		t.MalEqual(second, num(2))
 		t.Equal(r.Done(), true)
+	})
+}
+
+func TestReadKeywords(t *testing.T) {
+	at := assert.New(t)
+	runSingleCases(at, []tut.Case[core.Value]{
+		{Name: "simple", Input: ":foo", Want: kw("foo")},
+		{Name: "padded", Input: "  :foo  ", Want: kw("foo")},
+		{Name: "with dash", Input: ":foo-bar", Want: kw("foo-bar")},
+		{Name: "with digits", Input: ":abc123", Want: kw("abc123")},
+		{Name: "colon nil stays keyword", Input: ":nil", Want: kw("nil")},
+		{Name: "colon true stays keyword", Input: ":true", Want: kw("true")},
+		{Name: "in list", Input: "(:foo 1)", Want: lst(kw("foo"), num(1))},
+		{Name: "in vector", Input: "[:foo :bar]", Want: vec(kw("foo"), kw("bar"))},
+		{Name: "as map keys", Input: "{:a 1 :b 2}", Want: mapf(kw("a"), num(1), kw("b"), num(2))},
+		{Name: "as map value", Input: "{a :foo}", Want: mapf(sym("a"), kw("foo"))},
+		{Name: "quoted", Input: "':foo", Want: qot(kw("foo"))},
+		{Name: "quasiquoted", Input: "`:foo", Want: lst(sym("quasiquote"), kw("foo"))},
+	})
+	runMultiCases(at, []tut.Case[[]core.Value]{
+		{Name: "two keywords", Input: ":a :b", Want: valst(kw("a"), kw("b"))},
+		{Name: "keyword mixed", Input: `:a 1 "hi"`, Want: valst(kw("a"), num(1), str(`hi`))},
+	})
+	at.Run("keyword not equal symbol or nil", func(t assert.T) {
+		t.MalDifferent(kw("foo"), sym("foo"))
+		t.MalDifferent(kw("nil"), nul())
+		t.MalDifferent(kw("a"), kw("b"))
+		t.MalEqual(kw("a"), kw("a"))
+	})
+}
+
+func TestReadDelimiterMismatches(t *testing.T) {
+	runSingleCases(assert.New(t), []tut.Case[core.Value]{
+		{Name: "paren closed by bracket", Input: "(1 ]", WantErr: true},
+		{Name: "paren closed by brace", Input: "(1 }", WantErr: true},
+		{Name: "bracket closed by paren", Input: "[1 )", WantErr: true},
+		{Name: "bracket closed by brace", Input: "[1 }", WantErr: true},
+		{Name: "map closed by paren", Input: "{a 1)", WantErr: true},
+		{Name: "map closed by bracket", Input: "{a 1]", WantErr: true},
+		{Name: "list nested mismatch", Input: "(foo [bar)]", WantErr: true},
+		{Name: "vector nested mismatch", Input: "[(1])", WantErr: true},
+		{Name: "map nested mismatch", Input: "{a (1]}", WantErr: true},
+		{Name: "double nested unbalanced", Input: "((1)", WantErr: true},
+		{Name: "vector unbalanced in list", Input: "([1] 2", WantErr: true},
+		{Name: "map unbalanced in list", Input: `({"a" 1} 2`, WantErr: true},
+		{Name: "lone token error", Input: "²", WantErr: true},
+		{Name: "map key unbalanced", Input: "{(1} 2}", WantErr: true},
+		{Name: "map value unbalanced", Input: "{1 (2}", WantErr: true},
 	})
 }
