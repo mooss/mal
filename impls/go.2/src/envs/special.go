@@ -10,9 +10,9 @@ import (
 )
 
 var MalSpecial core.Env = core.Bindings{
-	"def!":       typ.SpII(defBang),
-	"do":         typ.Special(specDo),
-	"fn*":        typ.SpII(lambda),
+	"def!":       typ.SpII(def),
+	"do":         typ.Special(do),
+	"fn*":        typ.SpII(fnStar),
 	"if":         typ.Special(specIf),
 	"let*":       typ.SpII(letStar),
 	"quasiquote": typ.SpI(quasiquote),
@@ -24,11 +24,59 @@ var ExtraSpecial core.Env = core.Bindings{
 	"env": typ.SpZ(env),
 }.AsEnv()
 
-//////////////////////////////////
-// Special forms implementation //
+//////////////////
+// Control flow //
 
-// defBang introduces a new binding in an environment.
-func defBang(envr core.Env, key typ.Symbol, value core.Value) core.Value {
+// do evaluates each argument in order and returns the value of the last one.
+func do(envr core.Env, args ...core.Value) core.Value {
+	if len(args) == 0 {
+		return typ.Nil{}
+	}
+
+	for _, arg := range args[:len(args)-1] {
+		res := typ.Resolve(envr, arg)
+		if ut.Is[typ.Fatal](res) {
+			return res
+		}
+	}
+
+	return typ.Tail(envr, args[len(args)-1])
+}
+
+// ifThenElse evaluates the condition and returns the evaluation of `cons` if it is truthy,
+// otherwise the evaluation of `alt`.
+// Only nil and false are falsy.
+func ifThenElse(envr core.Env, cond core.Value, cons core.Value, alt core.Value) core.Value {
+	condeval := typ.Resolve(envr, cond)
+	realised, err := typ.Truthful(condeval)
+	if err.NotNil() {
+		return err
+	}
+
+	if realised {
+		return typ.Tail(envr, cons)
+	}
+
+	return typ.Tail(envr, alt)
+}
+
+// specIf is the `if` special form, accepting a condition with 1 or 2 branches.
+func specIf(envr core.Env, args ...core.Value) core.Value {
+	switch len(args) {
+	case 2:
+		return ifThenElse(envr, args[0], args[1], typ.Nil{})
+	case 3:
+		return ifThenElse(envr, args[0], args[1], args[2])
+	default:
+		return typ.FmtExpectedNArgs("2 or 3", len(args))
+	}
+}
+
+//////////////////////////////
+// Environment manipulation //
+
+// def introduces a new binding in the environment.
+func def(envr core.Env, key typ.Symbol, value core.Value) core.Value {
 	evald := typ.Resolve(envr, value)
 	if ut.Is[typ.Fatal](evald) {
 		return evald
@@ -38,29 +86,16 @@ func defBang(envr core.Env, key typ.Symbol, value core.Value) core.Value {
 	return evald
 }
 
-// lambda builds a closure capturing the current environment, with fixed or variadic parameters.
-// A `&` symbol before the last parameter marks it as capturing the remaining arguments.
-func lambda(envr core.Env, paramlist core.Value, body core.Value) core.Value {
-	bindlist, err := typ.AsListOrVec(paramlist) // Assert params is a list or vector.
-	if err.NotNil() {
-		return err
+// env returns the environment as a vector of pairs.
+// It is not a part of Mal but a useful addition to troubleshoot env problems.
+func env(envr core.Env) typ.Vector {
+	mkassoc := func(key string, value core.Value) core.Value {
+		return typ.Vector{typ.String(key), value}
 	}
-
-	symlist, err := typ.AsSlice[typ.Symbol](bindlist...) // Assert all elements are symbol.
-	if err.NotNil() {
-		return err
-	}
-
-	amperpos := slices.Index(symlist, typ.Symbol("&"))
-	if amperpos < 0 {
-		return typ.Function(mkFixedClosure(envr, symlist, body))
-	}
-	if amperpos != len(symlist)-2 {
-		return typ.Fatalf("invalid & in lambda params, must be right before the last symbol")
-	}
-
-	rest := string(symlist[amperpos+1])
-	return typ.Function(mkVariadicClosure(envr, symlist[:amperpos], rest, body))
+	return lazy.CollectHint(
+		lazy.Map2(mkassoc, envr.IterAssocs()),
+		envr.NAssocs(),
+	)
 }
 
 // letStar creates a temporary environment containing the given bindings and evaluates form in this
@@ -93,12 +128,43 @@ func letStar(envr core.Env, bindings core.Value, form core.Value) core.Value {
 	return typ.Tail(letenv, form)
 }
 
+//////////
+// Meta //
+
+// fnStar builds a closure capturing the current environment, with fixed or variadic parameters.
+// A `&` symbol before the last parameter marks it as capturing the remaining arguments.
+func fnStar(envr core.Env, paramlist core.Value, body core.Value) core.Value {
+	bindlist, err := typ.AsListOrVec(paramlist) // Assert params is a list or vector.
+	if err.NotNil() {
+		return err
+	}
+
+	symlist, err := typ.AsSlice[typ.Symbol](bindlist...) // Assert all elements are symbol.
+	if err.NotNil() {
+		return err
+	}
+
+	amperpos := slices.Index(symlist, typ.Symbol("&"))
+	if amperpos < 0 {
+		return typ.Function(mkFixedClosure(envr, symlist, body))
+	}
+	if amperpos != len(symlist)-2 {
+		return typ.Fatalf("invalid & in lambda params, must be right before the last symbol")
+	}
+
+	rest := string(symlist[amperpos+1])
+	return typ.Function(mkVariadicClosure(envr, symlist[:amperpos], rest, body))
+}
+
 // MkEval returns an eval function closed over envr.
 func MkEval(envr core.Env) func(core.Value) core.Value {
 	return func(ast core.Value) core.Value {
 		return typ.Resolve(envr, ast)
 	}
 }
+
+///////////////
+// Quotation //
 
 func quasiquote(envr core.Env, ast core.Value) core.Value {
 	return typ.Tail(envr, quasiquoteImpl(ast))
@@ -153,65 +219,6 @@ func quasiquotePlainList(ast typ.List) core.Value {
 
 // quote returns an expression as-is, without any evaluation.
 func quote(_ core.Env, ast core.Value) core.Value { return ast }
-
-// specDo evaluates each argument in order and returns the value of the last one.
-func specDo(envr core.Env, args ...core.Value) core.Value {
-	if len(args) == 0 {
-		return typ.Nil{}
-	}
-
-	for _, arg := range args[:len(args)-1] {
-		res := typ.Resolve(envr, arg)
-		if ut.Is[typ.Fatal](res) {
-			return res
-		}
-	}
-
-	return typ.Tail(envr, args[len(args)-1])
-}
-
-// specIfElse evaluates the condition and returns the evaluation of `cons` if it is truthy,
-// otherwise the evaluation of `alt`.
-// Only nil and false are falsy.
-func specIfElse(envr core.Env, cond core.Value, cons core.Value, alt core.Value) core.Value {
-	condeval := typ.Resolve(envr, cond)
-	realised, err := typ.Truthful(condeval)
-	if err.NotNil() {
-		return err
-	}
-
-	if realised {
-		return typ.Tail(envr, cons)
-	}
-
-	return typ.Tail(envr, alt)
-}
-
-// specIf is the `if` special form, accepting a condition with 1 or 2 branches.
-func specIf(envr core.Env, args ...core.Value) core.Value {
-	switch len(args) {
-	case 2:
-		return specIfElse(envr, args[0], args[1], typ.Nil{})
-	case 3:
-		return specIfElse(envr, args[0], args[1], args[2])
-	default:
-		return typ.FmtExpectedNArgs("2 or 3", len(args))
-	}
-}
-
-/////////////////////////
-// Extra special forms //
-// Those are some utilities sprinkled on top of Mal.
-
-func env(envr core.Env) typ.Vector {
-	mkassoc := func(key string, value core.Value) core.Value {
-		return typ.Vector{typ.String(key), value}
-	}
-	return lazy.CollectHint(
-		lazy.Map2(mkassoc, envr.IterAssocs()),
-		envr.NAssocs(),
-	)
-}
 
 /////////////////
 // Local utils //
