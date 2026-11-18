@@ -108,6 +108,8 @@ func quasiquoteImpl(ast core.Value) core.Value {
 	switch typed := ast.(type) {
 	case typ.List:
 		return quasiquoteList(typed)
+	case typ.Vector:
+		return typ.List{typ.Symbol("vec"), quasiquotePlainList(typ.List(typed))}
 	case typ.Map, typ.MapForm, typ.Symbol:
 		return typ.Quote(typed)
 	default:
@@ -128,6 +130,11 @@ func quasiquoteList(ast typ.List) core.Value {
 		return ast[1]
 	}
 
+	return quasiquotePlainList(ast)
+}
+
+// quasiquotePlainList processes through quasiquote a list that does not start with unquote.
+func quasiquotePlainList(ast typ.List) core.Value {
 	res := typ.List{}
 	for _, elt := range slices.Backward(ast) {
 		eltlst, isList := elt.(typ.List)

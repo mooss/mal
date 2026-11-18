@@ -29,6 +29,7 @@ var MalFun core.Env = core.Bindings{
 	"empty?": typ.I(isEmpty),
 	"list":   typ.Function(list),
 	"list?":  typ.I(isList),
+	"vec":    typ.I(vec),
 
 	// Strings.
 	"pr-str":  typ.Function(prStr),
@@ -170,6 +171,17 @@ func length(container core.Value) (res int, err typ.Fatal) {
 
 // list creates a new list from the given arguments.
 func list(args ...core.Value) core.Value { return typ.List(args) }
+
+func vec(arg core.Value) core.Value {
+	switch typed := arg.(type) {
+	case typ.List:
+		return typ.Vector(typed)
+	case typ.Vector:
+		return typed
+	default:
+		return typ.Expected(core.VECTOR+" or "+core.LIST, typed)
+	}
+}
 
 /////////////////////
 // Print functions //
