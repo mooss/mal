@@ -34,7 +34,8 @@ func AsListOrVec(elements core.Value) ([]core.Value, Fatal) {
 	case VectorForm:
 		bindlist = typed
 	default:
-		return nil, Expected(fmt.Sprintf("%s, %s or %s", core.LIST, core.VECTOR, core.VECTOR_FORM), elements)
+		msg := fmt.Sprintf("%s, %s or %s", core.LIST, core.VECTOR, core.VECTOR_FORM)
+		return nil, Expected(msg, elements)
 	}
 	return bindlist, Fatal{}
 }

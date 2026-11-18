@@ -198,6 +198,7 @@ func TestTokenizeSymbols(t *testing.T) {
 		{Name: "digit minus", Input: "1-", WantErr: true},
 		{Name: "digits plus digits", Input: "12+34", WantErr: true},
 		{Name: "ampersand", Input: "&", Want: []lexer.Token{{Type: SYMBOL, Value: "&"}}},
+		{Name: "underscore", Input: "_", Want: []lexer.Token{{Type: SYMBOL, Value: "_"}}},
 	}
 
 	runTokenCases(t, tests)
@@ -244,7 +245,6 @@ func TestTokenizeInvalid(t *testing.T) {
 		{Name: "pipe", Input: "|", WantErr: true},
 		{Name: "backslash", Input: `\`, WantErr: true},
 		{Name: "caret", Input: "^", WantErr: true},
-		{Name: "underscore", Input: "_", WantErr: true},
 		{Name: "int then letters", Input: "123abc", WantErr: true},
 		{Name: "int then slash", Input: "123/foo", WantErr: true},
 		{Name: "symbol then quote", Input: `foo"bar"`, WantErr: true},
