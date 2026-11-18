@@ -187,7 +187,7 @@ func quasiquoteImpl(ast core.Value) core.Value {
 	switch typed := ast.(type) {
 	case typ.List:
 		return quasiquoteList(typed)
-	case typ.Vector:
+	case typ.VectorForm: // Must be a vector-form because it is meant to run before evaluation.
 		return typ.List{typ.Symbol("vec"), quasiquotePlainList(typ.List(typed))}
 	case typ.Map, typ.MapForm, typ.Symbol:
 		return typ.Quote(typed)
