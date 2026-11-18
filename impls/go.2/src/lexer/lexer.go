@@ -233,14 +233,14 @@ func lexSymbol(lex *Lexer) (Token, error) {
 //
 //revive:disable:line-length-limit
 func isPlainTokenRest(r rune) bool {
-	return strings.ContainsRune("!&*+-./0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", r)
+	return strings.ContainsRune("!&*+-./0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz", r)
 }
 
 // isPlainTokenStart returns whether r can be the first character of a plain token.
 //
 //revive:disable:line-length-limit
 func isPlainTokenStart(r rune) bool {
-	return strings.ContainsRune("!&*+-./:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", r)
+	return strings.ContainsRune("!&*+-./:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz", r)
 }
 
 // isNumASCII returns true if r is a numerical ASCII character.
