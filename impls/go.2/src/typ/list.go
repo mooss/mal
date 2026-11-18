@@ -35,6 +35,13 @@ func (lst List) Eval(envr core.Env) core.Value {
 	switch op := op.(type) {
 	case Function:
 		return evalFun(envr, op, lst[1:])
+	case Macro:
+		// fn may be a user-defined closure, which can return a TailCall for tail-call optimization
+		// instead of a realized value.
+		// It must be resolved (trampolined) here, otherwise an unevaluated TailCall would be
+		// leaked.
+		processed := EnsureResolved(op(lst[1:]...))
+		return Tail(envr, processed)
 	case Special:
 		return op(envr, lst[1:]...)
 	}

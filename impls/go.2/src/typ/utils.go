@@ -121,8 +121,7 @@ func ExpectNArgs(expected int, got []core.Value) Fatal {
 // Expected format a Fatal error explaining that an unexpected type was given.
 // When the unexpected type is already a Fatal error, it is returned as-is.
 func Expected[T ~string](expected T, got core.Value) Fatal {
-	err, isFatal := got.(Fatal)
-	if isFatal {
+	if err, isFatal := got.(Fatal); isFatal {
 		return err
 	}
 	return Fatalf("expected %s but got %s (%v)", expected, got.Type(), got)

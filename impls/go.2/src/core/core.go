@@ -18,6 +18,8 @@ const (
 	INTEGER TypeName = "integer"
 	// LIST tags list of values.
 	LIST TypeName = "list"
+	// MACRO tags functions manipulating the AST.
+	MACRO TypeName = "macro"
 	// MAP tags map of keys to values.
 	MAP TypeName = "map"
 	// MAP_FORM tags unevaluated map awaiting evaluation.

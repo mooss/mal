@@ -11,6 +11,7 @@ import (
 
 var MalSpecial core.Env = core.Bindings{
 	"def!":       typ.SpII(def),
+	"defmacro!":  typ.SpII(defMacro),
 	"do":         typ.Special(do),
 	"fn*":        typ.SpII(fnStar),
 	"if":         typ.Special(specIf),
@@ -84,6 +85,18 @@ func def(envr core.Env, key typ.Symbol, value core.Value) core.Value {
 
 	envr.Set(string(key), evald)
 	return evald
+}
+
+// defMacro introduces a new macro in the environment.
+func defMacro(envr core.Env, key typ.Symbol, impl core.Value) core.Value {
+	evald, err := typ.As[typ.Function](typ.Resolve(envr, impl))
+	if err.NotNil() {
+		return err
+	}
+
+	macroed := typ.Macro(evald)
+	envr.Set(string(key), macroed)
+	return macroed
 }
 
 // env returns the environment as a vector of pairs.

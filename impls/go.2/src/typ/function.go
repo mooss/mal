@@ -4,15 +4,23 @@ import (
 	"github.com/mooss/mal/src/core"
 )
 
-// Function represents a plain function.
+// Function is a function (primitive or defined in MAL itself).
 // When encountered as the first elements of a list, the rest of the list will be evaluated and
 // those evaluated arguments will be passed to the function.
 type Function func(...core.Value) core.Value
 
 func (Function) Equal(core.Value) bool        { return false }
 func (fun Function) Eval(core.Env) core.Value { return fun }
-func (Function) String() string               { return "<internal function>" }
+func (Function) String() string               { return "<function>" }
 func (Function) Type() core.TypeName          { return core.FUNCTION }
+
+// Macro is a function manipulating the AST.
+type Macro func(...core.Value) core.Value
+
+func (Macro) Equal(core.Value) bool        { return false }
+func (mac Macro) Eval(core.Env) core.Value { return mac }
+func (Macro) String() string               { return "<macro>" }
+func (Macro) Type() core.TypeName          { return core.MACRO }
 
 ////////////////////////
 // Conversion helpers //
