@@ -17,7 +17,7 @@ import (
 var MalFun core.Env = core.Bindings{
 	// Atoms.
 	"atom":   typ.I(atom),
-	"atom?":  typ.I(isAtom),
+	"atom?":  typ.I(isX[*typ.Atom]),
 	"deref":  typ.I(deref),
 	"reset!": typ.II(reset),
 	"swap!":  typ.Function(swap),
@@ -29,7 +29,7 @@ var MalFun core.Env = core.Bindings{
 	"empty?": typ.I(isEmpty),
 	"first":  typ.I(first),
 	"list":   typ.Function(list),
-	"list?":  typ.I(isList),
+	"list?":  typ.I(isX[typ.List]),
 	"nth":    typ.II(nth),
 	"rest":   typ.I(rest),
 	"vec":    typ.I(vec),
@@ -42,6 +42,7 @@ var MalFun core.Env = core.Bindings{
 
 	// Other.
 	"=":           typ.II(equal),
+	"macro?":      typ.I(isX[typ.Macro]),
 	"read-string": typ.I(readString),
 	"slurp":       typ.I(slurp),
 }.AsEnv()
@@ -51,9 +52,6 @@ var MalFun core.Env = core.Bindings{
 
 // atom creates a new atom holding the given value.
 func atom(arg core.Value) *typ.Atom { return &typ.Atom{Ref: arg} }
-
-// isAtom returns true when arg is an atom.
-func isAtom(arg core.Value) typ.Bool { return typ.Bool(ut.Is[*typ.Atom](arg)) }
 
 // deref returns the value currently held by the atom.
 func deref(atom *typ.Atom) core.Value { return atom.Ref }
@@ -164,9 +162,6 @@ func isEmpty(arg core.Value) core.Value {
 	}
 	return typ.Bool(size == 0)
 }
-
-// isList returns true when arg is a list.
-func isList(arg core.Value) typ.Bool { return typ.Bool(ut.Is[typ.List](arg)) }
 
 // length returns the number of elements in the given container, or an error if the value is not a
 // container.
@@ -284,6 +279,9 @@ func str(args ...core.Value) core.Value {
 
 ///////////
 // Other //
+
+// isX returns true when the type of arg is X.
+func isX[X core.Value](arg core.Value) typ.Bool { return typ.Bool(ut.Is[X](arg)) }
 
 // readString parses the first form of the given source string and returns it.
 func readString(source typ.String) core.Value {
