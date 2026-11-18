@@ -29,12 +29,12 @@ func AsListOrVec(elements core.Value) ([]core.Value, Fatal) {
 	switch typed := elements.(type) {
 	case List:
 		bindlist = typed
-	case VectorForm:
-		bindlist = typed
 	case Vector:
 		bindlist = typed
+	case VectorForm:
+		bindlist = typed
 	default:
-		return nil, Expected(fmt.Sprintf("%s or %s", core.LIST, core.VECTOR_FORM), elements)
+		return nil, Expected(fmt.Sprintf("%s, %s or %s", core.LIST, core.VECTOR, core.VECTOR_FORM), elements)
 	}
 	return bindlist, Fatal{}
 }

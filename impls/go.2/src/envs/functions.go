@@ -27,8 +27,11 @@ var MalFun core.Env = core.Bindings{
 	"cons":   typ.II(cons),
 	"count":  typ.I(count),
 	"empty?": typ.I(isEmpty),
+	"first":  typ.I(first),
 	"list":   typ.Function(list),
 	"list?":  typ.I(isList),
+	"nth":    typ.II(nth),
+	"rest":   typ.I(rest),
 	"vec":    typ.I(vec),
 
 	// Strings.
@@ -135,6 +138,24 @@ func count(arg core.Value) core.Value {
 // equal returns true when two values are equal.
 func equal(left, right core.Value) typ.Bool { return typ.Bool(left.Equal(right)) }
 
+// first returns the first element of a list/vector, nil when empty.
+func first(container core.Value) core.Value {
+	if ut.Is[typ.Nil](container) {
+		return container
+	}
+
+	slice, err := typ.AsListOrVec(container)
+	if err.NotNil() {
+		return err
+	}
+
+	if len(slice) == 0 {
+		return typ.Nil{}
+	}
+
+	return slice[0]
+}
+
 // isEmpty returns true when the given container has no elements.
 func isEmpty(arg core.Value) core.Value {
 	size, err := length(arg)
@@ -172,6 +193,37 @@ func length(container core.Value) (res int, err typ.Fatal) {
 // list creates a new list from the given arguments.
 func list(args ...core.Value) core.Value { return typ.List(args) }
 
+// nth returns the nth element of the given list/vector.
+func nth(container core.Value, index typ.Integer) core.Value {
+	slice, err := typ.AsListOrVec(container)
+	if err.NotNil() {
+		return err
+	}
+
+	if 0 > index || int(index) >= len(slice) {
+		return typ.Fatalf("index %d out of bounds for slice of size %d", index, len(slice))
+	}
+	return slice[index]
+}
+
+// rest returns the given list/vector without the first element.
+func rest(container core.Value) core.Value {
+	if ut.Is[typ.Nil](container) {
+		return typ.List{}
+	}
+
+	slice, err := typ.AsListOrVec(container)
+	if err.NotNil() {
+		return err
+	}
+
+	if len(slice) == 0 {
+		return typ.List{}
+	}
+	return typ.List(slice[1:])
+}
+
+// vec converts a list to a vector, returns vectors as is and errors on other types.
 func vec(arg core.Value) core.Value {
 	switch typed := arg.(type) {
 	case typ.List:
