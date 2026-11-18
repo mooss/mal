@@ -1,7 +1,9 @@
 package reader
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"slices"
 
 	"github.com/mooss/mal/src/core"
@@ -32,4 +34,27 @@ func ParseOne(input string) (core.Value, error) {
 	}
 
 	return parsed, nil
+}
+
+// ParseAll parses the input string as a sequence of expressions.
+// Empty input yields an empty slice and no error.
+func ParseAll(input string) ([]core.Value, error) {
+	rdr := ReadStr(input)
+	var forms []core.Value
+	for {
+		form, err := rdr.ReadForm()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, err
+		}
+		forms = append(forms, form)
+	}
+
+	if rest := rdr.Rest(); rest != nil {
+		return nil, fmt.Errorf("leftover tokens remain: %v", rest)
+	}
+
+	return forms, nil
 }
