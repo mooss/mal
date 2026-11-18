@@ -185,7 +185,7 @@ func TestDoEmptyReturnsNil(t *testing.T) {
 
 func TestIfTruthinessTable(t *testing.T) {
 	tr := assert.New(t)
-	outer := envs.MalDefault.Nest(core.Bindings{
+	outer := envs.MalStandard.Nest(core.Bindings{
 		"t": tut.Sym("then-val"),
 		"e": tut.Sym("else-val"),
 	})
@@ -198,17 +198,17 @@ func TestIfTruthinessTable(t *testing.T) {
 
 func TestIfOnlyTakenBranchEvaluated(t *testing.T) {
 	tr := assert.New(t)
-	outer := envs.MalDefault.Nest(core.Bindings{"good": tut.Sym("good-val")})
+	outer := envs.MalStandard.Nest(core.Bindings{"good": tut.Sym("good-val")})
 	tr.Eval(outer, "(if true good missing)", tut.Sym("good-val"))
 	tr.Eval(outer, "(if false missing good)", tut.Sym("good-val"))
 	tr.Eval(outer, "(if nil missing good)", tut.Sym("good-val"))
 
-	env := envs.MalDefault.Nest(core.Bindings{"good": tut.Sym("good-val")})
+	env := envs.MalStandard.Nest(core.Bindings{"good": tut.Sym("good-val")})
 	tr.Eval(env, "(if true (def! x good) (def! y good))", tut.Sym("good-val"))
 	tr.EnvHas(env, "x", tut.Sym("good-val"))
 	tr.EnvLacks(env, "y")
 
-	env2 := envs.MalDefault.Nest(core.Bindings{"good": tut.Sym("good-val")})
+	env2 := envs.MalStandard.Nest(core.Bindings{"good": tut.Sym("good-val")})
 	tr.Eval(env2, "(if false (def! x good) (def! y good))", tut.Sym("good-val"))
 	tr.EnvLacks(env2, "x")
 	tr.EnvHas(env2, "y", tut.Sym("good-val"))
@@ -226,7 +226,7 @@ func TestIfCondFatalSkipsBranches(t *testing.T) {
 
 func TestIfBranchFatalAndArity(t *testing.T) {
 	tr := assert.New(t)
-	outer := envs.MalDefault.Nest(core.Bindings{"good": tut.Sym("good-val")})
+	outer := envs.MalStandard.Nest(core.Bindings{"good": tut.Sym("good-val")})
 	tr.EvalFatal(outer,
 		"(if true missing good)",
 		"(if false good missing)",

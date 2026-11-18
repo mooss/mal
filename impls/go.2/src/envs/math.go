@@ -19,9 +19,7 @@ var Math core.Env = core.Bindings{
 	">":  typ.II(gt[_int]),
 	">=": typ.II(geq[_int]),
 	// Logic.
-	"true":  typ.True,
-	"false": typ.False,
-	"not":   typ.I(not),
+	"not": typ.I(not),
 }.AsEnv()
 
 func reduce[T core.Value](fn func(T, T) T) typ.Function {

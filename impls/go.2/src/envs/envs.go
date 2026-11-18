@@ -9,8 +9,13 @@ import (
 type _int = typ.Integer
 
 var (
-	MalDefault  = core.CatEnv(MalSpecial, Math, MalFun)
-	All         = core.CatEnv(MalDefault, ExtraSpecial)
+	MalValues = core.Bindings{
+		"true":   typ.True,
+		"false":  typ.False,
+		"*ARGV*": typ.List{},
+	}.AsEnv()
+	MalStandard = core.CatEnv(MalValues, MalSpecial, Math, MalFun)
+	All         = core.CatEnv(MalStandard, ExtraSpecial)
 	arityGt1Err = typ.Fatalf("expected at least 1 argument")
 	arityGt2Err = typ.Fatalf("expected at least 2 argument")
 )

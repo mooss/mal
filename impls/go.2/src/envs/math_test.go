@@ -248,7 +248,7 @@ func TestLogicLiterals(t *testing.T) {
 		{Name: "true", Input: "true", Want: true},
 		{Name: "false", Input: "false", Want: false},
 	}, func(t *testing.T, c tut.Case[typ.Bool]) {
-		assert.Eval(t, envs.Math, c.Input, c.Want)
+		assert.Eval(t, core.CatEnv(envs.MalValues, envs.Math), c.Input, c.Want)
 	})
 
 	// Symbol lookup returns expected types.
@@ -257,7 +257,7 @@ func TestLogicLiterals(t *testing.T) {
 	}
 	assert.Is[typ.Function](t, tut.Sym("not").Eval(envs.Math))
 	for _, sym := range []string{"true", "false"} {
-		assert.Is[typ.Bool](t, tut.Sym(sym).Eval(envs.Math))
+		assert.Is[typ.Bool](t, tut.Sym(sym).Eval(envs.MalValues))
 	}
 }
 
@@ -283,7 +283,7 @@ func TestNotFunction(t *testing.T) {
 		{Name: "(not (+ 1 2))", Input: "(not (+ 1 2))", Want: false},
 		{Name: "(not (- 5 5))", Input: "(not (- 5 5))", Want: false},
 	}, func(t *testing.T, c tut.Case[typ.Bool]) {
-		assert.Eval(t, envs.Math, c.Input, c.Want)
+		assert.Eval(t, core.CatEnv(envs.MalValues, envs.Math), c.Input, c.Want)
 	})
 }
 

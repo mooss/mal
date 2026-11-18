@@ -130,7 +130,7 @@ func TestEqualOp(t *testing.T) {
 		{Name: "cross string vs vector", Input: `(= "a" ["a"])`, Want: false},
 	}
 	tr.RunCases("equal", func(tr assert.T, c tut.Case[bool]) {
-		tr.Eval(envs.MalDefault, c.Input, typ.Bool(c.Want))
+		tr.Eval(envs.MalStandard, c.Input, typ.Bool(c.Want))
 	}, cases...)
 
 	//nolint:dupword
@@ -174,7 +174,7 @@ func TestEmptyQ(t *testing.T) {
 		{Name: "non-empty map", Input: `(empty? {"a" 1})`, Want: false},
 	}
 	tr.RunCases("empty?", func(tr assert.T, c tut.Case[bool]) {
-		tr.Eval(envs.MalDefault, c.Input, typ.Bool(c.Want))
+		tr.Eval(envs.MalStandard, c.Input, typ.Bool(c.Want))
 	}, cases...)
 
 	tr.Run("non-containers return Fatal", func(tr assert.T) {
@@ -191,7 +191,7 @@ func TestListConstruction(t *testing.T) {
 	tr.Run("empty list", func(tr assert.T) {
 		lst := tr.MustEvalAs[typ.List](envs.MalFun, `(list)`)
 		tr.Equal(len(lst), 0)
-		tr.Eval(envs.MalDefault, `(= (list) (list))`, typ.Bool(true))
+		tr.Eval(envs.MalStandard, `(= (list) (list))`, typ.Bool(true))
 	})
 
 	tr.Run("multi-element list", func(tr assert.T) {
@@ -203,8 +203,8 @@ func TestListConstruction(t *testing.T) {
 				tr.Fatalf("element %d = %v, want %v", i, lst[i], want)
 			}
 		}
-		tr.Eval(envs.MalDefault, `(= (list 1 2 3) (list 1 2 3))`, typ.Bool(true))
-		tr.Eval(envs.MalDefault, `(= (list 1 2) (list 1 2 3))`, typ.Bool(false))
+		tr.Eval(envs.MalStandard, `(= (list 1 2 3) (list 1 2 3))`, typ.Bool(true))
+		tr.Eval(envs.MalStandard, `(= (list 1 2) (list 1 2 3))`, typ.Bool(false))
 	})
 }
 
@@ -222,7 +222,7 @@ func TestIsList(t *testing.T) {
 		{Name: "map false", Input: `(list? {})`, Want: false},
 	}
 	tr.RunCases("list?", func(tr assert.T, c tut.Case[bool]) {
-		tr.Eval(envs.MalDefault, c.Input, typ.Bool(c.Want))
+		tr.Eval(envs.MalStandard, c.Input, typ.Bool(c.Want))
 	}, cases...)
 
 	tr.Run("arity", func(tr assert.T) {
@@ -309,13 +309,13 @@ func TestAtomCreation(t *testing.T) {
 			{Name: "nested atom", Input: `(atom? (deref (atom (atom 1))))`, Want: `true`},
 		}
 		tr.RunCases("deref returns initial value", func(tr assert.T, c tut.Case[string]) {
-			tr.EvalSame(envs.MalDefault, c.Input, c.Want)
+			tr.EvalSame(envs.MalStandard, c.Input, c.Want)
 		}, cases...)
 	})
 
 	tr.Run("is atom", func(tr assert.T) {
-		tr.Eval(envs.MalDefault, `(atom? (atom 1))`, typ.Bool(true))
-		tr.Eval(envs.MalDefault, `(atom? (atom nil))`, typ.Bool(true))
+		tr.Eval(envs.MalStandard, `(atom? (atom 1))`, typ.Bool(true))
+		tr.Eval(envs.MalStandard, `(atom? (atom nil))`, typ.Bool(true))
 	})
 
 	tr.Run("arity", func(tr assert.T) {
@@ -344,7 +344,7 @@ func TestAtomQ(t *testing.T) {
 		{Name: "deref value false", Input: `(atom? (deref (atom 1)))`, Want: false},
 	}
 	tr.RunCases("atom?", func(tr assert.T, c tut.Case[bool]) {
-		tr.Eval(envs.MalDefault, c.Input, typ.Bool(c.Want))
+		tr.Eval(envs.MalStandard, c.Input, typ.Bool(c.Want))
 	}, cases...)
 
 	tr.Run("arity", func(tr assert.T) {
@@ -366,17 +366,17 @@ func TestDeref(t *testing.T) {
 		{Name: "map", Input: `(deref (atom {"a" 1}))`, Want: `{"a" 1}`},
 	}
 	tr.RunCases("returns held value", func(tr assert.T, c tut.Case[string]) {
-		tr.EvalSame(envs.MalDefault, c.Input, c.Want)
+		tr.EvalSame(envs.MalStandard, c.Input, c.Want)
 	}, cases...)
 
 	tr.Run("sees reset value via let", func(tr assert.T) {
-		tr.Eval(envs.MalDefault,
+		tr.Eval(envs.MalStandard,
 			`(= (let* [a (atom 1)] (do (reset! a 2) (deref a))) 2)`,
 			typ.Bool(true))
 	})
 
 	tr.Run("sees swap value via let", func(tr assert.T) {
-		tr.Eval(envs.MalDefault,
+		tr.Eval(envs.MalStandard,
 			`(= (let* [a (atom 1)] (do (swap! a list 2) (deref a))) (list 1 2))`,
 			typ.Bool(true))
 	})
@@ -411,16 +411,16 @@ func TestResetOp(t *testing.T) {
 	})
 
 	tr.Run("mutates atom", func(tr assert.T) {
-		tr.Eval(envs.MalDefault,
+		tr.Eval(envs.MalStandard,
 			`(= (let* [a (atom 1)] (do (reset! a 2) (deref a))) 2)`,
 			typ.Bool(true))
-		tr.Eval(envs.MalDefault,
+		tr.Eval(envs.MalStandard,
 			`(= (let* [a (atom 1)] (do (reset! a "hi") (deref a))) "hi")`,
 			typ.Bool(true))
-		tr.Eval(envs.MalDefault,
+		tr.Eval(envs.MalStandard,
 			`(= (let* [a (atom 1)] (do (reset! a nil) (deref a))) nil)`,
 			typ.Bool(true))
-		tr.Eval(envs.MalDefault,
+		tr.Eval(envs.MalStandard,
 			`(= (let* [a (atom 1)] (do (reset! a (list 1 2)) (deref a))) (list 1 2))`,
 			typ.Bool(true))
 	})
@@ -455,10 +455,10 @@ func TestSwapOp(t *testing.T) {
 	})
 
 	tr.Run("mutates atom", func(tr assert.T) {
-		tr.Eval(envs.MalDefault,
+		tr.Eval(envs.MalStandard,
 			`(= (let* [a (atom 1)] (do (swap! a list 2 3) (deref a))) (list 1 2 3))`,
 			typ.Bool(true))
-		tr.Eval(envs.MalDefault,
+		tr.Eval(envs.MalStandard,
 			`(= (let* [a (atom "a")] (do (swap! a str "b") (deref a))) "ab")`,
 			typ.Bool(true))
 	})
