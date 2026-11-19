@@ -45,6 +45,7 @@ var MalFun core.Env = core.Bindings{
 	"macro?":      typ.I(isX[typ.Macro]),
 	"read-string": typ.I(readString),
 	"slurp":       typ.I(slurp),
+	"throw":       typ.I(typ.Exception),
 }.AsEnv()
 
 ///////////
@@ -196,7 +197,7 @@ func nth(container core.Value, index typ.Integer) core.Value {
 	}
 
 	if 0 > index || int(index) >= len(slice) {
-		return typ.Fatalf("index %d out of bounds for slice of size %d", index, len(slice))
+		return typ.Exceptionf("index %d out of bounds for slice of size %d", index, len(slice))
 	}
 	return slice[index]
 }

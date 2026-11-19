@@ -18,6 +18,7 @@ var MalSpecial core.Env = core.Bindings{
 	"let*":       typ.SpII(letStar),
 	"quasiquote": typ.SpI(quasiquote),
 	"quote":      typ.SpI(quote),
+	"try*":       typ.SpII(tryStar),
 }.AsEnv()
 
 // ExtraSpecial contains special forms that are not a part of Mal.
@@ -71,6 +72,34 @@ func specIf(envr core.Env, args ...core.Value) core.Value {
 	default:
 		return typ.FmtExpectedNArgs("2 or 3", len(args))
 	}
+}
+
+// tryStar implement Mal's try/catch exception mechanism.
+func tryStar(envr core.Env, attempt core.Value, catch core.Value) core.Value {
+	catchList, isList := catch.(typ.List)
+	if !isList || len(catchList) != 3 || !typ.Symbol("catch*").Equal(catchList[0]) {
+		msg := "invalid catch clause, expected a list (catch* exception handler), got %T %#s"
+		return typ.Fatalf(msg, catch, catch)
+	}
+
+	exception, isSymbol := catchList[1].(typ.Symbol)
+	if !isSymbol {
+		msg := "(catch* exception handler): invalid type for exception, expected symbol, got %s"
+		return typ.Fatalf(msg, catchList[1])
+	}
+
+	execution := typ.Resolve(envr, attempt)
+	fatal, isFatal := execution.(typ.Fatal)
+	if !isFatal {
+		return execution
+	}
+
+	if !fatal.Recoverable() {
+		return fatal
+	}
+
+	catchEnv := envr.Nest(core.Bindings{string(exception): fatal.Exception})
+	return typ.Tail(catchEnv, catchList[2])
 }
 
 //////////////////////////////

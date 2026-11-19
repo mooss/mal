@@ -4,7 +4,6 @@
 package typ
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/mooss/mal/src/core"
@@ -31,35 +30,6 @@ func (b Bool) Equal(other core.Value) bool { return TrivialEq(b, other) }
 func (b Bool) Eval(core.Env) core.Value    { return b }
 func (b Bool) String() string              { return strconv.FormatBool(bool(b)) }
 func (Bool) Type() core.TypeName           { return core.BOOL }
-
-// Fatal is an error that interrupts all execution immediately and irrecoverably.
-type Fatal struct{ error }
-
-// Fatalf creates a Fatal error with a formatted message.
-func Fatalf(msg string, args ...any) Fatal { return Fatal{error: fmt.Errorf(msg, args...)} }
-
-// NewFatal creates a fatal error wrapping the given source error.
-func NewFatal(source error) Fatal { return Fatal{source} }
-
-// Equal returns true if both are nil errors.
-func (f Fatal) Equal(other core.Value) bool {
-	o, ok := other.(Fatal)
-	return ok && f.error == nil && o.error == nil
-}
-
-func (f Fatal) Eval(core.Env) core.Value { return f }
-
-// NotNil returns true when the embedded error is not nil.
-func (f Fatal) NotNil() bool { return f.error != nil }
-
-// Qualify returns a new fatal error with "{prefix}: " added in front of the error.
-func (f Fatal) Qualify(prefix string) Fatal {
-	return Fatal{error: fmt.Errorf("%s: %w", prefix, f.error)}
-}
-
-func (f Fatal) String() string    { return fmt.Sprintf("(fatal %q)", f.Error()) }
-func (Fatal) Type() core.TypeName { return core.FATAL }
-func (f Fatal) Unbox() error      { return f.error }
 
 // Integer is a 64-bit signed integer value.
 type Integer int64
@@ -101,7 +71,7 @@ func (s Symbol) Equal(other core.Value) bool { return TrivialEq(s, other) }
 func (s Symbol) Eval(envr core.Env) core.Value {
 	value := envr.Get(string(s))
 	if value == nil {
-		return Fatalf("symbol '%s' not found", s)
+		return Exceptionf("'%s' not found", s)
 	}
 	return value
 }
