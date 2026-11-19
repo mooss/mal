@@ -40,6 +40,18 @@ func AsListOrVec(elements core.Value) ([]core.Value, Fatal) {
 	return bindlist, Fatal{}
 }
 
+// AsFunOrMac converts a function or macro to its underlying Go function or returns a fatal error.
+func AsFunOrMac(fun core.Value) (func(...core.Value) core.Value, Fatal) {
+	switch typed := fun.(type) {
+	case Function:
+		return typed, Fatal{}
+	case Macro:
+		return typed, Fatal{}
+	default:
+		return nil, Expected("function or macro", fun)
+	}
+}
+
 // AsSeq returns an iterator yielding all values as the type T.
 //
 // The iterator dies at the first unexpected type.
