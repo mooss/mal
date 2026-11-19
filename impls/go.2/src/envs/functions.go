@@ -276,7 +276,7 @@ func mapfn(fn core.Value, list core.Value) core.Value {
 
 	res := make(typ.List, len(golist))
 	for i, el := range golist {
-		elmapped := rawfun(el)
+		elmapped := typ.EnsureResolved(rawfun(el))
 		if ut.Is[typ.Fatal](elmapped) {
 			return elmapped
 		}
