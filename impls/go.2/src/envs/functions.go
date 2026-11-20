@@ -343,7 +343,7 @@ func isX[X core.Value](arg core.Value) typ.Bool { return typ.Bool(ut.Is[X](arg))
 func readString(source typ.String) core.Value {
 	res, err := reader.ParseOne(string(source))
 	if err != nil {
-		return typ.NewFatal(err)
+		return typ.Exception(typ.String(err.Error()))
 	}
 
 	return res
@@ -353,7 +353,7 @@ func readString(source typ.String) core.Value {
 func slurp(path typ.String) core.Value {
 	res, err := os.ReadFile(string(path))
 	if err != nil {
-		return typ.NewFatal(err)
+		return typ.Exception(typ.String(err.Error()))
 	}
 
 	return typ.String(res)

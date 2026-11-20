@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/damn"
 	"github.com/mooss/mal/src/lazy"
 	"github.com/mooss/mal/src/typ"
 	"github.com/mooss/mal/src/ut"
@@ -82,7 +83,7 @@ func tryStar(envr core.Env, attempt core.Value, catch core.Value) core.Value {
 		return typ.Fatalf(msg, catch, catch)
 	}
 
-	exception, isSymbol := catchList[1].(typ.Symbol)
+	symbol, isSymbol := catchList[1].(typ.Symbol)
 	if !isSymbol {
 		msg := "(catch* exception handler): invalid type for exception, expected symbol, got %s"
 		return typ.Fatalf(msg, catchList[1])
@@ -94,11 +95,12 @@ func tryStar(envr core.Env, attempt core.Value, catch core.Value) core.Value {
 		return execution
 	}
 
-	if !fatal.Recoverable() {
+	exception, isException := damn.Cast[*damn.Exception](fatal.Wrapped)
+	if !isException {
 		return fatal
 	}
 
-	catchEnv := envr.Nest(core.Bindings{string(exception): fatal.Exception})
+	catchEnv := envr.Nest(core.Bindings{string(symbol): exception.Payload})
 	return typ.Tail(catchEnv, catchList[2])
 }
 
@@ -149,7 +151,7 @@ func letStar(envr core.Env, bindings core.Value, form core.Value) core.Value {
 	}
 
 	if len(bindlist)%2 != 0 {
-		return typ.Fatalf("odd-numbered let bindings")
+		return typ.Exceptionf("odd-numbered let bindings")
 	}
 
 	letenv := envr.Nest(nil)
@@ -191,7 +193,7 @@ func fnStar(envr core.Env, paramlist core.Value, body core.Value) core.Value {
 		return typ.Function(mkFixedClosure(envr, symlist, body))
 	}
 	if amperpos != len(symlist)-2 {
-		return typ.Fatalf("invalid & in lambda params, must be right before the last symbol")
+		return typ.Exceptionf("invalid & in lambda params, must be right before the last symbol")
 	}
 
 	rest := string(symlist[amperpos+1])

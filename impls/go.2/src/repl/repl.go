@@ -121,6 +121,10 @@ func mkrep(envr core.Env) func(input string) (string, error) {
 			return "", err
 		}
 
-		return typ.Resolve(envr, parsed).String(), nil
+		res := typ.Resolve(envr, parsed)
+		if err, isErr := res.(typ.Fatal); isErr {
+			return err.Error(), nil
+		}
+		return res.String(), nil
 	}
 }
