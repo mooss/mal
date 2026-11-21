@@ -12,12 +12,56 @@ import (
 // Map is a mapping from values to values.
 type Map map[core.Value]core.Value
 
+func (m Map) Contains(key core.Value) bool {
+	if !ValidMapKey(key) {
+		return false
+	}
+	_, res := m[key]
+	return res
+}
+
 func (m Map) Equal(other core.Value) bool { return mapEq(m, other) }
 func (m Map) Eval(core.Env) core.Value    { return m }
+
 func (m Map) String() string {
 	return "{" + strings.Join(_mapflat(core.Value.String, m), " ") + "}"
 }
 func (Map) Type() core.TypeName { return core.MAP }
+
+func (m Map) MalContains(key core.Value) Bool { return Bool(m.Contains(key)) }
+
+func (m Map) MalGet(key core.Value) core.Value {
+	if !ValidMapKey(key) {
+		return Nil{}
+	}
+	if value, ok := m[key]; ok {
+		return value
+	}
+	return Nil{}
+}
+
+func (m Map) MalKeys() List {
+	res := make(List, len(m))
+	i := 0
+	for key := range m {
+		res[i] = key
+		i++
+	}
+	return res
+}
+
+func (m Map) MalValues() List {
+	res := make(List, len(m))
+	i := 0
+	for _, value := range m {
+		res[i] = value
+		i++
+	}
+	return res
+}
+
+/////////////
+// MapForm //
 
 // Assoc represents a key-value association.
 type Assoc struct {
@@ -50,7 +94,7 @@ func (m MapForm) Eval(envr core.Env) core.Value {
 		if ut.Is[Fatal](key) {
 			return key
 		}
-		if !validKey(key) {
+		if !ValidMapKey(key) {
 			return Fatalf("invalid key type in map literal: %s", key.Type())
 		}
 

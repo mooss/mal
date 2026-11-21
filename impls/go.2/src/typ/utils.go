@@ -10,6 +10,9 @@ import (
 	"github.com/mooss/mal/src/damn"
 )
 
+/////////////////////
+// Type assertions //
+
 // As attempts to assert that val has the intended type T.
 // When the type is not expected, a Fatal "expected ..." error is returned.
 // When the unexpected type is already a Fatal error, it is returned as is.
@@ -100,19 +103,8 @@ func AsSlice[T core.Value](values ...core.Value) ([]T, Fatal) {
 	return res, Fatal{}
 }
 
-// EvalArgs evaluates all its arguments in order, returning them as a slice.
-// The first Fatal error encountered triggers a short-circuit and is returned as an error.
-func EvalArgs(envr core.Env, args ...core.Value) ([]core.Value, Fatal) {
-	res := make([]core.Value, len(args))
-	for i, arg := range args {
-		evald := Resolve(envr, arg)
-		if err, isFatal := evald.(Fatal); isFatal {
-			return nil, err
-		}
-		res[i] = evald
-	}
-	return res, Fatal{}
-}
+////////////////////////////
+// Fatal error formatting //
 
 // ExpectAtLeastNArgs returns a nil Fatal if got contains at least expected values, otherwise a
 // Fatal "expected ... args, got ..." error.
@@ -144,6 +136,23 @@ func Expected[T ~string](expected T, got core.Value) Fatal {
 // FmtExpectedNArgs format a Fatal "expected ... args, got ..." error.
 func FmtExpectedNArgs(expected string, got int) Fatal {
 	return ThrowErr(&damn.ArityError{Want: expected, Got: got})
+}
+
+///////////
+// Other //
+
+// EvalArgs evaluates all its arguments in order, returning them as a slice.
+// The first Fatal error encountered triggers a short-circuit and is returned as an error.
+func EvalArgs(envr core.Env, args ...core.Value) ([]core.Value, Fatal) {
+	res := make([]core.Value, len(args))
+	for i, arg := range args {
+		evald := Resolve(envr, arg)
+		if err, isFatal := evald.(Fatal); isFatal {
+			return nil, err
+		}
+		res[i] = evald
+	}
+	return res, Fatal{}
 }
 
 // IsTrue returns whether the value is considered truthful, discarding any Fatal error.
@@ -180,4 +189,13 @@ func Truthful(arg core.Value) (bool, Fatal) {
 		realised = true
 	}
 	return realised, Fatal{}
+}
+
+// ValidMapKey returns true when the given value can be used for a map key.
+func ValidMapKey(value core.Value) bool {
+	switch value.(type) {
+	case Integer, Keyword, Nil, String, Symbol:
+		return true
+	}
+	return false
 }

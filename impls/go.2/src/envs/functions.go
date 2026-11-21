@@ -2,6 +2,7 @@ package envs
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -14,23 +15,28 @@ import (
 	"github.com/mooss/mal/src/ut"
 )
 
+var OddMapArgsErr = typ.Throwf("odd-numbered map arguments")
+
 // MalFun holds the built-in Mal functions.
 var MalFun core.Env = core.Bindings{
 	// Atoms.
-	"atom":   typ.I(atom),
-	"atom?":  typ.I(isX[*typ.Atom]),
 	"deref":  typ.I(deref),
 	"reset!": typ.II(reset),
 	"swap!":  typ.Function(swap),
+
+	// Constructors.
+	"atom":     typ.I(mkAtom),
+	"hash-map": typ.Function(mkMap),
+	"symbol":   typ.I(mkSymbol),
+	"keyword":  typ.I(mkKeyword),
+	"vector":   typ.Function(mkVector),
 
 	// Containers.
 	"concat": typ.Function(concat),
 	"cons":   typ.II(cons),
 	"count":  typ.I(count),
-	"empty?": typ.I(isEmpty),
 	"first":  typ.I(first),
-	"list":   typ.Function(list),
-	"list?":  typ.I(isX[typ.List]),
+	"list":   typ.Function(mkList),
 	"nth":    typ.II(nth),
 	"rest":   typ.I(rest),
 	"vec":    typ.I(vec),
@@ -38,6 +44,31 @@ var MalFun core.Env = core.Bindings{
 	// Fun.
 	"apply": typ.Function(apply),
 	"map":   typ.II(mapfn),
+
+	// Maps.
+	"assoc":     typ.Function(assoc),
+	"contains?": typ.II(typ.Map.MalContains),
+	"dissoc":    typ.Function(dissoc),
+	"get":       typ.II(get),
+	"keys":      typ.I(typ.Map.MalKeys),
+	"vals":      typ.I(typ.Map.MalValues),
+
+	// Predicates.
+	"atom?":       typ.I(isX[*typ.Atom]),
+	"bool?":       typ.I(isX[typ.Bool]),
+	"empty?":      typ.I(isEmpty),
+	"false?":      typ.I(isFalse),
+	"map?":        typ.I(isX[typ.Map]),
+	"int?":        typ.I(isX[typ.Integer]),
+	"keyword?":    typ.I(isX[typ.Keyword]),
+	"list?":       typ.I(isX[typ.List]),
+	"macro?":      typ.I(isX[typ.Macro]),
+	"nil?":        typ.I(isX[typ.Nil]),
+	"sequential?": typ.I(isSequential),
+	"string?":     typ.I(isX[typ.String]),
+	"symbol?":     typ.I(isX[typ.Symbol]),
+	"true?":       typ.I(isTrue),
+	"vector?":     typ.I(isX[typ.Vector]),
 
 	// Strings.
 	"pr-str":  typ.Function(prStr),
@@ -47,7 +78,6 @@ var MalFun core.Env = core.Bindings{
 
 	// Other.
 	"=":           typ.II(equal),
-	"macro?":      typ.I(isX[typ.Macro]),
 	"read-string": typ.I(readString),
 	"slurp":       typ.I(slurp),
 	"throw":       typ.I(typ.Throw),
@@ -55,9 +85,6 @@ var MalFun core.Env = core.Bindings{
 
 ///////////
 // Atoms //
-
-// atom creates a new atom holding the given value.
-func atom(arg core.Value) *typ.Atom { return &typ.Atom{Ref: arg} }
 
 // deref returns the value currently held by the atom.
 func deref(atom *typ.Atom) core.Value { return atom.Ref }
@@ -99,6 +126,45 @@ func swap(args ...core.Value) core.Value {
 	atom.Ref = res
 	return res
 }
+
+//////////////////
+// Constructors //
+
+// mkAtom creates a new atom from a value.
+func mkAtom(arg core.Value) *typ.Atom { return &typ.Atom{Ref: arg} }
+
+// mkKeyword creates a new keyword from a keyword, string or symbol.
+func mkKeyword(name core.Value) core.Value {
+	namestr, err := goString(name)
+	if err.NotNil() {
+		return err
+	}
+	return typ.Keyword(namestr)
+}
+
+// mkList creates a new list from a list of arguments.
+func mkList(args ...core.Value) core.Value { return typ.List(args) }
+
+// mkMap creates a new map from even key, value... arguments.
+func mkMap(args ...core.Value) core.Value {
+	if len(args)%2 != 0 {
+		return OddMapArgsErr
+	}
+
+	return extendMap(make(typ.Map, len(args)/2), args...)
+}
+
+// mkSymbol creates a new symbol from a keyword, string or symbol.
+func mkSymbol(name core.Value) core.Value {
+	namestr, err := goString(name)
+	if err.NotNil() {
+		return err
+	}
+	return typ.Symbol(namestr)
+}
+
+// mkVector creates a new vector from a list of arguments.
+func mkVector(args ...core.Value) core.Value { return typ.Vector(args) }
 
 ////////////////
 // Containers //
@@ -160,15 +226,6 @@ func first(container core.Value) core.Value {
 	return slice[0]
 }
 
-// isEmpty returns true when the given container has no elements.
-func isEmpty(arg core.Value) core.Value {
-	size, err := length(arg)
-	if err.NotNil() {
-		return err
-	}
-	return typ.Bool(size == 0)
-}
-
 // length returns the number of elements in the given container, or an error if the value is not a
 // container.
 func length(container core.Value) (res int, err typ.Fatal) {
@@ -190,9 +247,6 @@ func length(container core.Value) (res int, err typ.Fatal) {
 	}
 	return
 }
-
-// list creates a new list from the given arguments.
-func list(args ...core.Value) core.Value { return typ.List(args) }
 
 // nth returns the nth element of the given list/vector.
 func nth(container core.Value, index typ.Integer) core.Value {
@@ -287,6 +341,103 @@ func mapfn(fn core.Value, list core.Value) core.Value {
 	return res
 }
 
+//////////
+// Maps //
+
+// assoc copies the first argument as a map and adds new association from the rest of the arguments.
+func assoc(args ...core.Value) core.Value {
+	if err := typ.ExpectAtLeastNArgs(1, args); err.NotNil() {
+		return err
+	}
+
+	source, err := typ.As[typ.Map](args[0])
+	if err.NotNil() {
+		return err
+	}
+
+	if len(args)%2 != 1 { // != 1 to take the first argument into account.
+		return OddMapArgsErr
+	}
+
+	return extendMap(maps.Clone(source), args[1:]...)
+}
+
+// dissoc (map, ...keys) returns a copy of map that does not contains any of ...keys.
+func dissoc(args ...core.Value) core.Value {
+	if err := typ.ExpectAtLeastNArgs(1, args); err.NotNil() {
+		return err
+	}
+	source, err := typ.As[typ.Map](args[0])
+	if err.NotNil() {
+		return err
+	}
+
+	keys := ut.NewSetI(fun.Filter(typ.ValidMapKey, slices.Values(args[1:])))
+	// Allocate the strict minimum to try and avoid repeated growth.
+	res := make(typ.Map, max(0, len(source)-len(keys)))
+	for key, value := range source {
+		if !keys.Contains(key) {
+			res[key] = value
+		}
+	}
+	return res
+}
+
+// get (map|nil, key) returns the value associated to key in map, nil if it does not exist.
+func get(dict, key core.Value) core.Value {
+	switch typed := dict.(type) {
+	case typ.Nil:
+		return typ.Nil{}
+	case typ.Map:
+		return typed.MalGet(key)
+	default:
+		return typ.Expected("nil or map", dict)
+	}
+}
+
+////////////////
+// Predicates //
+
+// isEmpty returns true when the given container has no elements.
+func isEmpty(arg core.Value) core.Value {
+	size, err := length(arg)
+	if err.NotNil() {
+		return err
+	}
+	return typ.Bool(size == 0)
+}
+
+// isFalse returns true when arg is a boolean and its value is false.
+func isFalse(arg core.Value) typ.Bool {
+	boo, isBool := arg.(typ.Bool)
+	if isBool {
+		return !boo
+	}
+	return false
+}
+
+// isSequential returns true when arg is a list or vector.
+func isSequential(arg core.Value) typ.Bool {
+	switch arg.(type) {
+	case typ.Vector, typ.List:
+		return true
+	default:
+		return false
+	}
+}
+
+// isTrue returns true when arg is a boolean and its value is true.
+func isTrue(arg core.Value) typ.Bool {
+	boo, isBool := arg.(typ.Bool)
+	if isBool {
+		return boo
+	}
+	return false
+}
+
+// isX returns true when the type of arg is X.
+func isX[X core.Value](arg core.Value) typ.Bool { return typ.Bool(ut.Is[X](arg)) }
+
 /////////////////////
 // Print functions //
 
@@ -337,8 +488,31 @@ func str(args ...core.Value) core.Value {
 ///////////
 // Other //
 
-// isX returns true when the type of arg is X.
-func isX[X core.Value](arg core.Value) typ.Bool { return typ.Bool(ut.Is[X](arg)) }
+// extendMap adds new associations to dest from even key, value... arguments.
+// Will crash when len(args) is not even.
+func extendMap(dest typ.Map, args ...core.Value) core.Value {
+	for i := 0; i < len(args); i += 2 {
+		if !typ.ValidMapKey(args[i]) {
+			return typ.Throwf("invalid map key %#v (%T)", args[i], args[i])
+		}
+		dest[args[i]] = args[i+1]
+	}
+	return dest
+}
+
+// goString returns the raw Go string underlying a Keyword, String or Symbol.
+func goString(arg core.Value) (string, typ.Fatal) {
+	switch typed := arg.(type) {
+	case typ.Keyword:
+		return string(typed), typ.Fatal{}
+	case typ.String:
+		return string(typed), typ.Fatal{}
+	case typ.Symbol:
+		return string(typed), typ.Fatal{}
+	default:
+		return "", typ.Expected("keyword, string or symbol", arg)
+	}
+}
 
 // readString parses the first form of the given source string and returns it.
 func readString(source typ.String) core.Value {

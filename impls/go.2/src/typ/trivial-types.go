@@ -30,6 +30,7 @@ func (b Bool) Equal(other core.Value) bool { return TrivialEq(b, other) }
 func (b Bool) Eval(core.Env) core.Value    { return b }
 func (b Bool) String() string              { return strconv.FormatBool(bool(b)) }
 func (Bool) Type() core.TypeName           { return core.BOOL }
+func (b Bool) Unbox() bool                 { return bool(b) }
 
 // Integer is a 64-bit signed integer value.
 type Integer int64
