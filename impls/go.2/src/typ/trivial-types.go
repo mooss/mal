@@ -38,6 +38,7 @@ func (i Integer) Equal(other core.Value) bool { return TrivialEq(i, other) }
 func (i Integer) Eval(core.Env) core.Value    { return i }
 func (i Integer) String() string              { return strconv.FormatInt(int64(i), 10) }
 func (Integer) Type() core.TypeName           { return core.INTEGER }
+func (i Integer) Unbox() int64                { return int64(i) }
 
 // Keyword is a Mal keyword value, written with a leading colon.
 type Keyword string
@@ -71,7 +72,7 @@ func (s Symbol) Equal(other core.Value) bool { return TrivialEq(s, other) }
 func (s Symbol) Eval(envr core.Env) core.Value {
 	value := envr.Get(string(s))
 	if value == nil {
-		return Exceptionf("'%s' not found", s)
+		return Throwf("'%s' not found", s)
 	}
 	return value
 }

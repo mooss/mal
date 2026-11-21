@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/damn"
 )
 
 // As attempts to assert that val has the intended type T.
@@ -137,12 +138,12 @@ func Expected[T ~string](expected T, got core.Value) Fatal {
 	if err, isFatal := got.(Fatal); isFatal {
 		return err
 	}
-	return Fatalf("expected %s but got %s (%v)", expected, got.Type(), got)
+	return ThrowErr(damn.TypeMismatch(expected, got))
 }
 
 // FmtExpectedNArgs format a Fatal "expected ... args, got ..." error.
 func FmtExpectedNArgs(expected string, got int) Fatal {
-	return Fatalf("expected %s args, got %d", expected, got)
+	return ThrowErr(&damn.ArityError{Want: expected, Got: got})
 }
 
 // IsTrue returns whether the value is considered truthful, discarding any Fatal error.

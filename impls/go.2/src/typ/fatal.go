@@ -21,9 +21,9 @@ func Fatalf(msg string, args ...any) Fatal { return Fatal{damn.Newf(msg, args...
 // NewFatal creates a fatal error wrapping the given source error.
 func NewFatal(source error) Fatal { return Fatal{damn.From(source)} }
 
-func Exception(val core.Value) Fatal { return Fatal{damn.Throw(val)} }
-
-func Exceptionf(format string, args ...any) Fatal {
+func Throw(val core.Value) Fatal { return Fatal{damn.Throw(val)} }
+func ThrowErr(err error) Fatal   { return Fatal{&ThrowableError{err}} }
+func Throwf(format string, args ...any) Fatal {
 	return Fatal{damn.Throw(String(fmt.Sprintf(format, args...)))}
 }
 
@@ -60,3 +60,12 @@ func (f Fatal) String() string {
 func (Fatal) Type() core.TypeName { return core.FATAL }
 
 func (f Fatal) Unbox() error { return f.Wrapped }
+
+////////////////////
+// ThrowableError //
+
+type ThrowableError struct {
+	error
+}
+
+func (te *ThrowableError) Mal() core.Value { return String(te.Error()) }

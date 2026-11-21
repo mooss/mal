@@ -95,12 +95,12 @@ func tryStar(envr core.Env, attempt core.Value, catch core.Value) core.Value {
 		return execution
 	}
 
-	exception, isException := damn.Cast[*damn.Exception](fatal.Wrapped)
+	throwable, isException := damn.Cast[damn.Throwable](fatal.Wrapped)
 	if !isException {
 		return fatal
 	}
 
-	catchEnv := envr.Nest(core.Bindings{string(symbol): exception.Payload})
+	catchEnv := envr.Nest(core.Bindings{string(symbol): throwable.Mal()})
 	return typ.Tail(catchEnv, catchList[2])
 }
 
@@ -151,14 +151,14 @@ func letStar(envr core.Env, bindings core.Value, form core.Value) core.Value {
 	}
 
 	if len(bindlist)%2 != 0 {
-		return typ.Exceptionf("odd-numbered let bindings")
+		return typ.Throwf("odd-numbered let bindings")
 	}
 
 	letenv := envr.Nest(nil)
 	for i := 0; i < len(bindlist); i += 2 {
 		key, err := typ.As[typ.Symbol](bindlist[i])
 		if err.NotNil() {
-			return err.Qualify("invalid key in let bindings")
+			return err.Qualify("invalid binding")
 		}
 
 		value := typ.Resolve(letenv, bindlist[i+1])
@@ -193,7 +193,7 @@ func fnStar(envr core.Env, paramlist core.Value, body core.Value) core.Value {
 		return typ.Function(mkFixedClosure(envr, symlist, body))
 	}
 	if amperpos != len(symlist)-2 {
-		return typ.Exceptionf("invalid & in lambda params, must be right before the last symbol")
+		return typ.Throwf("invalid & in lambda params, must be right before the last symbol")
 	}
 
 	rest := string(symlist[amperpos+1])

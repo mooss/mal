@@ -17,7 +17,7 @@ var (
 	lst   = tut.Lst
 	mapf  = tut.MapForm
 	nul   = tut.Nil
-	num   = tut.Num
+	num   = tut.Int
 	qot   = typ.Quote
 	str   = tut.Str
 	sym   = tut.Sym

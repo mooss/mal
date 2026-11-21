@@ -11,9 +11,9 @@ import (
 
 func TestVectorEvalEvaluatesElementsInOrder(t *testing.T) {
 	envr := core.Bindings{
-		"first":  tut.Num(10),
-		"second": tut.Num(20),
-		"third":  tut.Num(30),
+		"first":  tut.Int(10),
+		"second": tut.Int(20),
+		"third":  tut.Int(30),
 	}.AsEnv()
 	got := assert.Ok(t, tut.Vec(
 		tut.Sym("first"), tut.Sym("second"), tut.Sym("third"),
@@ -35,7 +35,7 @@ func TestVectorEvalPropagatesFirstFatalAndStops(t *testing.T) {
 	got := tut.Vec(
 		tut.Sym("first"),
 		tut.Sym("second"),
-		tut.Probe{ID: "probe", Log: &log, Ret: tut.Num(1)},
+		tut.Probe{ID: "probe", Log: &log, Ret: tut.Int(1)},
 	).Eval(envr)
 
 	assert.StringRepr(t, assert.Fatal(t, got), firstFatal.String())

@@ -6,6 +6,11 @@ import (
 	"github.com/mooss/mal/src/core"
 )
 
+type Throwable interface {
+	error
+	Mal() core.Value
+}
+
 ///////////////
 // Exception //
 
@@ -18,7 +23,8 @@ func (e *Exception) Error() string {
 	return e.Payload.String()
 }
 
-func Throw(v core.Value) error { return From(&Exception{v}) }
+func (e *Exception) Mal() core.Value { return e.Payload }
+func Throw(v core.Value) error       { return &Exception{v} }
 
 ///////////
 // Arity //
@@ -31,8 +37,6 @@ type ArityError struct {
 func (e *ArityError) Error() string {
 	return fmt.Sprintf("expected %s args, got %d", e.Want, e.Got)
 }
-
-func Arity(want string, got int) error { return From(&ArityError{want, got}) }
 
 //////////
 // Type //
@@ -50,7 +54,7 @@ func (e *TypeError) Error() string {
 }
 
 func TypeMismatch[T ~string](want T, got core.Value) error {
-	return From(&TypeError{string(want), got})
+	return &TypeError{string(want), got}
 }
 
 ////////////
@@ -64,8 +68,6 @@ type BoundsError struct {
 func (e *BoundsError) Error() string {
 	return fmt.Sprintf("index %d out of bounds for slice of size %d", e.Index, e.Len)
 }
-
-func Bounds(index, length int) error { return From(&BoundsError{index, length}) }
 
 ////////////
 // Syntax //

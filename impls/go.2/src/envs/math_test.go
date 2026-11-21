@@ -11,7 +11,7 @@ import (
 )
 
 func TestEvalIntegerReturnsItself(t *testing.T) {
-	assert.MalEqual(t, typ.Integer(42).Eval(envs.Math), tut.Num(42))
+	assert.MalEqual(t, typ.Integer(42).Eval(envs.Math), tut.Int(42))
 }
 
 func TestEvalEmptyListReturnsItself(t *testing.T) {
@@ -31,11 +31,11 @@ func TestEvalUnknownSymbolReturnsError(t *testing.T) {
 
 func TestEvalUsesGivenEnv(t *testing.T) {
 	custom := core.NewEnv()
-	custom.Set("foo", typ.Function(func(...core.Value) core.Value { return tut.Num(99) }))
+	custom.Set("foo", typ.Function(func(...core.Value) core.Value { return tut.Int(99) }))
 
 	assert.Is[typ.Function](t, tut.Sym("foo").Eval(custom))
 	assert.Fatal(t, tut.Sym("+").Eval(custom))
-	assert.MalEqual(t, tut.Lst(tut.Sym("foo"), tut.Num(1), tut.Num(2)).Eval(custom), tut.Num(99))
+	assert.MalEqual(t, tut.Lst(tut.Sym("foo"), tut.Int(1), tut.Int(2)).Eval(custom), tut.Int(99))
 }
 
 func TestEvalArithmetic(t *testing.T) {
@@ -51,7 +51,7 @@ func TestEvalArithmetic(t *testing.T) {
 
 func TestEvalNestedArithmetic(t *testing.T) {
 	// (+ (* 2 3) (- 10 4)) == 12
-	assert.Eval(t, envs.Math, "(+ (* 2 3) (- 10 4))", tut.Num(12))
+	assert.Eval(t, envs.Math, "(+ (* 2 3) (- 10 4))", tut.Int(12))
 }
 
 func TestVariadicZeroArgsReturnsFatal(t *testing.T) {

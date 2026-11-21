@@ -23,8 +23,8 @@ func MapForm(pairs ...core.Value) typ.MapForm {
 // Nil builds Nil.
 func Nil() typ.Nil { return typ.Nil{} }
 
-// Num builds an Integer.
-func Num(n int64) typ.Integer { return typ.Integer(n) }
+// Int builds an Integer.
+func Int(n int64) typ.Integer { return typ.Integer(n) }
 
 // Str builds a String.
 func Str(s string) typ.String { return typ.String(s) }

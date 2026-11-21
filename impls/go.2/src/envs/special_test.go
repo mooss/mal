@@ -33,7 +33,7 @@ func TestLetStarNonSymbolKeyQualifyPrefix(t *testing.T) {
 	tr := assert.New(t)
 	for _, input := range []string{"(let* (() a) a)", "(let* [() a] a)"} {
 		outer := envs.MalSpecial.Nest(core.Bindings{"a": tut.Sym("a-val")})
-		_ = tr.EvalFatalContains(outer, input, "invalid key in let bindings")
+		_ = tr.EvalFatalContains(outer, input, "invalid binding")
 	}
 }
 

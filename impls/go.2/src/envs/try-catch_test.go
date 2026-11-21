@@ -17,7 +17,7 @@ func TestTryStarSpecial(t *testing.T) {
 	tr := assert.New(t)
 
 	tr.Run("no exception returns attempt", func(tr assert.T) {
-		tr.Eval(envs.MalStandard, `(try* 42 (catch* e 99))`, tut.Num(42))
+		tr.Eval(envs.MalStandard, `(try* 42 (catch* e 99))`, tut.Int(42))
 		tr.Eval(envs.MalStandard, `(try* "ok" (catch* e "caught"))`, tut.Str("ok"))
 		tr.Eval(envs.MalStandard, `(try* nil (catch* e 1))`, typ.Nil{})
 		tr.Eval(envs.MalStandard, `(try* true (catch* e false))`, typ.Bool(true))
@@ -27,7 +27,7 @@ func TestTryStarSpecial(t *testing.T) {
 
 	tr.Run("catches thrown values", func(tr assert.T) {
 		tr.Eval(envs.MalStandard, `(try* (throw "oops") (catch* e e))`, tut.Str("oops"))
-		tr.Eval(envs.MalStandard, `(try* (throw 42) (catch* e e))`, tut.Num(42))
+		tr.Eval(envs.MalStandard, `(try* (throw 42) (catch* e e))`, tut.Int(42))
 		tr.Eval(envs.MalStandard, `(try* (throw true) (catch* e e))`, typ.Bool(true))
 		tr.Eval(envs.MalStandard, `(try* (throw nil) (catch* e e))`, typ.Nil{})
 		tr.EvalSame(envs.MalStandard, `(try* (throw (list 1 2)) (catch* e e))`, `(list 1 2)`)
@@ -39,41 +39,40 @@ func TestTryStarSpecial(t *testing.T) {
 		tr.Eval(envs.MalStandard, `(try* (throw "a") (catch* err (str "caught:" err)))`, tut.Str("caught:a"))
 		tr.EvalSame(envs.MalStandard, `(try* (throw 2) (catch* e (list e e)))`, `(list 2 2)`)
 		tr.EvalSame(envs.MalStandard, `(let* [x 10] (try* (throw 2) (catch* e (list x e))))`, `(list 10 2)`)
-		tr.Eval(envs.MalStandard, `(let* [x 10] (try* (throw 1) (catch* e x)))`, tut.Num(10))
-		tr.Eval(envs.MalStandard, `(let* [x 10] (try* x (catch* e 99)))`, tut.Num(10))
+		tr.Eval(envs.MalStandard, `(let* [x 10] (try* (throw 1) (catch* e x)))`, tut.Int(10))
+		tr.Eval(envs.MalStandard, `(let* [x 10] (try* x (catch* e 99)))`, tut.Int(10))
 	})
 
 	tr.Run("handler not evaluated on success", func(tr assert.T) {
 		tr.Eval(envs.MalStandard,
 			`(let* [a (atom 0)] (do (try* 1 (catch* e (reset! a 1))) (deref a)))`,
-			tut.Num(0))
+			tut.Int(0))
 	})
 
 	tr.Run("nested try", func(tr assert.T) {
-		tr.Eval(envs.MalStandard, `(try* (try* (throw 1) (catch* a (throw 2))) (catch* b b))`, tut.Num(2))
-		tr.Eval(envs.MalStandard, `(try* (try* 1 (catch* a 2)) (catch* b 3))`, tut.Num(1))
-		tr.Eval(envs.MalStandard, `(try* (try* (throw 1) (catch* a a)) (catch* b 99))`, tut.Num(1))
+		tr.Eval(envs.MalStandard, `(try* (try* (throw 1) (catch* a (throw 2))) (catch* b b))`, tut.Int(2))
+		tr.Eval(envs.MalStandard, `(try* (try* 1 (catch* a 2)) (catch* b 3))`, tut.Int(1))
+		tr.Eval(envs.MalStandard, `(try* (try* (throw 1) (catch* a a)) (catch* b 99))`, tut.Int(1))
 	})
 
 	tr.Run("rethrown from handler is observable", func(tr assert.T) {
 		tr.Eval(envs.MalStandard, `(try* (try* (throw "inner") (catch* a (throw (str a "-outer")))) (catch* b b))`, tut.Str("inner-outer"))
 	})
 
-	tr.Run("irrecoverable errors are not caught", func(tr assert.T) {
-		tr.EvalFatal(envs.MalStandard,
-			`(try* (map) (catch* e 42))`,
-			`(try* (throw 1 2) (catch* e 42))`,
-			`(try* (throw) (catch* e 42))`,
-			`(try* (count 1) (catch* e 42))`,
-		)
-	})
+	tr.RunCases("arity and type errors are caught", func(tr assert.T, c string) {
+		tr.Eval(envs.MalStandard, c, tut.Int(42))
+	}, `(try* (map) (catch* e 42))`,
+		`(try* (throw 1 2) (catch* e 42))`,
+		`(try* (throw) (catch* e 42))`,
+		`(try* (count 1) (catch* e 42))`,
+	)
 
 	tr.Run("exception binding does not leak", func(tr assert.T) {
 		tr.EvalFatal(envs.MalStandard,
 			`(do (try* (throw 5) (catch* myerr myerr)) myerr)`,
 		)
-		tr.Eval(envs.MalStandard, `(let* [e 10] (try* (throw 5) (catch* e e)))`, tut.Num(5))
-		tr.Eval(envs.MalStandard, `(let* [e 10] (do (try* (throw 5) (catch* e e)) e))`, tut.Num(10))
+		tr.Eval(envs.MalStandard, `(let* [e 10] (try* (throw 5) (catch* e e)))`, tut.Int(5))
+		tr.Eval(envs.MalStandard, `(let* [e 10] (do (try* (throw 5) (catch* e e)) e))`, tut.Int(10))
 	})
 
 	tr.Run("invalid catch clause returns Fatal", func(tr assert.T) {
@@ -133,8 +132,8 @@ func TestThrowFunction(t *testing.T) {
 
 	tr.Run("throw inside do and let", func(tr assert.T) {
 		tr.Eval(envs.MalStandard, `(try* (do 1 2 (throw "late")) (catch* e e))`, tut.Str("late"))
-		tr.Eval(envs.MalStandard, `(let* [x 1] (try* (throw x) (catch* e e)))`, tut.Num(1))
-		tr.Eval(envs.MalStandard, `(let* [f (fn* [x] (throw x))] (try* (f 42) (catch* e e)))`, tut.Num(42))
+		tr.Eval(envs.MalStandard, `(let* [x 1] (try* (throw x) (catch* e e)))`, tut.Int(1))
+		tr.Eval(envs.MalStandard, `(let* [f (fn* [x] (throw x))] (try* (f 42) (catch* e e)))`, tut.Int(42))
 	})
 
 	tr.Run("arity", func(tr assert.T) {

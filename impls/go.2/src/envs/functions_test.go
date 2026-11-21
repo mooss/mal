@@ -149,7 +149,7 @@ func TestCount(t *testing.T) {
 		{Name: "non-empty map", Input: `(count {"a" 1 "b" 2})`, Want: 2},
 	}
 	tr.RunCases("count", func(tr assert.T, c tut.Case[int64]) {
-		tr.Eval(envs.MalFun, c.Input, tut.Num(c.Want))
+		tr.Eval(envs.MalFun, c.Input, tut.Int(c.Want))
 	}, cases...)
 
 	tr.Run("non-containers return Fatal", func(tr assert.T) {

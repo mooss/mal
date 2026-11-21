@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/damn"
 	"github.com/mooss/mal/src/fun"
 	"github.com/mooss/mal/src/reader"
 	"github.com/mooss/mal/src/typ"
@@ -49,7 +50,7 @@ var MalFun core.Env = core.Bindings{
 	"macro?":      typ.I(isX[typ.Macro]),
 	"read-string": typ.I(readString),
 	"slurp":       typ.I(slurp),
-	"throw":       typ.I(typ.Exception),
+	"throw":       typ.I(typ.Throw),
 }.AsEnv()
 
 ///////////
@@ -201,7 +202,7 @@ func nth(container core.Value, index typ.Integer) core.Value {
 	}
 
 	if 0 > index || int(index) >= len(slice) {
-		return typ.Exceptionf("index %d out of bounds for slice of size %d", index, len(slice))
+		return typ.ThrowErr(&damn.BoundsError{Index: int(index), Len: len(slice)})
 	}
 	return slice[index]
 }
@@ -343,7 +344,7 @@ func isX[X core.Value](arg core.Value) typ.Bool { return typ.Bool(ut.Is[X](arg))
 func readString(source typ.String) core.Value {
 	res, err := reader.ParseOne(string(source))
 	if err != nil {
-		return typ.Exception(typ.String(err.Error()))
+		return typ.Throw(typ.String(err.Error()))
 	}
 
 	return res
@@ -353,7 +354,7 @@ func readString(source typ.String) core.Value {
 func slurp(path typ.String) core.Value {
 	res, err := os.ReadFile(string(path))
 	if err != nil {
-		return typ.Exception(typ.String(err.Error()))
+		return typ.Throw(typ.String(err.Error()))
 	}
 
 	return typ.String(res)
