@@ -88,7 +88,6 @@ func TestReadAtoms(t *testing.T) {
 		{Name: "slash", Input: "foo/bar", Want: sym("foo/bar")},
 		{Name: "dot", Input: "foo.bar", Want: sym("foo.bar")},
 		{Name: "nil", Input: "nil", Want: nul()},
-		{Name: "true", Input: "true", Want: sym("true")},
 		{Name: "empty string", Input: `""`, Want: str(``)},
 		{Name: "simple string", Input: `"hello"`, Want: str(`hello`)},
 		{Name: "string with space", Input: `"hello world"`, Want: str(`hello world`)},

@@ -256,9 +256,6 @@ func TestLogicLiterals(t *testing.T) {
 		assert.Is[typ.Function](t, tut.Sym(sym).Eval(envs.Math))
 	}
 	assert.Is[typ.Function](t, tut.Sym("not").Eval(envs.Math))
-	for _, sym := range []string{"true", "false"} {
-		assert.Is[typ.Bool](t, tut.Sym(sym).Eval(envs.MalValues))
-	}
 }
 
 func TestNotFunction(t *testing.T) {

@@ -12,8 +12,6 @@ var (
 	MalValues = core.Bindings{
 		"*ARGV*":          typ.List{},
 		"*host-language*": typ.NewString("go.2"),
-		"false":           typ.False,
-		"true":            typ.True,
 	}.AsEnv()
 	MalStandard = core.CatEnv(MalValues, MalSpecial, Math, MalFun)
 	All         = core.CatEnv(MalStandard, ExtraSpecial)

@@ -198,9 +198,15 @@ func (r *Reader) readInt(token lexer.Token) (core.Value, error) {
 
 // readSymbol constructs a symbol from the given input token.
 func (*Reader) readSymbol(token lexer.Token) (core.Value, error) {
-	if token.Value == "nil" {
+	switch token.Value {
+	case "nil":
 		return typ.Nil{}, nil
+	case "true":
+		return typ.Bool(true), nil
+	case "false":
+		return typ.Bool(false), nil
 	}
+
 	if token.Value[0] == ':' {
 		return typ.NewKeyword(token.Value[1:]), nil
 	}
