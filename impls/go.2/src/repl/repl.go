@@ -74,7 +74,12 @@ func Run(driver func(string) (string, error)) error {
 }
 
 func RunEnv(envr core.Env) error {
-	return Run(mkrep(envr))
+	rep := mkrep(envr)
+	if typ.String("A").Equal(envr.Get("*step*")) {
+		//nolint:errcheck
+		rep("(println (str \"Mal [\" *host-language* \"]\"))")
+	}
+	return Run(rep)
 }
 
 // OrExecute runs the REPL if no command-line arguments were given.

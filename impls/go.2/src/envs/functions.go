@@ -45,11 +45,11 @@ var MalFun core.Env = core.Bindings{
 	"empty?":      typ.I(isEmpty),
 	"false?":      typ.I(isFalse),
 	"map?":        typ.I(isX[typ.Map]),
-	"int?":        typ.I(isX[typ.Integer]),
 	"keyword?":    typ.I(isX[typ.Keyword]),
 	"list?":       typ.I(isX[typ.List]),
 	"macro?":      typ.I(isX[typ.Macro]),
 	"nil?":        typ.I(isX[typ.Nil]),
+	"number?":     typ.I(isX[typ.Integer]),
 	"sequential?": typ.I(isSequential),
 	"string?":     typ.I(isX[typ.String]),
 	"symbol?":     typ.I(isX[typ.Symbol]),
@@ -66,7 +66,18 @@ var MalFun core.Env = core.Bindings{
 	"=":           typ.II(equal),
 	"keyword":     typ.I(mkKeyword),
 	"read-string": typ.I(readString),
+	"readline":    typ.I(readline),
 	"slurp":       typ.I(slurp),
 	"symbol":      typ.I(mkSymbol),
 	"throw":       typ.I(typ.Throw),
+
+	// NIY.
+	"time-ms":   typ.Function(nimpl),
+	"meta":      typ.Function(nimpl),
+	"with-meta": typ.Function(nimpl),
+	"fn?":       typ.Function(nimpl),
+	"seq":       typ.Function(nimpl),
+	"conj":      typ.Function(nimpl),
 }.AsEnv()
+
+func nimpl(...core.Value) core.Value { return typ.Throwf("not implemented") }

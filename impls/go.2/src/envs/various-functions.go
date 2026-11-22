@@ -1,6 +1,8 @@
 package envs
 
 import (
+	"bufio"
+	"fmt"
 	"os"
 
 	"github.com/mooss/mal/src/core"
@@ -47,6 +49,20 @@ func mkSymbol(name core.Value) core.Value {
 		return err
 	}
 	return typ.NewSymbol(namestr)
+}
+
+// readline reads a line of input from the user and returns it as a string.
+// Returns nil when finding EOF.
+func readline(prompt typ.String) core.Value {
+	fmt.Print(prompt.Unbox())
+	scanner := bufio.NewScanner(os.Stdin)
+	if scanner.Scan() {
+		return typ.NewString(scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return typ.ThrowErr(err)
+	}
+	return typ.Nil{}
 }
 
 // readString parses the first form of the given source string and returns it.
