@@ -37,13 +37,15 @@ func prStr(args ...core.Value) core.Value {
 
 // rawString returns the raw (unescaped) string representation of a value.
 func rawString(val core.Value) string {
-	switch value := val.(type) {
+	switch typed := val.(type) {
 	case typ.String:
-		return value.Unbox()
+		return typed.Unbox()
 	case typ.List:
-		return "(" + strings.Join(fun.Map(rawString, value), " ") + ")"
+		return "(" + strings.Join(fun.Map(rawString, typed), " ") + ")"
 	case typ.Vector:
-		return "[" + strings.Join(fun.Map(rawString, value), " ") + "]"
+		return "[" + strings.Join(fun.Map(rawString, typed), " ") + "]"
+	case typ.Map:
+		return "{" + strings.Join(fun.MapFlat(rawString, typed), " ") + "}"
 	}
 	return val.String()
 }

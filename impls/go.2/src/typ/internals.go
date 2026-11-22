@@ -7,18 +7,6 @@ import (
 	"github.com/mooss/mal/src/core"
 )
 
-func _mapflat[From comparable, To any](fun func(From) To, source map[From]From) []To {
-	res := make([]To, len(source)*2)
-	i := 0
-	for k, v := range source {
-		res[i] = fun(k)
-		i++
-		res[i] = fun(v)
-		i++
-	}
-	return res
-}
-
 /////////////////////
 // Type assertions //
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/mooss/mal/src/core"
+	"github.com/mooss/mal/src/fun"
 	"github.com/mooss/mal/src/ut"
 )
 
@@ -24,7 +25,7 @@ func (m Map) Equal(other core.Value) bool { return mapEq(m, other) }
 func (m Map) Eval(core.Env) core.Value    { return m }
 
 func (m Map) String() string {
-	return "{" + strings.Join(_mapflat(core.Value.String, m), " ") + "}"
+	return "{" + strings.Join(fun.MapFlat(core.Value.String, m), " ") + "}"
 }
 func (Map) Type() core.TypeName { return core.MAP }
 
