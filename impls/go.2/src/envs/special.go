@@ -78,7 +78,7 @@ func specIf(envr core.Env, args ...core.Value) core.Value {
 // tryStar implement Mal's try/catch exception mechanism.
 func tryStar(envr core.Env, attempt core.Value, catch core.Value) core.Value {
 	catchList, isList := catch.(typ.List)
-	if !isList || len(catchList) != 3 || !typ.Symbol("catch*").Equal(catchList[0]) {
+	if !isList || len(catchList) != 3 || !typ.NewSymbol("catch*").Equal(catchList[0]) {
 		msg := "invalid catch clause, expected a list (catch* exception handler), got %T %#s"
 		return typ.Fatalf(msg, catch, catch)
 	}
@@ -100,7 +100,7 @@ func tryStar(envr core.Env, attempt core.Value, catch core.Value) core.Value {
 		return fatal
 	}
 
-	catchEnv := envr.Nest(core.Bindings{string(symbol): throwable.Mal()})
+	catchEnv := envr.Nest(core.Bindings{symbol.Unbox(): throwable.Mal()})
 	return typ.Tail(catchEnv, catchList[2])
 }
 
@@ -114,7 +114,7 @@ func def(envr core.Env, key typ.Symbol, value core.Value) core.Value {
 		return evald
 	}
 
-	envr.Set(string(key), evald)
+	envr.Set(key.Unbox(), evald)
 	return evald
 }
 
@@ -126,7 +126,7 @@ func defMacro(envr core.Env, key typ.Symbol, impl core.Value) core.Value {
 	}
 
 	macroed := typ.Macro(evald)
-	envr.Set(string(key), macroed)
+	envr.Set(key.Unbox(), macroed)
 	return macroed
 }
 
@@ -166,7 +166,7 @@ func letStar(envr core.Env, bindings core.Value, form core.Value) core.Value {
 			return value
 		}
 
-		letenv.Set(string(key), value)
+		letenv.Set(key.Unbox(), value)
 	}
 
 	return typ.Tail(letenv, form)
@@ -188,7 +188,7 @@ func fnStar(envr core.Env, paramlist core.Value, body core.Value) core.Value {
 		return err
 	}
 
-	amperpos := slices.Index(symlist, typ.Symbol("&"))
+	amperpos := slices.Index(symlist, typ.NewSymbol("&"))
 	if amperpos < 0 {
 		return typ.Function(mkFixedClosure(envr, symlist, body))
 	}
@@ -196,7 +196,7 @@ func fnStar(envr core.Env, paramlist core.Value, body core.Value) core.Value {
 		return typ.Throwf("invalid & in lambda params, must be right before the last symbol")
 	}
 
-	rest := string(symlist[amperpos+1])
+	rest := symlist[amperpos+1].Unbox()
 	return typ.Function(mkVariadicClosure(envr, symlist[:amperpos], rest, body))
 }
 
@@ -219,7 +219,7 @@ func quasiquoteImpl(ast core.Value) core.Value {
 	case typ.List:
 		return quasiquoteList(typed)
 	case typ.VectorForm: // Must be a vector-form because it is meant to run before evaluation.
-		return typ.List{typ.Symbol("vec"), quasiquotePlainList(typ.List(typed))}
+		return typ.List{typ.NewSymbol("vec"), quasiquotePlainList(typ.List(typed))}
 	case typ.Map, typ.MapForm, typ.Symbol:
 		return typ.Quote(typed)
 	default:
@@ -233,7 +233,7 @@ func quasiquoteList(ast typ.List) core.Value {
 		return ast
 	}
 
-	if typ.Symbol("unquote").Equal(ast[0]) {
+	if typ.NewSymbol("unquote").Equal(ast[0]) {
 		if err := typ.ExpectNArgs(2, ast); err.NotNil() {
 			return err.Qualify("unquote")
 		}
@@ -248,15 +248,15 @@ func quasiquotePlainList(ast typ.List) core.Value {
 	res := typ.List{}
 	for _, elt := range slices.Backward(ast) {
 		eltlst, isList := elt.(typ.List)
-		if isList && len(eltlst) > 0 && typ.Symbol("splice-unquote").Equal(eltlst[0]) {
+		if isList && len(eltlst) > 0 && typ.NewSymbol("splice-unquote").Equal(eltlst[0]) {
 			if err := typ.ExpectNArgs(2, eltlst); err.NotNil() {
 				return err.Qualify("splice-unquote")
 			}
-			res = typ.List{typ.Symbol("concat"), eltlst[1], res}
+			res = typ.List{typ.NewSymbol("concat"), eltlst[1], res}
 			continue
 		}
 
-		res = typ.List{typ.Symbol("cons"), quasiquoteImpl(elt), res}
+		res = typ.List{typ.NewSymbol("cons"), quasiquoteImpl(elt), res}
 	}
 	return res
 }
@@ -278,7 +278,7 @@ func mkFixedClosure(
 
 		bindings := core.Bindings{}
 		for i, sym := range symlist {
-			bindings[string(sym)] = args[i]
+			bindings[sym.Unbox()] = args[i]
 		}
 		return typ.Tail(envr.Nest(bindings), body)
 	}
@@ -296,7 +296,7 @@ func mkVariadicClosure(
 
 		bindings := core.Bindings{}
 		for i, sym := range symlist {
-			bindings[string(sym)] = args[i]
+			bindings[sym.Unbox()] = args[i]
 		}
 
 		rest := make(typ.List, len(args)-len(symlist))

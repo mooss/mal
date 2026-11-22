@@ -25,16 +25,10 @@ func extendMap(dest typ.Map, args ...core.Value) core.Value {
 
 // goString returns the raw Go string underlying a Keyword, String or Symbol.
 func goString(arg core.Value) (string, typ.Fatal) {
-	switch typed := arg.(type) {
-	case typ.Keyword:
-		return string(typed), typ.Fatal{}
-	case typ.String:
-		return typed.Unbox(), typ.Fatal{}
-	case typ.Symbol:
-		return string(typed), typ.Fatal{}
-	default:
-		return "", typ.Expected("keyword, string or symbol", arg)
+	if str, ok := arg.(interface{ Unbox() string }); ok {
+		return str.Unbox(), typ.Fatal{}
 	}
+	return "", typ.Expected("keyword, string or symbol", arg)
 }
 
 // mkKeyword creates a new keyword from a keyword, string or symbol.
@@ -43,7 +37,7 @@ func mkKeyword(name core.Value) core.Value {
 	if err.NotNil() {
 		return err
 	}
-	return typ.Keyword(namestr)
+	return typ.NewKeyword(namestr)
 }
 
 // mkSymbol creates a new symbol from a keyword, string or symbol.
@@ -52,7 +46,7 @@ func mkSymbol(name core.Value) core.Value {
 	if err.NotNil() {
 		return err
 	}
-	return typ.Symbol(namestr)
+	return typ.NewSymbol(namestr)
 }
 
 // readString parses the first form of the given source string and returns it.

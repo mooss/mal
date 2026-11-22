@@ -6,7 +6,7 @@ import (
 )
 
 // Kyw builds a keyword.
-func Kyw(s string) typ.Keyword { return typ.Keyword(s) }
+var Kyw = typ.NewKeyword
 
 // Lst builds a Lst form.
 var Lst = typ.NewList
@@ -27,10 +27,10 @@ func Nil() typ.Nil { return typ.Nil{} }
 func Int(n int64) typ.Integer { return typ.Integer(n) }
 
 // Str builds a String.
-func Str(s string) typ.String { return typ.NewString(s) }
+var Str = typ.NewString
 
 // Sym builds a Symbol.
-func Sym(s string) typ.Symbol { return typ.Symbol(s) }
+var Sym = typ.NewSymbol
 
 // Values gather several values into a slice.
 func Values(args ...core.Value) []core.Value { return args }

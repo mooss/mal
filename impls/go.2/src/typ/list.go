@@ -18,7 +18,7 @@ type List []core.Value
 func NewList(elements ...core.Value) List { return List(elements) }
 
 // Quote builds a quoted value, i.e. a list with two elements, the symbol quote and the given value.
-func Quote(v core.Value) List { return NewList(Symbol("quote"), v) }
+func Quote(v core.Value) List { return NewList(NewSymbol("quote"), v) }
 
 func (lst List) Equal(other core.Value) bool { return sliceEq(lst, other, core.Value.Equal) }
 

@@ -20,9 +20,9 @@ func TestListEvalPropagatesFatalFromHeadAndArguments(t *testing.T) {
 	fun := typ.Function(func(...core.Value) core.Value { return typ.Integer(0) })
 
 	for _, lst := range []typ.List{
-		{typ.Symbol("failure"), typ.Integer(1), typ.Integer(2)},
-		{fun, typ.Symbol("failure"), typ.Integer(2)},
-		{fun, typ.Integer(1), typ.Symbol("failure")},
+		{typ.NewSymbol("failure"), typ.Integer(1), typ.Integer(2)},
+		{fun, typ.NewSymbol("failure"), typ.Integer(2)},
+		{fun, typ.Integer(1), typ.NewSymbol("failure")},
 	} {
 		got := lst.Eval(envr)
 		requireError(t, got)
@@ -173,7 +173,7 @@ func TestListEvalSpecialReceivesEnvAndRawArgs(t *testing.T) {
 		gotArgs = append([]core.Value(nil), args...)
 		return typ.Integer(0)
 	})
-	rawFirst := typ.Symbol("x")
+	rawFirst := typ.NewSymbol("x")
 	rawSecond := typ.Integer(7)
 	lst := typ.List{spe, rawFirst, rawSecond}
 	lst.Eval(envr)
@@ -205,7 +205,7 @@ func TestListEvalFatalOperatorForwards(t *testing.T) {
 	fatal := typ.Fatalf("head failure")
 	envr := core.NewEnv()
 	envr.Set("bad", fatal)
-	lst := typ.List{typ.Symbol("bad"), typ.Integer(1), typ.Integer(2)}
+	lst := typ.List{typ.NewSymbol("bad"), typ.Integer(1), typ.Integer(2)}
 	got := lst.Eval(envr)
 	requireError(t, got)
 	if got.String() != fatal.String() {

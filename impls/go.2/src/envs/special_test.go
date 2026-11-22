@@ -312,10 +312,10 @@ func TestSymbolViaQuoteMustEval(t *testing.T) {
 	// Quoting prevents symbol lookup, so this works with an env that does not contain my-sym and
 	// proves Quote returns the raw unevaluated form.
 	got := tr.MustEvalAs[typ.Symbol](envr, "'my-sym")
-	tr.Equal(string(got), "my-sym")
+	tr.Equal(got.Unbox(), "my-sym")
 	tr.Repr[typ.Symbol](got, "my-sym")
 
 	// Direct Symbol trivial behaviour (no env lookup).
-	direct := typ.Symbol("foo")
+	direct := typ.NewSymbol("foo")
 	tr.Repr[typ.Symbol](direct, "foo")
 }

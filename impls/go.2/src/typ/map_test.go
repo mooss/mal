@@ -47,7 +47,7 @@ func TestMapLitEvalAcceptsOnlySupportedKeyTypes(t *testing.T) {
 		typ.Integer(1),
 		typ.String("key"),
 		//TODO: add Quote type or proper list application support to test symbols as map keys.
-		// typ.List{typ.Symbol("quote"), typ.Symbol("sym")},
+		// typ.List{typ.NewSymbol("quote"), typ.NewSymbol("sym")},
 		typ.Nil{},
 	} {
 		got := typ.MapForm{{Key: key, Value: typ.Integer(2)}}.Eval(core.NewEnv())
@@ -104,13 +104,13 @@ func TestMapLitEvalPropagatesFatalFromKeyAndValue(t *testing.T) {
 	envr := core.NewEnv()
 	envr.Set("failure", fatal)
 
-	got := typ.MapForm{{Key: typ.Symbol("failure"), Value: typ.Integer(1)}}.Eval(envr)
+	got := typ.MapForm{{Key: typ.NewSymbol("failure"), Value: typ.Integer(1)}}.Eval(envr)
 	requireError(t, got)
 	if got.String() != fatal.String() {
 		t.Errorf("key fatal = %s, want %s", got.String(), fatal.String())
 	}
 
-	got = typ.MapForm{{Key: typ.Integer(1), Value: typ.Symbol("failure")}}.Eval(envr)
+	got = typ.MapForm{{Key: typ.Integer(1), Value: typ.NewSymbol("failure")}}.Eval(envr)
 	requireError(t, got)
 	if got.String() != fatal.String() {
 		t.Errorf("value fatal = %s, want %s", got.String(), fatal.String())

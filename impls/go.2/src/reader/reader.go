@@ -202,9 +202,9 @@ func (*Reader) readSymbol(token lexer.Token) (core.Value, error) {
 		return typ.Nil{}, nil
 	}
 	if token.Value[0] == ':' {
-		return typ.Keyword(token.Value[1:]), nil
+		return typ.NewKeyword(token.Value[1:]), nil
 	}
-	return typ.Symbol(token.Value), nil
+	return typ.NewSymbol(token.Value), nil
 }
 
 // readString constructs a string from the given input token.
@@ -245,5 +245,5 @@ func (r *Reader) expandSigil(symbol string) (core.Value, error) {
 		return nil, err
 	}
 
-	return typ.NewList(typ.Symbol(symbol), quoted), nil
+	return typ.NewList(typ.NewSymbol(symbol), quoted), nil
 }

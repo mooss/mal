@@ -44,10 +44,13 @@ func (i Integer) Unbox() int64                { return int64(i) }
 // Keyword is a Mal keyword value, written with a leading colon.
 type Keyword string
 
+func NewKeyword(s string) Keyword { return Keyword(s) }
+
 func (k Keyword) Equal(other core.Value) bool { return TrivialEq(k, other) }
 func (k Keyword) Eval(core.Env) core.Value    { return k }
 func (k Keyword) String() string              { return ":" + string(k) }
 func (Keyword) Type() core.TypeName           { return core.TypeName("keyword") }
+func (k Keyword) Unbox() string               { return string(k) }
 
 // Nil is the Mal nil value.
 type Nil struct{}
@@ -71,6 +74,8 @@ func (s String) Unbox() string               { return string(s) }
 // Symbol is a Mal symbol value.
 type Symbol string
 
+func NewSymbol(s string) Symbol { return Symbol(s) }
+
 func (s Symbol) Equal(other core.Value) bool { return TrivialEq(s, other) }
 
 func (s Symbol) Eval(envr core.Env) core.Value {
@@ -83,3 +88,4 @@ func (s Symbol) Eval(envr core.Env) core.Value {
 
 func (s Symbol) String() string    { return string(s) }
 func (Symbol) Type() core.TypeName { return core.SYMBOL }
+func (s Symbol) Unbox() string     { return string(s) }
