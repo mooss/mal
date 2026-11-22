@@ -32,14 +32,14 @@ func prn(args ...core.Value) core.Value {
 
 // prStr returns the string representations of the arguments joined by spaces.
 func prStr(args ...core.Value) core.Value {
-	return typ.String(strings.Join(fun.Map(core.Value.String, args), " "))
+	return typ.NewString(strings.Join(fun.Map(core.Value.String, args), " "))
 }
 
 // rawString returns the raw (unescaped) string representation of a value.
 func rawString(val core.Value) string {
 	switch value := val.(type) {
 	case typ.String:
-		return string(value)
+		return value.Unbox()
 	case typ.List:
 		return "(" + strings.Join(fun.Map(rawString, value), " ") + ")"
 	case typ.Vector:
@@ -50,5 +50,5 @@ func rawString(val core.Value) string {
 
 // str concatenates the raw representations of the arguments into a single string.
 func str(args ...core.Value) core.Value {
-	return typ.String(strings.Join(fun.Map(rawString, args), ""))
+	return typ.NewString(strings.Join(fun.Map(rawString, args), ""))
 }

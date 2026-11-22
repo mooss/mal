@@ -27,7 +27,7 @@ func Nil() typ.Nil { return typ.Nil{} }
 func Int(n int64) typ.Integer { return typ.Integer(n) }
 
 // Str builds a String.
-func Str(s string) typ.String { return typ.String(s) }
+func Str(s string) typ.String { return typ.NewString(s) }
 
 // Sym builds a Symbol.
 func Sym(s string) typ.Symbol { return typ.Symbol(s) }

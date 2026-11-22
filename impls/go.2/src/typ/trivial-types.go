@@ -60,10 +60,13 @@ func (Nil) Type() core.TypeName         { return core.NIL }
 // String is a Mal string value.
 type String string
 
+func NewString(s string) String { return String(s) }
+
 func (s String) Equal(other core.Value) bool { return TrivialEq(s, other) }
 func (s String) Eval(core.Env) core.Value    { return s }
 func (s String) String() string              { return strfun.MalQuote(string(s)) }
 func (String) Type() core.TypeName           { return core.STRING }
+func (s String) Unbox() string               { return string(s) }
 
 // Symbol is a Mal symbol value.
 type Symbol string

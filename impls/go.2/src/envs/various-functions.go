@@ -29,7 +29,7 @@ func goString(arg core.Value) (string, typ.Fatal) {
 	case typ.Keyword:
 		return string(typed), typ.Fatal{}
 	case typ.String:
-		return string(typed), typ.Fatal{}
+		return typed.Unbox(), typ.Fatal{}
 	case typ.Symbol:
 		return string(typed), typ.Fatal{}
 	default:
@@ -57,9 +57,9 @@ func mkSymbol(name core.Value) core.Value {
 
 // readString parses the first form of the given source string and returns it.
 func readString(source typ.String) core.Value {
-	res, err := reader.ParseOne(string(source))
+	res, err := reader.ParseOne(source.Unbox())
 	if err != nil {
-		return typ.Throw(typ.String(err.Error()))
+		return typ.Throw(typ.NewString(err.Error()))
 	}
 
 	return res
@@ -67,10 +67,10 @@ func readString(source typ.String) core.Value {
 
 // slurp reads the whole file at the given path and returns its contents as a string.
 func slurp(path typ.String) core.Value {
-	res, err := os.ReadFile(string(path))
+	res, err := os.ReadFile(path.Unbox())
 	if err != nil {
-		return typ.Throw(typ.String(err.Error()))
+		return typ.Throw(typ.NewString(err.Error()))
 	}
 
-	return typ.String(res)
+	return typ.NewString(string(res))
 }

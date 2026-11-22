@@ -24,7 +24,7 @@ func NewFatal(source error) Fatal { return Fatal{damn.From(source)} }
 func Throw(val core.Value) Fatal { return Fatal{damn.Throw(val)} }
 func ThrowErr(err error) Fatal   { return Fatal{&ThrowableError{err}} }
 func Throwf(format string, args ...any) Fatal {
-	return Fatal{damn.Throw(String(fmt.Sprintf(format, args...)))}
+	return Fatal{damn.Throw(NewString(fmt.Sprintf(format, args...)))}
 }
 
 // Fatal errors are never equal.
@@ -68,4 +68,4 @@ type ThrowableError struct {
 	error
 }
 
-func (te *ThrowableError) Mal() core.Value { return String(te.Error()) }
+func (te *ThrowableError) Mal() core.Value { return NewString(te.Error()) }

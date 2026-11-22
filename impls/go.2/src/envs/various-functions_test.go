@@ -100,7 +100,7 @@ func TestSlurp(t *testing.T) {
 		}
 		input := fmt.Sprintf(`(slurp %q)`, path)
 		got := tr.MustEvalAs[typ.String](envs.MalFun, input)
-		tr.Equal(string(got), content)
+		tr.Equal(got.Unbox(), content)
 	})
 
 	tr.Run("missing file returns Fatal without panic", func(tr assert.T) {

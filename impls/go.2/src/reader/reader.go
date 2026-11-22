@@ -214,7 +214,7 @@ func (r *Reader) readString(token lexer.Token) (core.Value, error) {
 		return nil, r.wrap(err)
 	}
 
-	return typ.String(res), nil
+	return typ.NewString(res), nil
 }
 
 // readSigil dispatches on the sigil value, allowing longer prefixes (e.g. ->) later.

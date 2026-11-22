@@ -23,7 +23,7 @@ func TestNewMapFormRejectsOddLength(t *testing.T) {
 }
 
 func TestMapFormValuesRoundTrip(t *testing.T) {
-	vals := []core.Value{typ.Integer(1), typ.Integer(2), typ.String("a"), typ.Nil{}}
+	vals := []core.Value{typ.Integer(1), typ.Integer(2), typ.NewString("a"), typ.Nil{}}
 	form, err := typ.NewMapForm(vals...)
 	if err != nil {
 		t.Fatalf("NewMapForm() returned error: %v", err)

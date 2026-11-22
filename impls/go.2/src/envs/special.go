@@ -134,7 +134,7 @@ func defMacro(envr core.Env, key typ.Symbol, impl core.Value) core.Value {
 // It is not a part of Mal but a useful addition to troubleshoot env problems.
 func env(envr core.Env) typ.Vector {
 	mkassoc := func(key string, value core.Value) core.Value {
-		return typ.Vector{typ.String(key), value}
+		return typ.Vector{typ.NewString(key), value}
 	}
 	return lazy.CollectHint(
 		lazy.Map2(mkassoc, envr.IterAssocs()),

@@ -48,7 +48,7 @@ func TestAsSeqAllValidNoError(t *testing.T) {
 func TestAsSeqBadTypeStopsIteration(t *testing.T) {
 	seq, getErr := typ.AsSeq[typ.Integer](
 		typ.Integer(1),
-		typ.String("oops"),
+		typ.NewString("oops"),
 		typ.Integer(3),
 	)
 	got := slices.Collect(seq)

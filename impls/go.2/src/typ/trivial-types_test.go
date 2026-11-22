@@ -61,9 +61,9 @@ func TestStringMustEval(t *testing.T) {
 		input string
 		want  typ.String
 	}{
-		{`"hello"`, typ.String("hello")},
-		{`""`, typ.String("")},
-		{`"a b"`, typ.String("a b")},
+		{`"hello"`, typ.NewString("hello")},
+		{`""`, typ.NewString("")},
+		{`"a b"`, typ.NewString("a b")},
 	} {
 		got := tr.MustEvalAs[typ.String](envr, tc.input)
 		tr.Equal(got, tc.want)
@@ -73,7 +73,7 @@ func TestStringMustEval(t *testing.T) {
 	}
 
 	// String prints quoted.
-	s := typ.String("hi")
+	s := typ.NewString("hi")
 	tr.Trivial[typ.String](envr, s, `"hi"`)
 	tr.SelfEval(envr, s)
 }

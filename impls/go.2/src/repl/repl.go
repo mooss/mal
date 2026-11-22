@@ -90,7 +90,7 @@ func OrExecute(envr core.Env, args ...string) error {
 		return err
 	}
 
-	mkstr := func(s string) core.Value { return typ.String(s) }
+	mkstr := func(s string) core.Value { return typ.NewString(s) }
 	envr.Set("*ARGV*", typ.List(fun.Map(mkstr, args[1:])))
 	return executeAll(envr, string(program))
 }
