@@ -44,6 +44,7 @@ var MalFun core.Env = core.Bindings{
 	"bool?":       typ.I(isX[typ.Bool]),
 	"empty?":      typ.I(isEmpty),
 	"false?":      typ.I(isFalse),
+	"fn?":         typ.I(isX[typ.Function]),
 	"map?":        typ.I(isX[typ.Map]),
 	"keyword?":    typ.I(isX[typ.Keyword]),
 	"list?":       typ.I(isX[typ.List]),
@@ -75,7 +76,6 @@ var MalFun core.Env = core.Bindings{
 	"time-ms":   typ.Function(nimpl),
 	"meta":      typ.Function(nimpl),
 	"with-meta": typ.Function(nimpl),
-	"fn?":       typ.Function(nimpl),
 	"seq":       typ.Function(nimpl),
 	"conj":      typ.Function(nimpl),
 }.AsEnv()
