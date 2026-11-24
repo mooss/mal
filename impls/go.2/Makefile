@@ -11,3 +11,6 @@ test:
 
 fmt:
 	@go fmt ./...
+
+update-harper:
+	@go get github.com/mooss/harper/go && go mod tidy

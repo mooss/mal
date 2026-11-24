@@ -86,18 +86,18 @@ func (r *Reader) readForm() (core.Value, error) {
 	token := r.Next()
 	switch token.Type {
 	// Balanced expressions.
-	case lexer.TOKEN_DELIMITER:
+	case lexer.KindDelimiter:
 		return r.dispatchDelim(token.Value)
 	// Quotes, atoms and errors.
-	case lexer.TOKEN_ERROR:
+	case lexer.KindError:
 		return nil, r.err("unexpected error token")
-	case lexer.TOKEN_SIGIL:
+	case lexer.KindSigil:
 		return r.readSigil(token)
-	case lexer.TOKEN_DQS:
+	case lexer.KindDQS:
 		return r.readString(token)
-	case lexer.TOKEN_INT:
+	case lexer.KindInt:
 		return r.readInt(token)
-	case lexer.TOKEN_SYMBOL:
+	case lexer.KindSymbol:
 		return r.readSymbol(token)
 	default:
 		return nil, r.err("unexpected token type")
@@ -134,7 +134,7 @@ func (r *Reader) seekDelim(delim string) (core.Value, error) {
 		return nil, r.errf("unbalanced expression (missing %q)", delim)
 	}
 
-	if r.Peek().Type == lexer.TOKEN_DELIMITER && r.Peek().Value == delim {
+	if r.Peek().Type == lexer.KindDelimiter && r.Peek().Value == delim {
 		r.position++
 		return nil, nil
 	}

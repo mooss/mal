@@ -10,22 +10,22 @@ import (
 )
 
 const (
-	DQS       = lexer.TOKEN_DQS
-	INT       = lexer.TOKEN_INT
-	DELIMITER = lexer.TOKEN_DELIMITER
-	LBRACE    = lexer.TOKEN_DELIMITER
-	LBRACKET  = lexer.TOKEN_DELIMITER
-	LPAREN    = lexer.TOKEN_DELIMITER
-	RBRACE    = lexer.TOKEN_DELIMITER
-	RBRACKET  = lexer.TOKEN_DELIMITER
-	RPAREN    = lexer.TOKEN_DELIMITER
-	SIGIL     = lexer.TOKEN_SIGIL
-	SYMBOL    = lexer.TOKEN_SYMBOL
+	DQS       = lexer.KindDQS
+	INT       = lexer.KindInt
+	DELIMITER = lexer.KindDelimiter
+	LBRACE    = lexer.KindDelimiter
+	LBRACKET  = lexer.KindDelimiter
+	LPAREN    = lexer.KindDelimiter
+	RBRACE    = lexer.KindDelimiter
+	RBRACKET  = lexer.KindDelimiter
+	RPAREN    = lexer.KindDelimiter
+	SIGIL     = lexer.KindSigil
+	SYMBOL    = lexer.KindSymbol
 )
 
 type tokensCase = tut.Case[[]lexer.Token]
 
-func tok(typ lexer.TokenType, val string) lexer.Token {
+func tok(typ lexer.Kind, val string) lexer.Token {
 	return lexer.Token{Type: typ, Value: val}
 }
 
@@ -98,7 +98,7 @@ func TestTokenizeStrings(t *testing.T) {
 }
 
 // specialTokenCases builds test cases for delimiters and sigils.
-func specialTokenCases(lexem string, typ lexer.TokenType) []tokensCase {
+func specialTokenCases(lexem string, typ lexer.Kind) []tokensCase {
 	one := tok(typ, lexem)
 	symFoo := tok(SYMBOL, "foo")
 	symBar := tok(SYMBOL, "bar")
@@ -128,7 +128,7 @@ func specialTokenCases(lexem string, typ lexer.TokenType) []tokensCase {
 }
 
 func TestTokenizeSingleCharTokens(t *testing.T) {
-	tut.Run(t, []tut.Case[lexer.TokenType]{
+	tut.Run(t, []tut.Case[lexer.Kind]{
 		{Name: "lparen", Input: "(", Want: LPAREN},
 		{Name: "rparen", Input: ")", Want: RPAREN},
 		{Name: "lbracket", Input: "[", Want: LBRACKET},
@@ -140,7 +140,7 @@ func TestTokenizeSingleCharTokens(t *testing.T) {
 		{Name: "tilde", Input: "~", Want: SIGIL},
 		{Name: "@", Input: "@", Want: SIGIL},
 		{Name: "~@", Input: "~@", Want: SIGIL},
-	}, func(t *testing.T, c tut.Case[lexer.TokenType]) {
+	}, func(t *testing.T, c tut.Case[lexer.Kind]) {
 		t.Helper()
 		runTokenCases(t, specialTokenCases(c.Input, c.Want))
 	})
