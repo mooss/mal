@@ -15,7 +15,7 @@ var mal = lex.Dialect[Kind]{
 	Rules: []lex.Rule[Kind]{ //TODO: reorder?
 		lex.AnyOf("()[]{}", KindDelimiter),
 		lex.Quoted('"', '\\', lex.LexicalFailure("unbalanced double quote"), KindDQS),
-		lex.LongestPrefix(KindSigil, "'", "`", "~@", "~", "@"),
+		lex.FirstPrefix(KindSigil, "'", "`", "~@", "~", "@"),
 		lex.SignedInt(lex.IsDigitASCII, malBoundary, KindInt),
 		lex.Symbol(isMalStart, isMalRest, malBoundary, KindSymbol),
 	},

@@ -4,8 +4,10 @@ github.com/chzyer/readline v1.5.1 h1:upd/6fQk4src78LMRzh5vItIt361/o4uq553V8B5sGI
 github.com/chzyer/readline v1.5.1/go.mod h1:Eh+b79XXUwfKfcPLepksvw2tcLE/Ct21YObkaSkeBlk=
 github.com/chzyer/test v1.0.0 h1:p3BQDXSxOhOG0P9z6/hGnII4LGiEPOYBhs8asl/fC04=
 github.com/chzyer/test v1.0.0/go.mod h1:2JlltgoNkt4TW/z9V/IzDdFaMTM2JPIi26O1pF38GC8=
-github.com/mooss/harper/go v0.0.0-20261124161910-20a9071a0364 h1:dwKl3R7YTv99bWyFXq47re/RUiUpzl/crcOleEBs8Pk=
-github.com/mooss/harper/go v0.0.0-20261124161910-20a9071a0364/go.mod h1:JCGTqjZKrOGrHlSGgHQTWEONOZSAr7ayClOOu8j8Egg=
+github.com/mooss/bagend v0.0.0-20261029203934-7662722cd564 h1:nZQ+kk4umjFAXDmKA7gKebmBzk6VpuavD9ME9DY+fQQ=
+github.com/mooss/bagend v0.0.0-20261029203934-7662722cd564/go.mod h1:75SsRhK4iinAN9Lnotsj+ZgPjFYSQJ9kaZE27P12ENw=
+github.com/mooss/harper/go v0.0.0-20261124170548-3a7056df5d4e h1:iFuoLySh7iDyGcmA/t2pBiPyXn8fRpBP8Z7D23cYvh4=
+github.com/mooss/harper/go v0.0.0-20261124170548-3a7056df5d4e/go.mod h1:6w8pTcHM8WHu6d2HUt1gVbi2kqs5l/4H2/t5QPkUruU=
 golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.50.0 h1:dkKZEFTEKaLr1sjhs0WiKqoi8Jj5nHbS3Njmx1UoMJs=
 golang.org/x/sys v0.50.0/go.mod h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og=
