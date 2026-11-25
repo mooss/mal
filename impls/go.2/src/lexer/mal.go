@@ -1,14 +1,13 @@
 package lexer
 
 import (
-	"iter"
-	"slices"
 	"strings"
 
+	"github.com/mooss/harper/go/core"
 	"github.com/mooss/harper/go/lex"
 )
 
-type Token = lex.Token[Kind]
+type Token = core.Token[Kind]
 
 var mal = lex.Dialect[Kind]{
 	Whitespace:  lex.InSet(" \t\n\r,"),
@@ -22,13 +21,17 @@ var mal = lex.Dialect[Kind]{
 	},
 }
 
-func TokenIterator(input string) (iter.Seq[Token], func() error) {
-	return lex.TokenIterator(input, mal.Scanner())
-}
-
 func Tokenize(input string) ([]Token, error) {
-	tokenit, geterr := TokenIterator(input)
-	return slices.Collect(tokenit), geterr()
+	// Potentially returning a nil slice on success and the partial result on failure is not what I
+	// would do typically but the tests have been written with that expectation.
+	var res []Token
+	for tok, err := range lex.TokenIterator(input, mal.Scanner()) {
+		if err != nil {
+			return res, err
+		}
+		res = append(res, tok)
+	}
+	return res, nil
 }
 
 //revive:disable:line-length-limit

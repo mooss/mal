@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/mooss/harper/go/lex"
+	hcore "github.com/mooss/harper/go/core"
 	"github.com/mooss/harper/go/rad"
 	"github.com/mooss/mal/src/core"
 	"github.com/mooss/mal/src/lexer"
@@ -68,14 +68,14 @@ func buildMap(v []core.Value) (core.Value, error) {
 
 func buildVector(v []core.Value) (core.Value, error) { return typ.VectorForm(v), nil }
 
-func readInt(tok lex.Token[lexer.Kind]) (core.Value, error) {
+func readInt(tok hcore.Token[lexer.Kind]) (core.Value, error) {
 	i, err := strconv.ParseInt(tok.Value, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read %q as int: %w", tok.Value, err)
 	}
 	return typ.Integer(i), nil
 }
-func readString(tok lex.Token[lexer.Kind]) (core.Value, error) {
+func readString(tok hcore.Token[lexer.Kind]) (core.Value, error) {
 	s, err := strfun.MalUnquote(tok.Value)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func readString(tok lex.Token[lexer.Kind]) (core.Value, error) {
 	return typ.NewString(s), nil
 }
 
-func readSymbol(tok lex.Token[lexer.Kind]) (core.Value, error) {
+func readSymbol(tok hcore.Token[lexer.Kind]) (core.Value, error) {
 	switch tok.Value {
 	case "nil":
 		return typ.Nil{}, nil

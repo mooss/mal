@@ -30,12 +30,8 @@ func tok(typ lexer.Kind, val string) lexer.Token {
 }
 
 func collectTokens(input string) ([]lexer.Token, bool) {
-	seq, errFn := lexer.TokenIterator(input)
-	var got []lexer.Token
-	for t := range seq {
-		got = append(got, t)
-	}
-	return got, errFn() != nil
+	res, err := lexer.Tokenize(input)
+	return res, err != nil
 }
 
 func runTokenCases(t *testing.T, tests []tokensCase) {
@@ -87,7 +83,7 @@ func TestTokenizeStrings(t *testing.T) {
 		{Name: "raw newline no closing", Input: "\"foo\n", WantErr: true},
 		{Name: "raw newline with closing", Input: "\"a\nb\"", Want: []string{"\"a\nb\""}},
 		{Name: "CR with closing", Input: "\"a\rb\"", Want: []string{"\"a\rb\""}},
-		{Name: "invalid utf8 with closing", Input: "\"a\xffb\"", Want: []string{"\"a�b\""}},
+		{Name: "invalid utf8 with closing", Input: "\"a\xffb\"", Want: []string{"\"a\xffb\""}},
 		{Name: "NUL no closing", Input: "\"foo\x00", WantErr: true},
 		{Name: "invalid no closing", Input: "\"foo\xff", WantErr: true},
 		{Name: "two adjacent", Input: `"a""b"`, Want: []string{`"a"`, `"b"`}},
@@ -309,18 +305,6 @@ func TestTokenizeWhitespace(t *testing.T) {
 	}
 
 	runTokenCases(t, tests)
-}
-
-func TestTokenIteratorEarlyBreak(t *testing.T) {
-	seq, errFn := lexer.TokenIterator("(1 2 3)")
-	var got []lexer.Token
-	for tok := range seq {
-		got = append(got, tok)
-		break
-	}
-	assert.Equal(t, len(got), 1)
-	assert.Equal(t, got[0], lexer.Token{Type: LPAREN, Value: "("})
-	assert.NoError(t, errFn())
 }
 
 func TestTokenizeComments(t *testing.T) {
