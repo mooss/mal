@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	ut.Must(repl.Run(func(input string) (string, error) {
+	ut.Must0(repl.Run(func(input string) (string, error) {
 		return input, nil
 	}))
 }

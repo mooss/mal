@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/chzyer/readline v1.5.1
-	github.com/mooss/harper/go v0.0.0-20261124170548-3a7056df5d4e
+	github.com/mooss/harper/go v0.0.0-20261125164743-a698723e1d63
 )
 
 require (

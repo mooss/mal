@@ -14,10 +14,17 @@ func Is[T any](val any) bool {
 ////////////
 // Errors //
 
-func Must(err error) {
+func Must0(err error) {
 	if err != nil {
 		Fatal(err)
 	}
+}
+
+func Must[T any](res T, err error) T {
+	if err != nil {
+		Fatal(err)
+	}
+	return res
 }
 
 func Fatal(err error) {

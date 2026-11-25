@@ -10,6 +10,6 @@ import (
 
 func main() {
 	environment := core.CatEnv(envs.All)
-	ut.Must(lib.StdMal.Load(environment))
-	ut.Must(repl.RunEnv(environment))
+	ut.Must0(lib.StdMal.Load(environment))
+	ut.Must0(repl.RunEnv(environment))
 }

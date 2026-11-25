@@ -9,5 +9,5 @@ import (
 
 func main() {
 	environment := core.CatEnv(envs.Math, envs.MalSpecial)
-	ut.Must(repl.RunEnv(environment))
+	ut.Must0(repl.RunEnv(environment))
 }

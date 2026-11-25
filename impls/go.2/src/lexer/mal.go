@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"iter"
+	"slices"
 	"strings"
 
 	"github.com/mooss/harper/go/lex"
@@ -23,6 +24,11 @@ var mal = lex.Dialect[Kind]{
 
 func TokenIterator(input string) (iter.Seq[Token], func() error) {
 	return lex.TokenIterator(input, mal.Scanner())
+}
+
+func Tokenize(input string) ([]Token, error) {
+	tokenit, geterr := TokenIterator(input)
+	return slices.Collect(tokenit), geterr()
 }
 
 //revive:disable:line-length-limit

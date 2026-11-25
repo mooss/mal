@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	ut.Must(repl.Run(func(input string) (string, error) {
+	ut.Must0(repl.Run(func(input string) (string, error) {
 		parsed, err := reader.ParseOne(input)
 		if err != nil {
 			return "", err

@@ -16,5 +16,5 @@ func main() {
 
 		return parsed.Eval(envs.Math).String(), nil
 	}
-	ut.Must(repl.Run(rep))
+	ut.Must0(repl.Run(rep))
 }

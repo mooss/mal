@@ -29,7 +29,12 @@ func runSingleCases(t assert.T, cases []tut.Case[core.Value]) {
 	t.Helper()
 	t.RunCases("single", func(t assert.T, c tut.Case[core.Value]) {
 		t.Helper()
-		r := reader.ReadStr(c.Input)
+		r, rerr := reader.ReadStr(c.Input)
+		if rerr != nil {
+			t.MustError(rerr)
+			t.Equal(true, c.WantErr)
+			return
+		}
 		got, err := r.ReadForm()
 		if c.WantErr {
 			t.MustError(err)
@@ -44,9 +49,15 @@ func runMultiCases(t assert.T, cases []tut.Case[[]core.Value]) {
 	t.Helper()
 	t.RunCases("multi", func(t assert.T, c tut.Case[[]core.Value]) {
 		t.Helper()
-		r := reader.ReadStr(c.Input)
+		r, rerr := reader.ReadStr(c.Input)
 		var got []core.Value
 		gotErr := false
+		if rerr != nil {
+			t.MustError(rerr)
+			t.Equal(true, c.WantErr)
+			t.MalEqualSlice(got, c.Want)
+			return
+		}
 		for !r.Done() {
 			form, err := r.ReadForm()
 			if err != nil {
@@ -350,7 +361,8 @@ func TestReadMultipleForms(t *testing.T) {
 func TestReaderCursor(t *testing.T) {
 	at := assert.New(t)
 	at.Run("empty done rest", func(t assert.T) {
-		r := reader.ReadStr("")
+		r, rerr := reader.ReadStr("")
+		t.NoError(rerr)
 		t.Equal(r.Done(), true)
 		t.Equal(len(r.Rest()), 0)
 		_, err := r.ReadForm()
@@ -358,7 +370,8 @@ func TestReaderCursor(t *testing.T) {
 	})
 
 	at.Run("peek next rest done", func(t assert.T) {
-		r := reader.ReadStr("1 foo")
+		r, rerr := reader.ReadStr("1 foo")
+		t.NoError(rerr)
 		t.Equal(r.Done(), false)
 		peeked := r.Peek()
 		t.Equal(peeked.Type, lexer.KindInt)
@@ -380,7 +393,8 @@ func TestReaderCursor(t *testing.T) {
 	})
 
 	at.Run("readform advances", func(t assert.T) {
-		r := reader.ReadStr("(1) 2")
+		r, rerr := reader.ReadStr("(1) 2")
+		t.NoError(rerr)
 		first, err := r.ReadForm()
 		t.NoError(err)
 		t.MalEqual(first, lst(num(1)))
